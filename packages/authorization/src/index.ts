@@ -64,6 +64,7 @@ export type JwtValidationResult =
         | 'invalid_signature'
         | 'key_not_found'
         | 'expired'
+        | 'not_active'
         | 'wrong_audience'
         | 'wrong_issuer'
         | 'owner_mismatch'
@@ -317,7 +318,7 @@ export function validateAccessJwtClaims(
 
   // Validate nbf (Not Before) if present
   if (claims.nbf && claims.nbf * 1000 > now.getTime()) {
-    return { valid: false, reason: 'expired' }; // Not active yet
+    return { valid: false, reason: 'not_active' };
   }
 
   if (claims.iss !== expectedIssuer) {

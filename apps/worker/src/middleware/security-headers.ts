@@ -33,6 +33,7 @@ export function securityHeaders(): MiddlewareHandler<{ Bindings: WorkerEnv }> {
       "frame-ancestors 'none'",
       "base-uri 'none'",
       "form-action 'self'",
+      "object-src 'none'",
       "json-schema 'none'",
     ].join('; ');
 

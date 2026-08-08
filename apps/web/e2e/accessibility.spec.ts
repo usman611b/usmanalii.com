@@ -1,17 +1,33 @@
 import { test, expect } from '@playwright/test';
-import { injectAxe, checkA11y } from '@axe-core/playwright';
+import AxeBuilder from '@axe-core/playwright';
 
-test.describe('Accessibility & Keyboard E2E Tests', () => {
-  test('Public home page passes axe accessibility scan', async ({ page }) => {
+test.describe('Playwright + axe-core Live Application Accessibility E2E Tests', () => {
+  
+  test('1. Home page (/) passes axe accessibility scan', async ({ page }) => {
     await page.goto('/');
-    await injectAxe(page);
-    await checkA11y(page, undefined, {
-      detailedReport: true,
-      detailedReportOptions: { html: true },
-    });
+    const results = await new AxeBuilder({ page }).analyze();
+    expect(results.violations).toEqual([]);
   });
 
-  test('Skip link is visible on focus and jumps to main-content', async ({ page }) => {
+  test('2. Recruiter View page (/recruiter) passes axe accessibility scan', async ({ page }) => {
+    await page.goto('/recruiter');
+    const results = await new AxeBuilder({ page }).analyze();
+    expect(results.violations).toEqual([]);
+  });
+
+  test('3. Deep-Dive page (/deep-dive) passes axe accessibility scan', async ({ page }) => {
+    await page.goto('/deep-dive');
+    const results = await new AxeBuilder({ page }).analyze();
+    expect(results.violations).toEqual([]);
+  });
+
+  test('4. Dashboard Shell page (/dashboard) passes axe accessibility scan', async ({ page }) => {
+    await page.goto('/dashboard');
+    const results = await new AxeBuilder({ page }).analyze();
+    expect(results.violations).toEqual([]);
+  });
+
+  test('5. Skip to main content link works via Keyboard Tab', async ({ page }) => {
     await page.goto('/');
     await page.keyboard.press('Tab');
     const skipLink = page.locator('a[href="#main-content"]');
@@ -19,7 +35,7 @@ test.describe('Accessibility & Keyboard E2E Tests', () => {
     await expect(skipLink).toBeVisible();
   });
 
-  test('Mobile menu expands/collapses and handles Escape key', async ({ page }) => {
+  test('6. Mobile navigation overlay toggle & Escape key focus restoration', async ({ page }) => {
     await page.setViewportSize({ width: 375, height: 667 });
     await page.goto('/');
 
@@ -32,15 +48,18 @@ test.describe('Accessibility & Keyboard E2E Tests', () => {
     const mobileMenu = page.locator('#mobile-menu');
     await expect(mobileMenu).toBeVisible();
 
-    // Escape key closes menu
+    // Verify Escape key closes overlay and restores focus
     await page.keyboard.press('Escape');
     await expect(menuBtn).toHaveAttribute('aria-expanded', 'false');
+    await expect(menuBtn).toBeFocused();
   });
 
-  test('Mode switcher updates URL and view_mode cookie on click', async ({ page }) => {
+  test('7. Mode Switcher radiogroup state changes & updates URL', async ({ page }) => {
     await page.goto('/');
-    const recruiterBtn = page.locator('button[role="radio"]:has-text("Recruiter")');
+    const recruiterBtn = page.locator('button[role="radio"]:has-text("Recruiter")').first();
+    await expect(recruiterBtn).toBeVisible();
     await recruiterBtn.click();
     await expect(page).toHaveURL(/\/recruiter/);
   });
+
 });

@@ -269,7 +269,7 @@ describe('validateAccessJwtClaims — Failure Gates', () => {
       OWNER_EMAIL,
     );
     expect(result.valid).toBe(false);
-    if (!result.valid) expect(result.reason).toBe('expired');
+    if (!result.valid) expect(result.reason).toBe('not_active');
   });
 
   it('NEGATIVE: rejects wrong issuer (iss mismatch)', () => {

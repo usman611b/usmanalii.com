@@ -28,6 +28,8 @@
     "@turbo/gen": "^2.3.3",
     "@typescript-eslint/eslint-plugin": "^8.18.0",
     "@typescript-eslint/parser": "^8.18.0",
+    "@playwright/test": "^1.49.1",
+    "@axe-core/playwright": "^4.10.1",
     "eslint": "^9.16.0",
     "eslint-plugin-boundaries": "^5.0.1",
     "eslint-plugin-jsx-a11y": "^6.10.2",
