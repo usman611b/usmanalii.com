@@ -137,4 +137,36 @@ describe('Milestone M4 — Domain Invariant & Graph Rule Tests', () => {
       }).valid,
     ).toBe(false);
   });
+
+  it('5. validateProgressionTransition requires evidence and explicit owner reason for stage skips', async () => {
+    const { validateProgressionTransition } = await import('./graph-invariants');
+
+    // Requires evidence
+    expect(
+      validateProgressionTransition({
+        previousStage: 'observed',
+        newStage: 'applied',
+        supportingEvidenceCount: 0,
+        reason: 'Valid reason string here',
+      }).valid,
+    ).toBe(false);
+
+    // Stage skip requires explicit owner justification
+    const skipShort = validateProgressionTransition({
+      previousStage: 'observed',
+      newStage: 'delivered',
+      supportingEvidenceCount: 2,
+      reason: 'Short reason',
+    });
+    expect(skipShort.valid).toBe(false);
+    expect(skipShort.reason).toContain('Skipping progression stages requires an explicit owner-approved justification');
+
+    const skipLong = validateProgressionTransition({
+      previousStage: 'observed',
+      newStage: 'delivered',
+      supportingEvidenceCount: 2,
+      reason: 'Explicit evidence-backed owner justification for skipping intermediate stage.',
+    });
+    expect(skipLong.valid).toBe(true);
+  });
 });

@@ -676,4 +676,46 @@ describe('Requirement 1 & 2: Database Integrity & Public Scheduling/Embargo Logi
     });
     expect(cap.title).toBe('Design API Boundaries');
   });
+
+  it('10. Milestone M4 Gate 7: processReconciliationQueue handles retries, exponential backoff, and dead-letter queueing', async () => {
+    const { processReconciliationQueue } = await import('./repositories/reconciliation.js');
+
+    const queueItems: any[] = [
+      { id: 'q-1', owner_id: 'owner-1', r2_key: 'artifacts/owner-1/test.pdf', attempts: 0, status: 'pending', created_at: '2026-08-01T00:00:00Z' },
+      { id: 'q-2', owner_id: 'owner-1', r2_key: 'artifacts/owner-1/failed.pdf', attempts: 2, status: 'failed', next_attempt_at: '2026-08-01T00:00:00Z', created_at: '2026-08-01T00:00:00Z' },
+    ];
+
+    const mockDb: any = {
+      prepare(sql: string) {
+        const stmtObj: any = {
+          params: [],
+          bind(...p: any[]) { stmtObj.params = p; return stmtObj; },
+          async all() { return { results: queueItems }; },
+          async run() {
+            if (sql.includes('UPDATE reconciliation_queue SET status = \'completed\'')) {
+              const item = queueItems.find((i) => i.id === stmtObj.params[3]);
+              if (item) item.status = 'completed';
+            }
+            if (sql.includes('UPDATE reconciliation_queue SET status = \'dead_letter\'')) {
+              const item = queueItems.find((i) => i.id === stmtObj.params[3]);
+              if (item) item.status = 'dead_letter';
+            }
+            return { meta: { changes: 1 } };
+          },
+        };
+        return stmtObj;
+      },
+    };
+
+    const r2Mock: any = {
+      async delete(key: string) {
+        if (key.includes('failed')) throw new Error('R2 delete failed');
+      },
+    };
+
+    const report = await processReconciliationQueue(mockDb, r2Mock, { maxRetries: 3 });
+    expect(report.processedCount).toBe(2);
+    expect(report.succeededCount).toBe(1);
+    expect(report.deadLetterCount).toBe(1);
+  });
 });

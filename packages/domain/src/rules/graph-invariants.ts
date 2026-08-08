@@ -156,3 +156,33 @@ export function validateProgressionEventTarget(params: {
 
   return { valid: true };
 }
+
+/**
+ * Validates legal progression stage transitions.
+ */
+export function validateProgressionTransition(params: {
+  previousStage: string | null;
+  newStage: string;
+  supportingEvidenceCount: number;
+  reason: string;
+  hasOwnerSkipJustification?: boolean;
+}): { valid: boolean; reason?: string } {
+  if (params.supportingEvidenceCount <= 0) {
+    return { valid: false, reason: 'Progression transition requires at least 1 eligible supporting evidence record.' };
+  }
+
+  const validStages = ['observed', 'practiced', 'applied', 'delivered'];
+  if (!validStages.includes(params.newStage)) {
+    return { valid: false, reason: `Invalid progression stage: ${params.newStage}` };
+  }
+
+  // Handle stage skips
+  if (params.previousStage === 'observed' && params.newStage === 'delivered') {
+    if (!params.reason || params.reason.length < 15) {
+      return { valid: false, reason: 'Skipping progression stages requires an explicit owner-approved justification of at least 15 characters.' };
+    }
+  }
+
+  return { valid: true };
+}
+

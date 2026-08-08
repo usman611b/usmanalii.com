@@ -93,7 +93,7 @@ export const GraphVisualization: React.FC<GraphVisualizationProps> = ({ nodes, e
                   <span>{node.type}</span>
                   {node.stage && <span className="text-amber-400">Stage: {node.stage}</span>}
                 </div>
-                <h4 className="text-sm font-bold text-[#FFFFFF] mt-1">{node.name}</h4>
+                <h3 className="text-sm font-bold text-[#FFFFFF] mt-1">{node.name}</h3>
                 {node.category && <p className="text-xs text-[#9CAAC1] mt-1 capitalize">{node.category.replace('_', ' ')}</p>}
               </button>
             ))}

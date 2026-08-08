@@ -103,4 +103,61 @@ test.describe('Playwright + axe-core Live Application E2E Suite (M1 + M2)', () =
     const results = await new AxeBuilder({ page }).analyze();
     expect(results.violations).toEqual([]);
   });
+
+  test('15. Public Skills Index (/skills) passes axe accessibility scan', async ({ page }) => {
+    await page.goto('/skills');
+    const results = await new AxeBuilder({ page }).analyze();
+    expect(results.violations).toEqual([]);
+  });
+
+  test('16. Public Skill Detail (/skills/typescript) passes axe accessibility scan', async ({ page }) => {
+    await page.goto('/skills/typescript');
+    const results = await new AxeBuilder({ page }).analyze();
+    expect(results.violations).toEqual([]);
+  });
+
+  test('17. Public Capabilities Index (/capabilities) passes axe accessibility scan', async ({ page }) => {
+    await page.goto('/capabilities');
+    const results = await new AxeBuilder({ page }).analyze();
+    expect(results.violations).toEqual([]);
+  });
+
+  test('18. Public Capability Detail (/capabilities/design-secure-multi-tenant-apis) passes axe accessibility scan', async ({ page }) => {
+    await page.goto('/capabilities/design-secure-multi-tenant-apis');
+    const results = await new AxeBuilder({ page }).analyze();
+    expect(results.violations).toEqual([]);
+  });
+
+  test('19. Dashboard Skills (/dashboard/skills) passes axe accessibility scan', async ({ page }) => {
+    await page.goto('/dashboard/skills');
+    const results = await new AxeBuilder({ page }).analyze();
+    expect(results.violations).toEqual([]);
+  });
+
+  test('20. Dashboard Capabilities (/dashboard/capabilities) passes axe accessibility scan', async ({ page }) => {
+    await page.goto('/dashboard/capabilities');
+    const results = await new AxeBuilder({ page }).analyze();
+    expect(results.violations).toEqual([]);
+  });
+
+  test('21. Dashboard Graph Engine (/dashboard/graph) passes axe accessibility scan', async ({ page }) => {
+    await page.goto('/dashboard/graph');
+    const results = await new AxeBuilder({ page }).analyze();
+    expect(results.violations).toEqual([]);
+  });
+
+  test('22. Dashboard Suggestions (/dashboard/suggestions) passes axe accessibility scan', async ({ page }) => {
+    await page.goto('/dashboard/suggestions');
+    const results = await new AxeBuilder({ page }).analyze();
+    expect(results.violations).toEqual([]);
+  });
+
+  test('23. Graph Visualization accessible table view toggle & category filtering', async ({ page }) => {
+    await page.goto('/dashboard/graph');
+    const tableBtn = page.locator('button:has-text("Accessible Table View")');
+    await expect(tableBtn).toBeVisible();
+    await tableBtn.click();
+    const tableHeader = page.locator('th:has-text("Node Name")');
+    await expect(tableHeader).toBeVisible();
+  });
 });
