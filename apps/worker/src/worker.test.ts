@@ -230,4 +230,29 @@ describe('Worker API Integration & Security Tests', () => {
     const expiredBody = (await expiredRes.json()) as { code: string };
     expect(expiredBody.code).toBe('PREVIEW_TOKEN_EXPIRED');
   });
+
+  it('M3 SECURITY (Requirement 9): Private evidence & artifact APIs fail closed without auth (401 AUTH_REQUIRED)', async () => {
+    const unauthEv = await worker.fetch(new Request('http://localhost/api/v1/private/evidence'), env);
+    expect(unauthEv.status).toBe(401);
+
+    const unauthArt = await worker.fetch(new Request('http://localhost/api/v1/private/artifacts'), env);
+    expect(unauthArt.status).toBe(401);
+
+    const unauthDl = await worker.fetch(new Request('http://localhost/api/v1/private/artifacts/art-1/download'), env);
+    expect(unauthDl.status).toBe(401);
+  });
+
+  it('M3 SECURITY (Requirement 9): Public artifact download returns 404 NOT_FOUND for non-existent or private artifacts', async () => {
+    const res = await worker.fetch(new Request('http://localhost/api/v1/public/artifacts/art-private/download'), env);
+    expect(res.status).toBe(404);
+    const body = (await res.json()) as { code: string };
+    expect(body.code).toBe('RESOURCE_NOT_FOUND');
+  });
+
+  it('M3 SECURITY (Requirement 9): Public evidence endpoints return 404 NOT_FOUND for private or uneligible evidence', async () => {
+    const res = await worker.fetch(new Request('http://localhost/api/v1/public/evidence/ev-private'), env);
+    expect(res.status).toBe(404);
+    const body = (await res.json()) as { code: string };
+    expect(body.code).toBe('RESOURCE_NOT_FOUND');
+  });
 });

@@ -1,0 +1,60 @@
+---
+import EvidenceBadge from './EvidenceBadge.astro';
+import VerificationStatusBadge from './VerificationStatusBadge.astro';
+
+interface Props {
+  title: string;
+  description?: string | null;
+  evidenceType: string;
+  sourceType: string;
+  provider?: string | null;
+  canonicalLocator?: string | null;
+  verificationState: string;
+  occurredAt?: string | null;
+  class?: string;
+}
+
+const {
+  title,
+  description,
+  evidenceType,
+  sourceType,
+  provider,
+  canonicalLocator,
+  verificationState,
+  occurredAt,
+  class: className = '',
+} = Astro.props;
+
+const dateStr = occurredAt ? new Date(occurredAt).toISOString().split('T')[0] : null;
+---
+
+<div class={`p-4 rounded-xl glass-panel space-y-3 ${className}`}>
+  <div class="flex items-start justify-between gap-3">
+    <div class="space-y-1">
+      <div class="flex items-center gap-2 flex-wrap">
+        <EvidenceBadge evidenceType={evidenceType} />
+        <VerificationStatusBadge status={verificationState} />
+        {provider ? <span class="text-[11px] font-mono text-[#9CAAC1]">via {provider} ({sourceType})</span> : <span class="text-[11px] font-mono text-[#9CAAC1]">({sourceType})</span>}
+      </div>
+      <h4 class="font-semibold text-sm text-white">{title}</h4>
+    </div>
+    {dateStr && <span class="text-[11px] font-mono text-[#9CAAC1] shrink-0">{dateStr}</span>}
+  </div>
+
+  {description && <p class="text-xs text-[#9CAAC1] line-clamp-2">{description}</p>}
+
+  {canonicalLocator && (
+    <div class="pt-1 border-t border-white/5 flex items-center justify-between">
+      <span class="text-[10px] text-[#9CAAC1] font-mono">Source Locator</span>
+      <a
+        href={canonicalLocator}
+        target="_blank"
+        rel="noopener noreferrer"
+        class="text-xs font-medium text-[#22D3EE] hover:underline flex items-center gap-1"
+      >
+        View External Proof ↗
+      </a>
+    </div>
+  )}
+</div>

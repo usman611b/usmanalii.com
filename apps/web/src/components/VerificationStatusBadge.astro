@@ -1,0 +1,43 @@
+---
+interface Props {
+  status: string;
+  class?: string;
+}
+
+const { status, class: className = '' } = Astro.props;
+
+let badgeText = status;
+let badgeColorClass = 'bg-gray-800 text-gray-300 border-gray-700';
+
+switch (status) {
+  case 'owner_verified':
+    badgeText = 'Owner Verified';
+    badgeColorClass = 'bg-blue-500/10 text-blue-400 border-blue-500/30';
+    break;
+  case 'source_verified':
+    badgeText = 'Source Verified';
+    badgeColorClass = 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30';
+    break;
+  case 'automatically_observed':
+    badgeText = 'Auto Observed';
+    badgeColorClass = 'bg-purple-500/10 text-purple-400 border-purple-500/30';
+    break;
+  case 'unverified':
+  case 'unreviewed':
+    badgeText = 'Unverified';
+    badgeColorClass = 'bg-amber-500/10 text-amber-400 border-amber-500/30';
+    break;
+  case 'disputed':
+    badgeText = 'Disputed';
+    badgeColorClass = 'bg-rose-500/10 text-rose-400 border-rose-500/30';
+    break;
+  case 'revoked':
+    badgeText = 'Revoked';
+    badgeColorClass = 'bg-red-500/10 text-red-400 border-red-500/30';
+    break;
+}
+---
+
+<span class={`inline-flex items-center px-2 py-0.5 rounded text-[11px] font-medium border ${badgeColorClass} ${className}`}>
+  ● {badgeText}
+</span>

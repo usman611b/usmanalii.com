@@ -86,4 +86,21 @@ test.describe('Playwright + axe-core Live Application E2E Suite (M1 + M2)', () =
     await expect(page).toHaveURL(/\/recruiter/);
   });
 
+  test('12. Dashboard Evidence Ledger (/dashboard/evidence) passes axe accessibility scan', async ({ page }) => {
+    await page.goto('/dashboard/evidence');
+    const results = await new AxeBuilder({ page }).analyze();
+    expect(results.violations).toEqual([]);
+  });
+
+  test('13. Dashboard Evidence Detail (/dashboard/evidence/ev-1) passes axe accessibility scan', async ({ page }) => {
+    await page.goto('/dashboard/evidence/ev-1');
+    const results = await new AxeBuilder({ page }).analyze();
+    expect(results.violations).toEqual([]);
+  });
+
+  test('14. Dashboard Artifacts (/dashboard/artifacts) passes axe accessibility scan', async ({ page }) => {
+    await page.goto('/dashboard/artifacts');
+    const results = await new AxeBuilder({ page }).analyze();
+    expect(results.violations).toEqual([]);
+  });
 });

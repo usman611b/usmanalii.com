@@ -177,3 +177,118 @@ export const PublicSearchSchema = z.object({
 });
 
 export type PublicSearchRequest = z.infer<typeof PublicSearchSchema>;
+
+// ---------------------------------------------------------------------------
+// Evidence Ledger Zod Request Schemas (Gate 7 API & Security)
+// SECURITY: None of these accept owner_id from client. Owner ID is server-resolved.
+// ---------------------------------------------------------------------------
+
+export const EvidenceTypeSchema = z.enum([
+  'journal_entry',
+  'source_code_contribution',
+  'commit',
+  'pull_request',
+  'repository',
+  'deployment',
+  'project_artifact',
+  'experiment',
+  'adr',
+  'debugging_lesson',
+  'certification',
+  'education_record',
+  'employment_record',
+  'external_publication',
+  'manual_evidence',
+  'work_record',
+  'certificate',
+  'publication',
+  'contribution',
+  'artifact',
+  'other',
+]);
+
+export const EvidenceSourceTypeSchema = z.enum([
+  'github',
+  'url',
+  'file',
+  'manual',
+  'integration',
+  'owner_attested',
+]);
+
+export const EvidenceVerificationStateSchema = z.enum([
+  'unverified',
+  'unreviewed',
+  'owner_verified',
+  'source_verified',
+  'automatically_observed',
+  'stale',
+  'broken',
+  'disputed',
+  'revoked',
+  'archived',
+]);
+
+export const CreateEvidenceRequestSchema = z.object({
+  evidenceType: EvidenceTypeSchema,
+  sourceType: EvidenceSourceTypeSchema,
+  provider: z.string().max(100).nullable().optional(),
+  externalId: z.string().max(200).nullable().optional(),
+  canonicalLocator: z.string().url().max(500).nullable().optional(),
+  title: z.string().min(1).max(250),
+  description: z.string().max(2000).nullable().optional(),
+  occurredAt: z.string().datetime({ offset: true }).nullable().optional(),
+  visibility: VisibilitySchema.default('private'),
+  embargoUntil: z.string().datetime({ offset: true }).nullable().optional(),
+});
+
+export type CreateEvidenceRequest = z.infer<typeof CreateEvidenceRequestSchema>;
+
+export const UpdateEvidenceRequestSchema = z.object({
+  versionNo: z.number().int().min(1), // required for optimistic concurrency
+  title: z.string().min(1).max(250).optional(),
+  description: z.string().max(2000).nullable().optional(),
+  visibility: VisibilitySchema.optional(),
+  embargoUntil: z.string().datetime({ offset: true }).nullable().optional(),
+});
+
+export type UpdateEvidenceRequest = z.infer<typeof UpdateEvidenceRequestSchema>;
+
+export const RecordVerificationEventSchema = z.object({
+  newState: EvidenceVerificationStateSchema,
+  verificationMethod: z.string().min(1).max(100),
+  rationale: z.string().max(1000).nullable().optional(),
+});
+
+export type RecordVerificationEventRequest = z.infer<typeof RecordVerificationEventSchema>;
+
+export const CreateEvidenceLinkRequestSchema = z.object({
+  targetType: z.enum([
+    'capability',
+    'claim',
+    'project',
+    'content_item',
+    'artifact',
+    'adr',
+    'experiment',
+    'debugging_lesson',
+    'deployment',
+    'resume_statement',
+  ]),
+  targetId: z.string().min(1).max(100),
+  supportType: z.enum(['demonstrates', 'corroborates', 'historical', 'contradicts']),
+  relevance: z.number().int().min(1).max(5).default(3),
+  ordering: z.number().int().default(0),
+  rationale: z.string().min(1).max(1000),
+});
+
+export type CreateEvidenceLinkRequest = z.infer<typeof CreateEvidenceLinkRequestSchema>;
+
+export const CreateArtifactMetadataSchema = z.object({
+  title: z.string().min(1).max(250),
+  description: z.string().max(2000).nullable().optional(),
+  artifactType: z.string().min(1).max(100),
+  visibility: VisibilitySchema.default('private'),
+});
+
+export type CreateArtifactMetadataRequest = z.infer<typeof CreateArtifactMetadataSchema>;

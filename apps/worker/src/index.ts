@@ -23,6 +23,7 @@ export interface WorkerEnv {
   DB: D1Database;
   R2_PRIVATE: R2Bucket;
   R2_PUBLIC: R2Bucket;
+  ARTIFACTS_BUCKET?: R2Bucket;
   PUBLICATION_QUEUE: Queue;
   OWNER_EMAIL: string;
   CF_ACCESS_TEAM_DOMAIN: string;

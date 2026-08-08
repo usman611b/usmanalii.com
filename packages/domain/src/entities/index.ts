@@ -51,16 +51,26 @@ export type PublicationState =
 // ---------------------------------------------------------------------------
 
 export type EvidenceType =
+  | 'journal_entry'
+  | 'source_code_contribution'
   | 'commit'
   | 'pull_request'
+  | 'repository'
   | 'deployment'
-  | 'artifact'
+  | 'project_artifact'
   | 'experiment'
-  | 'journal_entry'
+  | 'adr'
+  | 'debugging_lesson'
+  | 'certification'
+  | 'education_record'
+  | 'employment_record'
+  | 'external_publication'
+  | 'manual_evidence'
   | 'work_record'
   | 'certificate'
   | 'publication'
   | 'contribution'
+  | 'artifact'
   | 'other';
 
 export type EvidenceSourceType =
@@ -77,13 +87,29 @@ export type EvidenceSourceType =
  * "archived" and "broken" flag dependent claims as unhealthy.
  */
 export type EvidenceVerificationState =
+  | 'unverified'
   | 'unreviewed'
   | 'owner_verified'
   | 'source_verified'
+  | 'automatically_observed'
   | 'stale'
   | 'broken'
   | 'disputed'
+  | 'revoked'
   | 'archived';
+
+/** Evidence verification audit event entity — append-only verification history. */
+export interface EvidenceVerificationEventEntity {
+  readonly id: EntityId;
+  readonly evidenceItemId: EntityId;
+  readonly ownerId: EntityId;
+  readonly previousState: EvidenceVerificationState | null;
+  readonly newState: EvidenceVerificationState;
+  readonly verificationMethod: string;
+  readonly verifierIdentity: string;
+  readonly rationale: string | null;
+  readonly createdAt: ISODateTime;
+}
 
 /** Evidence support edge type — models the relationship quality. */
 export type EvidenceSupportType =
@@ -231,19 +257,51 @@ export type EvidenceLinkTarget =
   | { targetType: 'claim'; targetId: EntityId }
   | { targetType: 'project'; targetId: EntityId }
   | { targetType: 'content_item'; targetId: EntityId }
-  | { targetType: 'artifact'; targetId: EntityId };
+  | { targetType: 'artifact'; targetId: EntityId }
+  | { targetType: 'adr'; targetId: EntityId }
+  | { targetType: 'experiment'; targetId: EntityId }
+  | { targetType: 'debugging_lesson'; targetId: EntityId }
+  | { targetType: 'deployment'; targetId: EntityId }
+  | { targetType: 'resume_statement'; targetId: EntityId };
 
 export interface EvidenceLinkEntity {
   readonly id: EntityId;
   readonly evidenceItemId: EntityId;
   readonly target: EvidenceLinkTarget; // exactly one target (discriminated union)
   readonly supportType: EvidenceSupportType;
+  readonly relevance: number; // 1–5 scale
+  readonly ordering: number;
+  readonly provenance: string | null;
   readonly rationale: string;
   readonly approvalState: 'pending' | 'approved' | 'rejected';
   readonly approvedBy: string | null;
   readonly approvedAt: ISODateTime | null;
   readonly createdAt: ISODateTime;
   readonly updatedAt: ISODateTime;
+}
+
+// ---------------------------------------------------------------------------
+// Artifact — Produced object stored in R2
+// ---------------------------------------------------------------------------
+
+export interface ArtifactEntity {
+  readonly id: EntityId;
+  readonly ownerId: EntityId;
+  readonly title: string;
+  readonly description: string | null;
+  readonly artifactType: string;
+  readonly mediaType: string | null;
+  readonly byteSize: number | null;
+  readonly checksum: string | null;
+  readonly r2Key: string;
+  readonly r2PublicKey: string | null;
+  readonly originalName: string | null;
+  readonly uploadedBy: string | null;
+  readonly visibility: Visibility;
+  readonly createdAt: ISODateTime;
+  readonly updatedAt: ISODateTime;
+  readonly deletedAt: ISODateTime | null;
+  readonly archivedAt: ISODateTime | null;
 }
 
 // ---------------------------------------------------------------------------

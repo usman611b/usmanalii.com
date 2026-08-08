@@ -1,0 +1,182 @@
+---
+import DashboardLayout from '../../../../layouts/DashboardLayout.astro';
+import EvidenceBadge from '../../../../components/EvidenceBadge.astro';
+import VerificationStatusBadge from '../../../../components/VerificationStatusBadge.astro';
+
+export function getStaticPaths() {
+  return [
+    { params: { id: 'ev-1' } },
+    { params: { id: 'ev-2' } },
+    { params: { id: 'ev-3' } },
+  ];
+}
+
+const { id } = Astro.params;
+
+// Mock evidence item data for detail page inspection
+const evidenceItem = {
+  id: id || 'ev-1',
+  title: 'Monorepo Security Architecture & CSP Boundary',
+  description: 'Formal architectural decision record defining Cloudflare Access JWT verification, CSRF origin checks, strict Content Security Policy, and opaque error responses.',
+  evidenceType: 'adr',
+  sourceType: 'owner_attested',
+  provider: 'usmanalii.com',
+  canonicalLocator: 'https://usmanalii.com/journey/monorepo-security-architecture',
+  verificationState: 'owner_verified',
+  visibility: 'public',
+  versionNo: 1,
+  capturedAt: '2026-08-08T12:00:00Z',
+  occurredAt: '2026-08-08T12:00:00Z',
+  contentHash: 'e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855',
+  authorshipNote: 'Authored and verified directly by owner.',
+  provenanceSnapshot: JSON.stringify({ system: 'usmanalii.com', version: 'v1.1', signer: 'owner' }, null, 2),
+};
+
+const verificationEvents = [
+  { id: 've-1', newState: 'owner_verified', previousState: 'unverified', method: 'owner_review', verifier: 'owner@usmanalii.com', rationale: 'Owner attested ADR document.', createdAt: '2026-08-08T12:05:00Z' },
+  { id: 've-0', newState: 'unverified', previousState: null, method: 'initial_capture', verifier: 'system', rationale: 'Initial capture.', createdAt: '2026-08-08T12:00:00Z' },
+];
+
+const linkedTargets = [
+  { id: 'link-1', targetType: 'content_item', targetId: 'monorepo-security-architecture', supportType: 'demonstrates', relevance: 5, rationale: 'Primary architectural document.' },
+];
+---
+
+<DashboardLayout title={`Evidence ${id} — Private Dashboard`} activeSection="evidence">
+  <div class="space-y-6">
+    <div class="flex items-center justify-between">
+      <div class="space-y-1">
+        <div class="flex items-center gap-2">
+          <EvidenceBadge evidenceType={evidenceItem.evidenceType} />
+          <VerificationStatusBadge status={evidenceItem.verificationState} />
+          <span class="text-xs font-mono text-[#9CAAC1]">ID: {evidenceItem.id}</span>
+        </div>
+        <h2 class="text-xl font-bold text-white">{evidenceItem.title}</h2>
+      </div>
+
+      <div class="flex items-center gap-2">
+        <a href={`/dashboard/evidence/${evidenceItem.id}/edit`} class="px-3 py-1.5 bg-[#22D3EE] text-[#050509] font-bold text-xs rounded-lg hover:opacity-90">
+          Edit Record
+        </a>
+        <a href="/dashboard/evidence" class="px-3 py-1.5 bg-white/5 text-xs text-[#9CAAC1] rounded-lg hover:text-white">
+          ← Back
+        </a>
+      </div>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <!-- Main Info & Relationship Editor -->
+      <div class="lg:col-span-2 space-y-6">
+        <div class="p-6 rounded-xl glass-panel space-y-4 border border-white/10">
+          <h3 class="text-sm font-bold text-white uppercase tracking-wider">Description & Context</h3>
+          <p class="text-xs text-[#9CAAC1] leading-relaxed">{evidenceItem.description}</p>
+
+          {evidenceItem.canonicalLocator && (
+            <div class="pt-3 border-t border-white/5">
+              <span class="text-xs font-semibold text-[#9CAAC1] block mb-1">Source Locator URL</span>
+              <a href={evidenceItem.canonicalLocator} target="_blank" class="text-xs text-[#22D3EE] hover:underline font-mono">
+                {evidenceItem.canonicalLocator} ↗
+              </a>
+            </div>
+          )}
+        </div>
+
+        <!-- Evidence Relationship Editor -->
+        <div class="p-6 rounded-xl glass-panel space-y-4 border border-white/10">
+          <div class="flex items-center justify-between">
+            <h3 class="text-sm font-bold text-white uppercase tracking-wider">Linked Entities & Targets</h3>
+            <span class="text-xs text-[#9CAAC1]">Single-target invariant enforced</span>
+          </div>
+
+          <div class="space-y-2">
+            {linkedTargets.map((link) => (
+              <div class="p-3 rounded-lg bg-[#101A31] flex items-center justify-between text-xs border border-white/5">
+                <div>
+                  <span class="font-mono text-[#22D3EE] font-semibold capitalize">{link.targetType}</span>
+                  <span class="text-white ml-2">{link.targetId}</span>
+                  <p class="text-[11px] text-[#9CAAC1] mt-0.5">{link.supportType} (Relevance {link.relevance}/5): {link.rationale}</p>
+                </div>
+                <button type="button" class="text-rose-400 hover:text-rose-300 text-xs">Unlink</button>
+              </div>
+            ))}
+          </div>
+
+          <!-- Add Link Form -->
+          <form class="pt-4 border-t border-white/5 space-y-3">
+            <h4 class="text-xs font-semibold text-[#9CAAC1]">Attach Evidence Edge to Target</h4>
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-2">
+              <select class="bg-[#101A31] text-xs text-white border border-white/10 rounded-lg px-2.5 py-1.5">
+                <option value="project">Project</option>
+                <option value="content_item">Content Item</option>
+                <option value="capability">Capability</option>
+                <option value="claim">Claim</option>
+                <option value="artifact">Artifact</option>
+              </select>
+              <input type="text" placeholder="Target ID..." class="bg-[#101A31] text-xs text-white border border-white/10 rounded-lg px-2.5 py-1.5" />
+              <select class="bg-[#101A31] text-xs text-white border border-white/10 rounded-lg px-2.5 py-1.5">
+                <option value="demonstrates">Demonstrates</option>
+                <option value="corroborates">Corroborates</option>
+                <option value="historical">Historical</option>
+              </select>
+            </div>
+            <input type="text" placeholder="Link rationale..." class="w-full bg-[#101A31] text-xs text-white border border-white/10 rounded-lg px-2.5 py-1.5" />
+            <button type="submit" class="px-3 py-1.5 bg-white/10 text-white text-xs font-semibold rounded-lg hover:bg-white/20">
+              Attach Link Edge
+            </button>
+          </form>
+        </div>
+      </div>
+
+      <!-- Provenance Panel & Verification Timeline -->
+      <div class="space-y-6">
+        <!-- Provenance Inspection Panel -->
+        <div class="p-4 rounded-xl glass-panel space-y-3 border border-white/10">
+          <h3 class="text-xs font-bold text-white uppercase tracking-wider">Provenance Inspection Panel</h3>
+          
+          <div class="space-y-2 text-xs">
+            <div>
+              <span class="text-[#9CAAC1] block">Content Hash (SHA-256)</span>
+              <span class="font-mono text-[10px] text-[#22D3EE] break-all">{evidenceItem.contentHash}</span>
+            </div>
+            <div>
+              <span class="text-[#9CAAC1] block">Captured Date</span>
+              <span class="font-mono text-white">{evidenceItem.capturedAt}</span>
+            </div>
+            <div>
+              <span class="text-[#9CAAC1] block">Version Number</span>
+              <span class="font-mono text-white">v{evidenceItem.versionNo}</span>
+            </div>
+            <div>
+              <span class="text-[#9CAAC1] block">Authorship Note</span>
+              <span class="text-white">{evidenceItem.authorshipNote}</span>
+            </div>
+          </div>
+
+          <div class="pt-2">
+            <span class="text-[#9CAAC1] text-xs block mb-1">Provenance Snapshot JSON</span>
+            <pre class="p-2 rounded bg-[#101A31] text-[10px] font-mono text-emerald-400 overflow-x-auto">{evidenceItem.provenanceSnapshot}</pre>
+          </div>
+        </div>
+
+        <!-- Verification History Timeline -->
+        <div class="p-4 rounded-xl glass-panel space-y-3 border border-white/10">
+          <h3 class="text-xs font-bold text-white uppercase tracking-wider">Append-Only Verification History</h3>
+
+          <div class="space-y-3 relative before:absolute before:left-2 before:top-2 before:bottom-2 before:w-0.5 before:bg-white/10 pl-5">
+            {verificationEvents.map((event) => (
+              <div class="relative text-xs space-y-1">
+                <span class="absolute -left-5 top-1.5 w-2 h-2 rounded-full bg-[#22D3EE]"></span>
+                <div class="flex items-center justify-between">
+                  <VerificationStatusBadge status={event.newState} />
+                  <span class="text-[10px] font-mono text-[#9CAAC1]">{event.createdAt.split('T')[0]}</span>
+                </div>
+                <p class="text-[#9CAAC1] text-[11px]">{event.rationale}</p>
+                <span class="text-[10px] text-[#9CAAC1] block font-mono">By: {event.verifier} via {event.method}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</DashboardLayout>

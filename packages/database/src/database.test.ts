@@ -1,6 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any, no-restricted-syntax */
 import { describe, it, expect } from 'vitest';
 import { D1ContentRepository } from './repositories/content.js';
+import { D1EvidenceRepository, D1ArtifactRepository } from './repositories/evidence.js';
 
 function createMockD1Database(options: { failBatch?: boolean } = {}) {
   const itemsTable = new Map<string, Record<string, unknown>>();
@@ -389,5 +390,213 @@ describe('Requirement 1 & 2: Database Integrity & Public Scheduling/Embargo Logi
 
     expect(entryIds).not.toContain('sched-future');
     expect(entryIds).not.toContain('embargo-future');
+  });
+
+  it('7. D1EvidenceRepository CRUD, concurrency, append-only verification events, and single-target links', async () => {
+    const evidenceTable = new Map<string, Record<string, unknown>>();
+    const eventsTable = new Map<string, Record<string, unknown>>();
+    const linksTable = new Map<string, Record<string, unknown>>();
+
+    const mockDb: any = {
+      prepare(sql: string) {
+        const stmtObj: any = {
+          boundParams: [],
+          bind(...params: any[]) {
+            stmtObj.boundParams = params;
+            return stmtObj;
+          },
+          async first<T = unknown>(): Promise<T | null> {
+            if (sql.includes('FROM evidence_items')) {
+              const id = stmtObj.boundParams[1] || stmtObj.boundParams[0];
+              return (evidenceTable.get(id) as T) || null;
+            }
+            return null;
+          },
+          async all<T = unknown>(): Promise<{ results: T[] }> {
+            if (sql.includes('FROM evidence_verification_events')) {
+              return { results: Array.from(eventsTable.values()) as T[] };
+            }
+            if (sql.includes('FROM evidence_links')) {
+              return { results: Array.from(linksTable.values()) as T[] };
+            }
+            return { results: Array.from(evidenceTable.values()) as T[] };
+          },
+          async run() {
+            if (sql.includes('INSERT INTO evidence_items')) {
+              evidenceTable.set(stmtObj.boundParams[0], {
+                id: stmtObj.boundParams[0],
+                owner_id: stmtObj.boundParams[1],
+                evidence_type: stmtObj.boundParams[2],
+                source_type: stmtObj.boundParams[3],
+                title: stmtObj.boundParams[7],
+                description: stmtObj.boundParams[8],
+                verification_state: 'unverified',
+                visibility: stmtObj.boundParams[13],
+                version_no: 1,
+                created_at: stmtObj.boundParams[15],
+                updated_at: stmtObj.boundParams[16],
+              });
+            }
+            if (sql.includes('UPDATE evidence_items SET') && sql.includes('version_no = ?')) {
+              const id = stmtObj.boundParams[7];
+              const item = evidenceTable.get(id);
+              if (item && item.version_no === stmtObj.boundParams[9]) {
+                item.title = stmtObj.boundParams[0];
+                item.version_no = stmtObj.boundParams[6];
+                return { meta: { changes: 1 } };
+              }
+              return { meta: { changes: 0 } };
+            }
+            if (sql.includes('INSERT INTO evidence_verification_events')) {
+              eventsTable.set(stmtObj.boundParams[0], {
+                id: stmtObj.boundParams[0],
+                evidence_item_id: stmtObj.boundParams[1],
+                owner_id: stmtObj.boundParams[2],
+                previous_state: stmtObj.boundParams[3],
+                new_state: stmtObj.boundParams[4],
+                verification_method: stmtObj.boundParams[5],
+                verifier_identity: stmtObj.boundParams[6],
+                rationale: stmtObj.boundParams[7],
+                created_at: stmtObj.boundParams[8],
+              });
+            }
+            if (sql.includes('INSERT INTO evidence_links')) {
+              linksTable.set(stmtObj.boundParams[0], {
+                id: stmtObj.boundParams[0],
+                evidence_item_id: stmtObj.boundParams[1],
+                capability_id: stmtObj.boundParams[2],
+                project_id: stmtObj.boundParams[4],
+                support_type: stmtObj.boundParams[11],
+                relevance: stmtObj.boundParams[12],
+                rationale: stmtObj.boundParams[14],
+              });
+            }
+            return { meta: { changes: 1 } };
+          },
+        };
+        return stmtObj;
+      },
+      async batch(statements: any[]) {
+        for (const stmt of statements) {
+          await stmt.run();
+        }
+        return [];
+      },
+    };
+
+    const repo = new D1EvidenceRepository(mockDb);
+
+    // 1. Create Evidence
+    const created = await repo.create('owner-1', {
+      id: 'ev-100',
+      evidenceType: 'commit',
+      sourceType: 'github',
+      title: 'Initial Commit',
+      visibility: 'private',
+    });
+    expect(created.id).toBe('ev-100');
+    expect(created.versionNo).toBe(1);
+
+    // 2. Concurrency Update
+    const updateRes = await repo.updateWithConcurrency('owner-1', 'ev-100', 1, {
+      title: 'Updated Commit Title',
+    });
+    expect(updateRes.success).toBe(true);
+    if (updateRes.success) {
+      expect(updateRes.item.title).toBe('Updated Commit Title');
+      expect(updateRes.item.versionNo).toBe(2);
+    }
+
+    // 3. Append-only Verification Event
+    const verifyRes = await repo.recordVerificationEvent(
+      'owner-1',
+      'ev-100',
+      'owner_verified',
+      'manual_review',
+      'owner-1',
+      'Verified by owner',
+    );
+    expect(verifyRes.event.newState).toBe('owner_verified');
+    expect(eventsTable.size).toBe(1);
+
+    // 4. Create Single-Target Evidence Link
+    const link = await repo.createLink('owner-1', 'ev-100', {
+      id: 'link-1',
+      targetType: 'project',
+      targetId: 'proj-1',
+      supportType: 'demonstrates',
+      rationale: 'Direct code evidence',
+    });
+    expect(link.id).toBe('link-1');
+    expect(linksTable.size).toBe(1);
+  });
+
+  it('8. D1ArtifactRepository create, soft delete, and restore lifecycle', async () => {
+    const artifactsTable = new Map<string, Record<string, unknown>>();
+
+    const mockDb: any = {
+      prepare(sql: string) {
+        const stmtObj: any = {
+          boundParams: [],
+          bind(...params: any[]) {
+            stmtObj.boundParams = params;
+            return stmtObj;
+          },
+          async first<T = unknown>(): Promise<T | null> {
+            const id = stmtObj.boundParams[1] || stmtObj.boundParams[0];
+            return (artifactsTable.get(id) as T) || null;
+          },
+          async all<T = unknown>(): Promise<{ results: T[] }> {
+            return { results: Array.from(artifactsTable.values()) as T[] };
+          },
+          async run() {
+            if (sql.includes('INSERT INTO artifacts')) {
+              artifactsTable.set(stmtObj.boundParams[0], {
+                id: stmtObj.boundParams[0],
+                owner_id: stmtObj.boundParams[1],
+                title: stmtObj.boundParams[2],
+                artifact_type: stmtObj.boundParams[4],
+                r2_key: stmtObj.boundParams[8],
+                visibility: stmtObj.boundParams[11],
+                created_at: stmtObj.boundParams[12],
+                deleted_at: null,
+              });
+            }
+            if (sql.includes('UPDATE artifacts SET deleted_at = ?')) {
+              const id = stmtObj.boundParams[2];
+              const item = artifactsTable.get(id);
+              if (item) item.deleted_at = stmtObj.boundParams[0];
+            }
+            if (sql.includes('UPDATE artifacts SET deleted_at = NULL')) {
+              const id = stmtObj.boundParams[1];
+              const item = artifactsTable.get(id);
+              if (item) item.deleted_at = null;
+            }
+            return { meta: { changes: 1 } };
+          },
+        };
+        return stmtObj;
+      },
+    };
+
+    const repo = new D1ArtifactRepository(mockDb);
+
+    const art = await repo.create('owner-1', {
+      id: 'art-1',
+      title: 'Architecture Diagram',
+      artifactType: 'diagram',
+      r2Key: 'artifacts/owner-1/diagram.png',
+      visibility: 'private',
+    });
+    expect(art.id).toBe('art-1');
+    expect(art.deletedAt).toBeNull();
+
+    // Soft delete
+    const deleted = await repo.softDelete('owner-1', 'art-1');
+    expect(deleted.deletedAt).not.toBeNull();
+
+    // Restore
+    const restored = await repo.restore('owner-1', 'art-1');
+    expect(restored.deletedAt).toBeNull();
   });
 });

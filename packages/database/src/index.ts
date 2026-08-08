@@ -11,6 +11,7 @@
 // Repository interfaces (implementations in M3)
 export type { ProfileRepository } from './repositories/profile.js';
 export { D1ContentRepository } from './repositories/content.js';
+export * from './repositories/evidence.js';
 export type { MigrationRunner } from './migrations/runner.js';
 
 // Migration utilities

@@ -1,0 +1,32 @@
+---
+interface Props {
+  evidenceType: string;
+  class?: string;
+}
+
+const { evidenceType, class: className = '' } = Astro.props;
+
+const typeLabels: Record<string, string> = {
+  commit: 'Commit',
+  pull_request: 'Pull Request',
+  repository: 'Repository',
+  deployment: 'Deployment',
+  project_artifact: 'Project Artifact',
+  experiment: 'Experiment',
+  adr: 'ADR',
+  debugging_lesson: 'Debugging Lesson',
+  certification: 'Certification',
+  education_record: 'Education',
+  employment_record: 'Employment',
+  external_publication: 'Publication',
+  manual_evidence: 'Manual Proof',
+  journal_entry: 'Journal Entry',
+  source_code_contribution: 'Code Contribution',
+};
+
+const label = typeLabels[evidenceType] || evidenceType;
+---
+
+<span class={`inline-flex items-center px-2 py-0.5 rounded text-[11px] font-mono bg-white/5 text-[#9CAAC1] border border-white/10 ${className}`}>
+  {label}
+</span>
