@@ -31,7 +31,7 @@ describe('Worker API Integration & Security Tests', () => {
     expect(res.status).toBe(200);
     const body = (await res.json()) as Record<string, unknown>;
     expect(body.displayName).toBe('Usman Ali');
-    expect(body.headline).toBe('Software Engineer & Systems Architect');
+    expect(body.headline).toBe('Systems Architect & Senior Software Engineer');
     expect(body.owner_id).toBeUndefined(); // SECURITY: owner_id not exposed
   });
 

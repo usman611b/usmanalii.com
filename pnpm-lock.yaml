@@ -102,6 +102,9 @@ importers:
       '@usmanalii/authorization':
         specifier: workspace:*
         version: link:../../packages/authorization
+      '@usmanalii/content':
+        specifier: workspace:*
+        version: link:../../packages/content
       '@usmanalii/contracts':
         specifier: workspace:*
         version: link:../../packages/contracts
@@ -168,6 +171,9 @@ importers:
       '@usmanalii/domain':
         specifier: workspace:*
         version: link:../domain
+      zod:
+        specifier: ^3.23.8
+        version: 3.25.76
     devDependencies:
       typescript:
         specifier: ^5.7.2

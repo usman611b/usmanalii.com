@@ -9,6 +9,8 @@ import {
 import {
   DEFAULT_VISIBILITY,
   DEFAULT_PUBLICATION_STATE,
+  isValidProposalTransition,
+  VALID_CLAIM_SUPPORT_VERIFICATION_STATES,
 } from './rules/index.js';
 import { V1_DEFAULT_FLAGS } from './flags/index.js';
 

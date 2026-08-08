@@ -1,25 +1,101 @@
 ---
 import BaseLayout from '../layouts/BaseLayout.astro';
+
+// Sample published entries (would be populated from D1 or build data)
+const entries = [
+  {
+    id: 'entry-1',
+    title: 'Monorepo Security Architecture & WebCrypto JWT Pipeline',
+    slug: 'monorepo-security-architecture',
+    contentType: 'deep_dive',
+    summary: 'Architectural documentation of RS256 token verification, Cloudflare Access integration, CSP headers, and fail-closed D1 storage.',
+    occurredAt: '2026-08-08',
+    readingTime: '6 min read',
+    tags: ['Cloudflare Workers', 'TypeScript', 'WebCrypto', 'Security'],
+  },
+  {
+    id: 'entry-2',
+    title: 'Building the Versioned JSON-Block Content Engine (M2)',
+    slug: 'building-versioned-json-block-content-engine',
+    contentType: 'journal',
+    summary: 'Design and implementation of canonical structured JSON blocks, optimistic concurrency version_no, GFM export, and publication validation.',
+    occurredAt: '2026-08-08',
+    readingTime: '4 min read',
+    tags: ['Astro', 'TypeScript', 'Zod', 'D1'],
+  },
+];
 ---
 
-<BaseLayout title="Journey — usmanalii.com" description="Chronological learning and engineering journey" currentPath="/journey">
-  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-    <div class="space-y-4">
-      <h1 class="text-3xl font-bold text-white tracking-tight">Learning Journey & Engineering Journal</h1>
+<BaseLayout title="Learning Journey & Engineering Journal — usmanalii.com" description="Chronological record of technical learning, architectural decisions, breakthroughs, and retrospectives." currentPath="/journey">
+  <div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-12 space-y-8">
+    <div class="space-y-3">
+      <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#22D3EE]/10 border border-[#22D3EE]/20">
+        <span class="w-2 h-2 rounded-full bg-[#22D3EE]"></span>
+        <span class="text-xs font-mono text-[#22D3EE] uppercase tracking-wider">Chronological Engineering Journal</span>
+      </div>
+      <h1 class="text-3xl sm:text-4xl font-bold text-white tracking-tight">Learning Journey & Technical Log</h1>
       <p class="text-sm text-[#9CAAC1] max-w-2xl">
-        Chronological record of learning, architectural decisions, breakthroughs, and retrospectives.
+        Transparent record of architectural decisions, systems implementation, debugging retrospectives, and verified breakthroughs.
       </p>
     </div>
 
-    <!-- Timeline Placeholder Container -->
-    <div class="mt-12 space-y-6">
-      <div class="p-6 rounded-2xl glass-panel">
-        <span class="text-xs text-[#22D3EE] font-mono">2026-08-08 · Journal Entry</span>
-        <h2 class="text-lg font-bold text-white mt-1">Building the Monorepo & Security Baseline (M0 & M1)</h2>
-        <p class="text-xs text-[#9CAAC1] mt-2">
-          Established the 14-package pnpm monorepo, strict TypeScript boundaries, WebCrypto RS256 JWT validation, and D1 migrations 001–006.
-        </p>
+    <!-- Filter & Year-Month Chronology Bar -->
+    <div class="flex flex-wrap items-center justify-between gap-4 p-4 rounded-2xl glass-panel">
+      <div class="flex flex-wrap items-center gap-2" role="tablist" aria-label="Content type filter">
+        <button type="button" role="tab" aria-selected="true" class="px-3 py-1.5 rounded-xl bg-[#22D3EE] text-[#050509] text-xs font-bold transition-all">All Entries</button>
+        <button type="button" role="tab" aria-selected="false" class="px-3 py-1.5 rounded-xl text-[#9CAAC1] hover:text-white text-xs transition-colors">Journals</button>
+        <button type="button" role="tab" aria-selected="false" class="px-3 py-1.5 rounded-xl text-[#9CAAC1] hover:text-white text-xs transition-colors">Deep Dives</button>
+        <button type="button" role="tab" aria-selected="false" class="px-3 py-1.5 rounded-xl text-[#9CAAC1] hover:text-white text-xs transition-colors">Retrospectives</button>
+        <button type="button" role="tab" aria-selected="false" class="px-3 py-1.5 rounded-xl text-[#9CAAC1] hover:text-white text-xs transition-colors">Notes</button>
       </div>
+
+      <div class="flex items-center gap-2">
+        <label for="chronology-select" class="text-xs text-[#9CAAC1] font-mono">Chronology:</label>
+        <select id="chronology-select" aria-label="Filter entries by date" class="px-3 py-1.5 bg-[#0B101F] border border-white/10 rounded-xl text-xs text-white focus:outline-none focus:border-[#22D3EE]">
+          <option value="2026-08">August 2026</option>
+          <option value="all">All Dates</option>
+        </select>
+      </div>
+    </div>
+
+    <!-- Entries Timeline Grid -->
+    <div class="space-y-6">
+      {entries.map((entry) => (
+        <article class="p-6 sm:p-8 rounded-2xl glass-panel border border-white/10 hover:border-[#22D3EE]/50 transition-all space-y-4 group">
+          <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 border-b border-white/5 pb-4">
+            <div class="flex items-center gap-2">
+              <span class="px-2.5 py-0.5 text-[10px] font-mono rounded-full bg-[#22D3EE]/10 text-[#22D3EE] border border-[#22D3EE]/20 font-semibold uppercase">
+                {entry.contentType.replace('_', ' ')}
+              </span>
+              <span class="text-xs text-[#9CAAC1] font-mono">{entry.occurredAt}</span>
+            </div>
+            <span class="text-xs text-[#9CAAC1] font-mono">{entry.readingTime}</span>
+          </div>
+
+          <div class="space-y-2">
+            <h2 class="text-xl font-bold text-white group-hover:text-[#22D3EE] transition-colors">
+              <a href={`/journey/${entry.slug}`}>{entry.title}</a>
+            </h2>
+            <p class="text-xs sm:text-sm text-[#9CAAC1] leading-relaxed">{entry.summary}</p>
+          </div>
+
+          <div class="flex flex-wrap items-center justify-between gap-4 pt-2">
+            <div class="flex flex-wrap gap-1.5">
+              {entry.tags.map((tag) => (
+                <span class="px-2 py-0.5 text-[10px] font-mono text-[#9CAAC1] bg-white/5 rounded border border-white/5">
+                  #{tag}
+                </span>
+              ))}
+            </div>
+            <a
+              href={`/journey/${entry.slug}`}
+              class="text-xs font-semibold text-[#22D3EE] hover:underline inline-flex items-center gap-1"
+            >
+              Read Entry →
+            </a>
+          </div>
+        </article>
+      ))}
     </div>
   </div>
 </BaseLayout>

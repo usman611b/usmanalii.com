@@ -327,3 +327,44 @@ export interface AiProposalEntity {
   readonly reviewedBy: string | null;
   readonly expiresAt: ISODateTime | null;
 }
+
+// ---------------------------------------------------------------------------
+// Content Item — Journal & Content Engine (Database Model §4)
+// ---------------------------------------------------------------------------
+
+export type ContentType = 'note' | 'journal' | 'deep_dive' | 'retrospective';
+
+export interface ContentItemEntity {
+  readonly id: EntityId;
+  readonly ownerId: EntityId;
+  readonly contentType: ContentType;
+  readonly title: string;
+  readonly slug: string;
+  readonly summary: string | null;
+  readonly bodyFormat: 'json_blocks' | 'markdown';
+  readonly bodySchemaVersion: string;
+  readonly readingTimeMinutes: number | null;
+  readonly visibility: Visibility;
+  readonly state: PublicationState;
+  readonly occurredAt: ISODateTime | null;
+  readonly publishedAt: ISODateTime | null;
+  readonly scheduledFor: ISODateTime | null;
+  readonly createdAt: ISODateTime;
+  readonly updatedAt: ISODateTime;
+  readonly archivedAt: ISODateTime | null;
+  readonly deletedAt: ISODateTime | null;
+  readonly versionNo: number;
+}
+
+export interface ContentRevisionEntity {
+  readonly id: EntityId;
+  readonly contentItemId: EntityId;
+  readonly ownerId: EntityId;
+  readonly revisionNo: number;
+  readonly bodySnapshot: string;
+  readonly bodySchemaVersion: string;
+  readonly revisionNote: string | null;
+  readonly createdAt: ISODateTime;
+  readonly createdBy: string;
+}
+
