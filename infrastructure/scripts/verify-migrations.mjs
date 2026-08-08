@@ -31,6 +31,7 @@ const MIGRATION_FILES = [
   '004_content_projects_activities.sql',
   '005_claims_integrations_proposals.sql',
   '006_engineering_records.sql',
+  '007_embargo_until.sql',
 ];
 
 console.log('🔍 Verifying D1 migrations on fresh database...\n');

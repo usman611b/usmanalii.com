@@ -349,6 +349,7 @@ export interface ContentItemEntity {
   readonly occurredAt: ISODateTime | null;
   readonly publishedAt: ISODateTime | null;
   readonly scheduledFor: ISODateTime | null;
+  readonly embargoUntil: ISODateTime | null;
   readonly createdAt: ISODateTime;
   readonly updatedAt: ISODateTime;
   readonly archivedAt: ISODateTime | null;

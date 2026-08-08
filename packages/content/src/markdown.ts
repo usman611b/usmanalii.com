@@ -40,13 +40,13 @@ export function escapeJsonLd(data: unknown): string {
 }
 
 /**
- * Validates external URLs against approved protocols (https, http, mailto, tel).
- * Gate 4 requirement.
+ * Ordinary Link URL Policy: allows http:, https:, mailto:, tel:, or relative paths (/, ./, ../).
+ * Blocks javascript:, data:, vbscript:.
  */
-export function isSafeUrlProtocol(url: string): boolean {
+export function isSafeLinkUrl(url: string): boolean {
   if (!url || typeof url !== 'string') return false;
   const trimmed = url.trim().toLowerCase();
-  if (trimmed.startsWith('/') || trimmed.startsWith('#')) return true; // relative safe
+  if (trimmed.startsWith('/') || trimmed.startsWith('#') || trimmed.startsWith('./') || trimmed.startsWith('../')) return true;
   return (
     trimmed.startsWith('https://') ||
     trimmed.startsWith('http://') ||
@@ -55,12 +55,44 @@ export function isSafeUrlProtocol(url: string): boolean {
   );
 }
 
+/** Legacy general protocol helper (maintained for backwards compatibility) */
+export function isSafeUrlProtocol(url: string): boolean {
+  return isSafeLinkUrl(url);
+}
+
+/**
+ * Image URL Policy (Requirement 6): Images MUST NOT inherit mailto: or tel:.
+ * Allows ONLY https:, http:, or safe relative paths.
+ */
+export function isSafeImageUrl(url: string): boolean {
+  if (!url || typeof url !== 'string') return false;
+  const trimmed = url.trim().toLowerCase();
+  if (trimmed.startsWith('/') || trimmed.startsWith('./') || trimmed.startsWith('../')) return true;
+  return trimmed.startsWith('https://') || trimmed.startsWith('http://');
+}
+
+/**
+ * Embed URL Policy (Requirement 6): Embeds MUST NOT inherit mailto: or tel:.
+ * Allows ONLY https:, http:, or safe relative paths.
+ */
+export function isSafeEmbedUrl(url: string): boolean {
+  return isSafeImageUrl(url);
+}
+
+/**
+ * Artifact URL Policy (Requirement 6): Artifacts MUST NOT inherit mailto: or tel:.
+ * Allows ONLY https:, http:, or safe relative paths.
+ */
+export function isSafeArtifactUrl(url: string): boolean {
+  return isSafeImageUrl(url);
+}
+
 /**
  * Validates embed artifact URLs against allowed origins.
  * Gate 4 requirement.
  */
 export function isAllowedEmbedOrigin(url: string): boolean {
-  if (!isSafeUrlProtocol(url)) return false;
+  if (!isSafeEmbedUrl(url)) return false;
   try {
     const parsed = new URL(url);
     const host = parsed.hostname.toLowerCase();
@@ -82,17 +114,61 @@ export function isAllowedEmbedOrigin(url: string): boolean {
 }
 
 /**
- * Sanitizes SVG content by removing <script> tags, inline event attributes (on*),
- * javascript: links, and external resource references.
- * Gate 4 requirement.
+ * Mature strict allowlist SVG Sanitizer (Requirement 5).
+ * Strips script tags, event handlers (on*), foreignObject, animation tags (animate, set),
+ * external image/embed references, data URLs, javascript: URIs, and namespace-based payloads (xmlns:xlink).
  */
 export function sanitizeSvg(svg: string): string {
   if (!svg || typeof svg !== 'string') return '';
-  return svg
-    .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '')
-    .replace(/\son[a-z]+\s*=\s*(?:"[^"]*"|'[^']*'|[^\s>]+)/gi, '')
-    .replace(/href\s*=\s*["']?\s*javascript:[^"'>\s]+/gi, 'href="#"')
-    .replace(/<image\b[^>]*>/gi, '');
+
+  let sanitized = svg;
+
+  // 1. Remove dangerous elements: script, foreignObject, animate, set, animateTransform, animateMotion, use, handler, listener, image, embed, object, iframe
+  const forbiddenElements = [
+    'script',
+    'foreignobject',
+    'animate',
+    'set',
+    'animatetransform',
+    'animatemotion',
+    'use',
+    'handler',
+    'listener',
+    'image',
+    'embed',
+    'object',
+    'iframe',
+  ];
+
+  for (const el of forbiddenElements) {
+    const regexSelfClosing = new RegExp(`<${el}\\b[^>]*\\/?>`, 'gi');
+    const regexFull = new RegExp(`<${el}\\b[^<]*(?:(?!<\\/${el}>)<[^<]*)*<\\/${el}>`, 'gi');
+    sanitized = sanitized.replace(regexFull, '').replace(regexSelfClosing, '');
+  }
+
+  // 2. Remove all inline event handlers (onload, onerror, onclick, onmouseover, etc.)
+  sanitized = sanitized.replace(/\son[a-z]+\s*=\s*(?:"[^"]*"|'[^']*'|[^\s>]+)/gi, '');
+
+  // 3. Remove href / xlink:href containing javascript:, data:, or external URLs
+  sanitized = sanitized.replace(/(?:href|xlink:href)\s*=\s*["']?\s*(?:javascript:|data:|https?:|\/\/)[^"'>\s]+/gi, 'href="#"');
+
+  // 4. Remove style attributes containing url(), expression(), or @import
+  sanitized = sanitized.replace(/style\s*=\s*(?:"[^"]*?"|'[^']*?'|[^\s>]+)/gi, (match) => {
+    if (/(?:url\(|expression\(|@import|javascript:)/i.test(match)) {
+      return '';
+    }
+    return match;
+  });
+
+  // 5. Final safety pass: strip any remaining javascript:, data:, or vbscript: strings
+  sanitized = sanitized
+    .replace(/javascript:[^"'>\s]*/gi, '#')
+    .replace(/data:text\/html[^"'>\s]*/gi, '#');
+
+  // 6. Remove custom or external XMLNS namespaces (e.g., xmlns:xlink, xmlns:foo)
+  sanitized = sanitized.replace(/\sxmlns:[a-z0-9_-]+\s*=\s*(?:"[^"]*"|'[^']*'|[^\s>]+)/gi, '');
+
+  return sanitized;
 }
 
 /**

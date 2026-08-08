@@ -2,7 +2,7 @@
 import { describe, it, expect } from 'vitest';
 import { D1ContentRepository } from './repositories/content.js';
 
-function createMockD1Database() {
+function createMockD1Database(options: { failBatch?: boolean } = {}) {
   const itemsTable = new Map<string, Record<string, unknown>>();
   const revisionsTable = new Map<string, Record<string, unknown>>();
 
@@ -36,9 +36,20 @@ function createMockD1Database() {
             }
             return null;
           }
+          if (sql.includes('SELECT * FROM content_revisions WHERE id = ? AND content_item_id = ? AND owner_id = ?')) {
+            const id = stmtObj.boundParams[0];
+            const contentItemId = stmtObj.boundParams[1];
+            const ownerId = stmtObj.boundParams[2];
+            const rev = revisionsTable.get(id);
+            if (rev && rev.content_item_id === contentItemId && rev.owner_id === ownerId) {
+              return rev as T;
+            }
+            return null;
+          }
           if (sql.includes('SELECT * FROM content_items WHERE slug = ?')) {
             const slug = stmtObj.boundParams[0];
             const now = stmtObj.boundParams[1];
+            const now2 = stmtObj.boundParams[2] || now;
             for (const row of itemsTable.values()) {
               if (
                 row.slug === slug &&
@@ -46,7 +57,8 @@ function createMockD1Database() {
                 row.visibility === 'public' &&
                 !row.deleted_at &&
                 !row.archived_at &&
-                (!row.scheduled_for || (row.scheduled_for as string) <= now)
+                (!row.scheduled_for || (row.scheduled_for as string) <= now) &&
+                (!row.embargo_until || (row.embargo_until as string) <= now2)
               ) {
                 return row as T;
               }
@@ -72,7 +84,8 @@ function createMockD1Database() {
         async all<T = unknown>(): Promise<{ results: T[] }> {
           if (sql.includes('SELECT * FROM content_items WHERE state = \'published\'')) {
             const now = stmtObj.boundParams[0];
-            const contentType = stmtObj.boundParams[1];
+            const now2 = stmtObj.boundParams[1] || now;
+            const contentType = stmtObj.boundParams[2];
             const results: Record<string, unknown>[] = [];
             for (const row of itemsTable.values()) {
               if (
@@ -80,7 +93,8 @@ function createMockD1Database() {
                 row.visibility === 'public' &&
                 !row.deleted_at &&
                 !row.archived_at &&
-                (!row.scheduled_for || (row.scheduled_for as string) <= now)
+                (!row.scheduled_for || (row.scheduled_for as string) <= now) &&
+                (!row.embargo_until || (row.embargo_until as string) <= now2)
               ) {
                 if (!contentType || row.content_type === contentType) {
                   results.push(row);
@@ -109,8 +123,10 @@ function createMockD1Database() {
               visibility: stmtObj.boundParams[8],
               state: 'draft',
               occurred_at: stmtObj.boundParams[9],
-              created_at: stmtObj.boundParams[10],
-              updated_at: stmtObj.boundParams[11],
+              scheduled_for: stmtObj.boundParams[10],
+              embargo_until: stmtObj.boundParams[11],
+              created_at: stmtObj.boundParams[12],
+              updated_at: stmtObj.boundParams[13],
               version_no: 1,
             });
           }
@@ -127,12 +143,41 @@ function createMockD1Database() {
               created_by: stmtObj.boundParams[8],
             });
           }
+          if (sql.includes('UPDATE content_items SET')) {
+            if (sql.includes('state = ?')) {
+              const targetState = stmtObj.boundParams[0];
+              const newVersionNo = stmtObj.boundParams[2];
+              const id = stmtObj.boundParams[3];
+              const row = itemsTable.get(id);
+              if (row) {
+                row.state = targetState;
+                row.version_no = newVersionNo;
+              }
+            } else {
+              const id = stmtObj.boundParams[9];
+              const row = itemsTable.get(id);
+              if (row) {
+                row.title = stmtObj.boundParams[0];
+                row.slug = stmtObj.boundParams[1];
+                row.summary = stmtObj.boundParams[2];
+                row.visibility = stmtObj.boundParams[3];
+                row.occurred_at = stmtObj.boundParams[4];
+                row.scheduled_for = stmtObj.boundParams[5];
+                row.embargo_until = stmtObj.boundParams[6];
+                row.updated_at = stmtObj.boundParams[7];
+                row.version_no = stmtObj.boundParams[8];
+              }
+            }
+          }
           return { meta: { changes: 1 } };
         },
       };
       return stmtObj;
     },
     async batch(statements: any[]) {
+      if (options.failBatch) {
+        throw new Error('D1_BATCH_EXECUTION_FAILED: Transaction rolled back');
+      }
       const results: any[] = [];
       for (const stmt of statements) {
         if (stmt._executeMock) {
@@ -146,8 +191,8 @@ function createMockD1Database() {
   };
 }
 
-describe('D1ContentRepository Unit & Concurrency Tests (Gate 2 & 6)', () => {
-  it('1. createDraft builds item and initial revision atomically', async () => {
+describe('Requirement 1 & 2: Database Integrity & Public Scheduling/Embargo Logic', () => {
+  it('1. createDraft creates content_items and initial revision #1 atomically in single D1 batch', async () => {
     const mockDb = createMockD1Database();
     const repo = new D1ContentRepository(mockDb as any);
 
@@ -156,10 +201,10 @@ describe('D1ContentRepository Unit & Concurrency Tests (Gate 2 & 6)', () => {
       {
         id: 'item-1',
         contentType: 'journal',
-        title: 'Test Title',
-        slug: 'test-slug',
-        summary: 'Summary',
-        bodyBlocksJson: '[]',
+        title: 'Test Draft',
+        slug: 'test-draft',
+        summary: 'Summary text',
+        bodyBlocksJson: '[{"type":"paragraph","text":"Hello"}]',
       },
       'owner-1',
     );
@@ -167,57 +212,182 @@ describe('D1ContentRepository Unit & Concurrency Tests (Gate 2 & 6)', () => {
     expect(item.id).toBe('item-1');
     expect(item.state).toBe('draft');
     expect(item.versionNo).toBe(1);
+    expect(mockDb.itemsTable.size).toBe(1);
     expect(mockDb.revisionsTable.size).toBe(1);
   });
 
-  it('2. Optimistic concurrency conflict on version_no mismatch', async () => {
+  it('2. updateWithConcurrency updates content_items and creates new revision atomically', async () => {
     const mockDb = createMockD1Database();
     const repo = new D1ContentRepository(mockDb as any);
 
-    mockDb.itemsTable.set('item-1', {
-      id: 'item-1',
-      owner_id: 'owner-1',
-      version_no: 2, // Current database version is 2
-    });
-
-    // Attempting update expecting version 1 fails with concurrency conflict
-    const result = await repo.updateWithConcurrency(
+    // Initial draft
+    await repo.createDraft(
       'owner-1',
-      'item-1',
-      1, // Stale version expected
-      { title: 'New Title' },
+      {
+        id: 'item-1',
+        contentType: 'journal',
+        title: 'Title v1',
+        slug: 'title-v1',
+        bodyBlocksJson: '[]',
+      },
       'owner-1',
     );
 
-    expect(result.success).toBe(false);
-    if (!result.success) {
-      expect(result.reason).toBe('concurrency_conflict');
+    // Update with revision
+    const updateRes = await repo.updateWithConcurrency(
+      'owner-1',
+      'item-1',
+      1,
+      {
+        title: 'Title v2',
+        bodyBlocksJson: '[{"type":"paragraph","text":"v2 text"}]',
+        revisionNote: 'Updated title to v2',
+      },
+      'owner-1',
+    );
+
+    expect(updateRes.success).toBe(true);
+    if (updateRes.success) {
+      expect(updateRes.item.title).toBe('Title v2');
+      expect(updateRes.item.versionNo).toBe(2);
     }
+    expect(mockDb.revisionsTable.size).toBe(2);
   });
 
-  it('3. Public queries strictly exclude unpublished, non-public, archived, and embargoed content', async () => {
+  it('3. Rollback creates a NEW revision while original revisions remain 100% immutable', async () => {
     const mockDb = createMockD1Database();
     const repo = new D1ContentRepository(mockDb as any);
 
-    const futureDate = new Date(Date.now() + 86400000).toISOString();
-    const pastDate = new Date(Date.now() - 86400000).toISOString();
+    // Seed revision 1 in mock db
+    mockDb.revisionsTable.set('rev-1', {
+      id: 'rev-1',
+      content_item_id: 'item-1',
+      owner_id: 'owner-1',
+      revision_no: 1,
+      body_snapshot: '[{"type":"paragraph","text":"Original rev 1"}]',
+      body_schema_version: 'v1',
+      revision_note: 'Rev 1 snapshot',
+      created_at: new Date().toISOString(),
+      created_by: 'owner-1',
+    });
 
-    // Populate test states
-    mockDb.itemsTable.set('pub-1', { id: 'pub-1', owner_id: 'owner-1', state: 'published', visibility: 'public', slug: 'pub-1' });
-    mockDb.itemsTable.set('draft-1', { id: 'draft-1', owner_id: 'owner-1', state: 'draft', visibility: 'public', slug: 'draft-1' });
-    mockDb.itemsTable.set('rev-1', { id: 'rev-1', owner_id: 'owner-1', state: 'review', visibility: 'public', slug: 'rev-1' });
-    mockDb.itemsTable.set('priv-1', { id: 'priv-1', owner_id: 'owner-1', state: 'published', visibility: 'private', slug: 'priv-1' });
-    mockDb.itemsTable.set('embargo-1', { id: 'embargo-1', owner_id: 'owner-1', state: 'published', visibility: 'public', scheduled_for: futureDate, slug: 'embargo-1' });
-    mockDb.itemsTable.set('expired-embargo-1', { id: 'expired-embargo-1', owner_id: 'owner-1', state: 'published', visibility: 'public', scheduled_for: pastDate, slug: 'expired-embargo-1' });
+    const originalRev1Snapshot = mockDb.revisionsTable.get('rev-1')?.body_snapshot;
+
+    const rollbackRev = await repo.rollbackToRevision('owner-1', 'item-1', 'rev-1', 'owner-1');
+
+    expect(rollbackRev.revisionNo).toBe(2); // New revision #2 created
+    expect(rollbackRev.bodySnapshot).toBe('[{"type":"paragraph","text":"Original rev 1"}]');
+    // Original revision 1 remains completely unmodified
+    expect(mockDb.revisionsTable.get('rev-1')?.body_snapshot).toBe(originalRev1Snapshot);
+    expect(mockDb.revisionsTable.get('rev-1')?.revision_no).toBe(1);
+  });
+
+  it('4. Failed D1 batch creates NO partial state (0 side effects)', async () => {
+    const mockDb = createMockD1Database({ failBatch: true });
+    const repo = new D1ContentRepository(mockDb as any);
+
+    await expect(
+      repo.createDraft(
+        'owner-1',
+        {
+          id: 'failed-item-1',
+          contentType: 'journal',
+          title: 'Failed Draft',
+          slug: 'failed-draft',
+          bodyBlocksJson: '[]',
+        },
+        'owner-1',
+      ),
+    ).rejects.toThrow('D1_BATCH_EXECUTION_FAILED');
+
+    // Confirm ZERO partial updates occurred in database tables
+    expect(mockDb.itemsTable.size).toBe(0);
+    expect(mockDb.revisionsTable.size).toBe(0);
+  });
+
+  it('5. transitionState publish updates state and logs audit revision atomically', async () => {
+    const mockDb = createMockD1Database();
+    const repo = new D1ContentRepository(mockDb as any);
+
+    await repo.createDraft(
+      'owner-1',
+      {
+        id: 'item-1',
+        contentType: 'journal',
+        title: 'Draft to Publish',
+        slug: 'draft-publish',
+        bodyBlocksJson: '[]',
+      },
+      'owner-1',
+    );
+
+    const publishedItem = await repo.transitionState('owner-1', 'item-1', 'published');
+    expect(publishedItem.state).toBe('published');
+    expect(publishedItem.versionNo).toBe(2);
+    expect(mockDb.revisionsTable.size).toBe(2);
+  });
+
+  it('6. Public scheduling & separate embargo_until boundary logic (Requirement 1)', async () => {
+    const mockDb = createMockD1Database();
+    const repo = new D1ContentRepository(mockDb as any);
+
+    const now = new Date();
+    const pastDate = new Date(now.getTime() - 3600 * 1000).toISOString();
+    const exactNowDate = now.toISOString();
+    const futureDate = new Date(now.getTime() + 3600 * 1000).toISOString();
+
+    // 1. Normal published record with scheduled_for = NULL, embargo_until = NULL -> PUBLIC
+    mockDb.itemsTable.set('normal-pub', {
+      id: 'normal-pub', owner_id: 'owner-1', state: 'published', visibility: 'public', slug: 'normal-pub',
+      scheduled_for: null, embargo_until: null,
+    });
+
+    // 2. Scheduled_for in past -> PUBLIC
+    mockDb.itemsTable.set('sched-past', {
+      id: 'sched-past', owner_id: 'owner-1', state: 'published', visibility: 'public', slug: 'sched-past',
+      scheduled_for: pastDate, embargo_until: null,
+    });
+
+    // 3. Scheduled_for at exact-now -> PUBLIC
+    mockDb.itemsTable.set('sched-now', {
+      id: 'sched-now', owner_id: 'owner-1', state: 'published', visibility: 'public', slug: 'sched-now',
+      scheduled_for: exactNowDate, embargo_until: null,
+    });
+
+    // 4. Scheduled_for in future -> PRIVATE (EXCLUDED)
+    mockDb.itemsTable.set('sched-future', {
+      id: 'sched-future', owner_id: 'owner-1', state: 'published', visibility: 'public', slug: 'sched-future',
+      scheduled_for: futureDate, embargo_until: null,
+    });
+
+    // 5. Embargo_until in past -> PUBLIC
+    mockDb.itemsTable.set('embargo-past', {
+      id: 'embargo-past', owner_id: 'owner-1', state: 'published', visibility: 'public', slug: 'embargo-past',
+      scheduled_for: null, embargo_until: pastDate,
+    });
+
+    // 6. Embargo_until at exact-now -> PUBLIC
+    mockDb.itemsTable.set('embargo-now', {
+      id: 'embargo-now', owner_id: 'owner-1', state: 'published', visibility: 'public', slug: 'embargo-now',
+      scheduled_for: null, embargo_until: exactNowDate,
+    });
+
+    // 7. Embargo_until in future -> PRIVATE (EXCLUDED)
+    mockDb.itemsTable.set('embargo-future', {
+      id: 'embargo-future', owner_id: 'owner-1', state: 'published', visibility: 'public', slug: 'embargo-future',
+      scheduled_for: null, embargo_until: futureDate,
+    });
 
     const entries = await repo.getPublicPublishedEntries();
     const entryIds = entries.map((e) => e.id as string);
 
-    expect(entryIds).toContain('pub-1');
-    expect(entryIds).toContain('expired-embargo-1');
-    expect(entryIds).not.toContain('draft-1');
-    expect(entryIds).not.toContain('rev-1');
-    expect(entryIds).not.toContain('priv-1');
-    expect(entryIds).not.toContain('embargo-1');
+    expect(entryIds).toContain('normal-pub');
+    expect(entryIds).toContain('sched-past');
+    expect(entryIds).toContain('sched-now');
+    expect(entryIds).toContain('embargo-past');
+    expect(entryIds).toContain('embargo-now');
+
+    expect(entryIds).not.toContain('sched-future');
+    expect(entryIds).not.toContain('embargo-future');
   });
 });

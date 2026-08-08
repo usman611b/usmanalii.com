@@ -11,6 +11,8 @@ export interface CreateContentDraftInput {
   bodySchemaVersion?: string;
   visibility?: Visibility;
   occurredAt?: string | null;
+  scheduledFor?: string | null;
+  embargoUntil?: string | null;
   bodyBlocksJson: string; // initial revision body snapshot
 }
 
@@ -20,6 +22,8 @@ export interface UpdateContentInput {
   summary?: string | null | undefined;
   visibility?: Visibility | undefined;
   occurredAt?: string | null | undefined;
+  scheduledFor?: string | null | undefined;
+  embargoUntil?: string | null | undefined;
   bodyBlocksJson?: string | undefined;
   revisionNote?: string | null | undefined;
 }
@@ -111,8 +115,8 @@ export class D1ContentRepository {
       `INSERT INTO content_items (
         id, owner_id, content_type, title, slug, summary,
         body_format, body_schema_version, visibility, state,
-        occurred_at, created_at, updated_at, version_no
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'draft', ?, ?, ?, 1)`,
+        occurred_at, scheduled_for, embargo_until, created_at, updated_at, version_no
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'draft', ?, ?, ?, ?, ?, 1)`,
     ).bind(
       input.id,
       ownerId,
@@ -124,6 +128,8 @@ export class D1ContentRepository {
       bodySchemaVersion,
       visibility,
       input.occurredAt || null,
+      input.scheduledFor || null,
+      input.embargoUntil || null,
       now,
       now,
     );
@@ -174,6 +180,8 @@ export class D1ContentRepository {
     const newSummary = input.summary !== undefined ? input.summary : current.item.summary;
     const newVisibility = input.visibility ?? current.item.visibility;
     const newOccurredAt = input.occurredAt !== undefined ? input.occurredAt : current.item.occurredAt;
+    const newScheduledFor = input.scheduledFor !== undefined ? input.scheduledFor : current.item.scheduledFor;
+    const newEmbargoUntil = input.embargoUntil !== undefined ? input.embargoUntil : current.item.embargoUntil;
 
     const updateStmt = this.db.prepare(
       `UPDATE content_items SET
@@ -182,6 +190,8 @@ export class D1ContentRepository {
         summary = ?,
         visibility = ?,
         occurred_at = ?,
+        scheduled_for = ?,
+        embargo_until = ?,
         updated_at = ?,
         version_no = ?
       WHERE id = ? AND owner_id = ? AND version_no = ? AND deleted_at IS NULL`,
@@ -191,6 +201,8 @@ export class D1ContentRepository {
       newSummary,
       newVisibility,
       newOccurredAt,
+      newScheduledFor,
+      newEmbargoUntil,
       now,
       newVersionNo,
       id,
@@ -379,11 +391,11 @@ export class D1ContentRepository {
     }));
   }
 
-  /** Public allowlisted query for public Journey pages with embargo enforcement */
+  /** Public allowlisted query for public Journey pages with scheduled_for & embargo_until enforcement */
   async getPublicPublishedEntries(filters?: { contentType?: ContentType; yearMonth?: string }): Promise<ContentItemEntity[]> {
     const now = new Date().toISOString();
-    let sql = `SELECT * FROM content_items WHERE state = 'published' AND visibility = 'public' AND deleted_at IS NULL AND archived_at IS NULL AND (scheduled_for IS NULL OR scheduled_for <= ?)`;
-    const params: string[] = [now];
+    let sql = `SELECT * FROM content_items WHERE state = 'published' AND visibility = 'public' AND deleted_at IS NULL AND archived_at IS NULL AND (scheduled_for IS NULL OR scheduled_for <= ?) AND (embargo_until IS NULL OR embargo_until <= ?)`;
+    const params: string[] = [now, now];
 
     if (filters?.contentType) {
       sql += ` AND content_type = ?`;
@@ -401,12 +413,12 @@ export class D1ContentRepository {
     return (results || []).map((row) => this.mapRowToEntity(row));
   }
 
-  /** Get single public published entry by slug with embargo enforcement */
+  /** Get single public published entry by slug with scheduled_for & embargo_until enforcement */
   async getPublicPublishedEntryBySlug(slug: string): Promise<{ item: ContentItemEntity; bodySnapshot: string | null } | null> {
     const now = new Date().toISOString();
     const stmt = this.db.prepare(
-      `SELECT * FROM content_items WHERE slug = ? AND state = 'published' AND visibility = 'public' AND deleted_at IS NULL AND archived_at IS NULL AND (scheduled_for IS NULL OR scheduled_for <= ?)`,
-    ).bind(slug, now);
+      `SELECT * FROM content_items WHERE slug = ? AND state = 'published' AND visibility = 'public' AND deleted_at IS NULL AND archived_at IS NULL AND (scheduled_for IS NULL OR scheduled_for <= ?) AND (embargo_until IS NULL OR embargo_until <= ?)`,
+    ).bind(slug, now, now);
     const row = await stmt.first<Record<string, unknown>>();
     if (!row) return null;
 
@@ -484,6 +496,7 @@ export class D1ContentRepository {
       occurredAt: row.occurred_at ? (String(row.occurred_at) as unknown as ISODateTime) : null,
       publishedAt: row.published_at ? (String(row.published_at) as unknown as ISODateTime) : null,
       scheduledFor: row.scheduled_for ? (String(row.scheduled_for) as unknown as ISODateTime) : null,
+      embargoUntil: row.embargo_until ? (String(row.embargo_until) as unknown as ISODateTime) : null,
       createdAt: String(row.created_at) as unknown as ISODateTime,
       updatedAt: String(row.updated_at) as unknown as ISODateTime,
       archivedAt: row.archived_at ? (String(row.archived_at) as unknown as ISODateTime) : null,

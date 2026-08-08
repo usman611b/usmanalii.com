@@ -181,4 +181,53 @@ describe('Worker API Integration & Security Tests', () => {
 
     expect(res.status).toBe(404);
   });
+
+  it('PREVIEW TOKEN SECURITY (Requirement 7): Validates token bindings & fails on malformed/expired/mismatched tokens', async () => {
+    const testOwnerId = '00000000-0000-0000-0000-000000000001';
+    const authHeaders = { Authorization: 'Bearer test-jwt-token' };
+
+    // 1. Malformed token structure (fewer than 6 parts)
+    const malformedRes = await worker.fetch(
+      new Request('http://localhost/api/v1/private/content/item-1/preview?token=invalid:structure', {
+        headers: authHeaders,
+      }),
+      env,
+    );
+    expect(malformedRes.status).toBe(403);
+    const malformedBody = (await malformedRes.json()) as { code: string };
+    expect(malformedBody.code).toBe('INVALID_PREVIEW_TOKEN');
+
+    // 2. Cross-record mismatch (token id != route id)
+    const crossRecordRes = await worker.fetch(
+      new Request(`http://localhost/api/v1/private/content/item-1/preview?token=item-OTHER:${testOwnerId}:1:preview:1999999999999:sig`, {
+        headers: authHeaders,
+      }),
+      env,
+    );
+    expect(crossRecordRes.status).toBe(403);
+    const crossRecordBody = (await crossRecordRes.json()) as { code: string };
+    expect(crossRecordBody.code).toBe('INVALID_PREVIEW_TOKEN');
+
+    // 3. Cross-purpose mismatch (purpose != 'preview')
+    const crossPurposeRes = await worker.fetch(
+      new Request(`http://localhost/api/v1/private/content/item-1/preview?token=item-1:${testOwnerId}:1:export:1999999999999:sig`, {
+        headers: authHeaders,
+      }),
+      env,
+    );
+    expect(crossPurposeRes.status).toBe(403);
+    const crossPurposeBody = (await crossPurposeRes.json()) as { code: string };
+    expect(crossPurposeBody.code).toBe('INVALID_PREVIEW_TOKEN');
+
+    // 4. Expired token (expiresAt in past)
+    const expiredRes = await worker.fetch(
+      new Request(`http://localhost/api/v1/private/content/item-1/preview?token=item-1:${testOwnerId}:1:preview:1000000000000:sig`, {
+        headers: authHeaders,
+      }),
+      env,
+    );
+    expect(expiredRes.status).toBe(403);
+    const expiredBody = (await expiredRes.json()) as { code: string };
+    expect(expiredBody.code).toBe('PREVIEW_TOKEN_EXPIRED');
+  });
 });

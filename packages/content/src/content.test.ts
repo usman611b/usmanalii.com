@@ -6,7 +6,10 @@ import {
   validateStateTransition,
   escapeHtml,
   escapeJsonLd,
-  isSafeUrlProtocol,
+  isSafeLinkUrl,
+  isSafeImageUrl,
+  isSafeEmbedUrl,
+  isSafeArtifactUrl,
   isAllowedEmbedOrigin,
   sanitizeSvg,
 } from './index';
@@ -30,14 +33,26 @@ describe('Adversarial XSS & Security Boundary Tests (Gate 4 & 5)', () => {
     expect(escaped).not.toContain('<!--');
   });
 
-  it('3. isSafeUrlProtocol blocks unsafe protocols and allows safe ones', () => {
-    expect(isSafeUrlProtocol('javascript:alert(1)')).toBe(false);
-    expect(isSafeUrlProtocol('data:text/html,<script>alert(1)</script>')).toBe(false);
-    expect(isSafeUrlProtocol('vbscript:msgbox(1)')).toBe(false);
-    expect(isSafeUrlProtocol('https://usmanalii.com/path')).toBe(true);
-    expect(isSafeUrlProtocol('http://localhost:3000')).toBe(true);
-    expect(isSafeUrlProtocol('mailto:owner@usmanalii.com')).toBe(true);
-    expect(isSafeUrlProtocol('/relative/path')).toBe(true);
+  it('3. isSafeLinkUrl vs isSafeImageUrl/Embed/Artifact (Requirement 6)', () => {
+    // Ordinary links allow mailto: and tel:
+    expect(isSafeLinkUrl('mailto:owner@usmanalii.com')).toBe(true);
+    expect(isSafeLinkUrl('tel:+1234567890')).toBe(true);
+    expect(isSafeLinkUrl('https://usmanalii.com/path')).toBe(true);
+
+    // Images, embeds, and artifacts MUST NOT inherit mailto: or tel:!
+    expect(isSafeImageUrl('mailto:owner@usmanalii.com')).toBe(false);
+    expect(isSafeImageUrl('tel:+1234567890')).toBe(false);
+    expect(isSafeImageUrl('javascript:alert(1)')).toBe(false);
+    expect(isSafeImageUrl('https://usmanalii.com/img.png')).toBe(true);
+    expect(isSafeImageUrl('/assets/img.png')).toBe(true);
+
+    expect(isSafeEmbedUrl('mailto:owner@usmanalii.com')).toBe(false);
+    expect(isSafeEmbedUrl('tel:+1234567890')).toBe(false);
+    expect(isSafeEmbedUrl('https://github.com')).toBe(true);
+
+    expect(isSafeArtifactUrl('mailto:owner@usmanalii.com')).toBe(false);
+    expect(isSafeArtifactUrl('tel:+1234567890')).toBe(false);
+    expect(isSafeArtifactUrl('https://usmanalii.com/artifact.pdf')).toBe(true);
   });
 
   it('4. isAllowedEmbedOrigin allowlists approved domains and rejects unallowed ones', () => {
@@ -48,13 +63,30 @@ describe('Adversarial XSS & Security Boundary Tests (Gate 4 & 5)', () => {
     expect(isAllowedEmbedOrigin('javascript:alert(1)')).toBe(false);
   });
 
-  it('5. sanitizeSvg removes <script>, on* event handlers, and javascript: links', () => {
-    const maliciousSvg = `<svg><script>alert("xss")</script><rect width="100" height="100" onload="alert('xss')" /><a href="javascript:alert(1)"><image href="https://evil.com/img.png" /></a></svg>`;
+  it('5. sanitizeSvg removes <script>, foreignObject, animate, set, on* handlers, data/javascript URLs, and xmlns:xlink payloads (Requirement 5)', () => {
+    const maliciousSvg = `<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+      <script>alert("xss1")</script>
+      <foreignObject><iframe src="javascript:alert(2)"></iframe></foreignObject>
+      <animate attributeName="href" values="javascript:alert(3)" />
+      <set attributeName="onload" to="alert(4)" />
+      <rect width="100" height="100" onload="alert('xss5')" onerror="alert('xss6')" style="background: url(javascript:alert(7))" />
+      <a href="javascript:alert(8)"><image href="data:text/html,<script>alert(9)</script>" /></a>
+    </svg>`;
+
     const clean = sanitizeSvg(maliciousSvg);
+
     expect(clean).not.toContain('<script>');
+    expect(clean).not.toContain('<foreignObject>');
+    expect(clean).not.toContain('<animate');
+    expect(clean).not.toContain('<set');
     expect(clean).not.toContain('onload=');
+    expect(clean).not.toContain('onerror=');
     expect(clean).not.toContain('javascript:');
+    expect(clean).not.toContain('data:');
+    expect(clean).not.toContain('xmlns:xlink');
     expect(clean).not.toContain('<image');
+    expect(clean).not.toContain('<iframe');
+    expect(clean).not.toContain('url(');
   });
 
   it('6. YAML metadata frontmatter serialization is safe against injection (Gate 8)', () => {
