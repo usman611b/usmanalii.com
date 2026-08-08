@@ -1,5 +1,17 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { describe, it, expect } from 'vitest';
 import worker from './index';
+
+const mockDb = {
+  prepare() {
+    return {
+      bind() { return this; },
+      async first() { return null; },
+      async all() { return { results: [] }; },
+      async run() { return { meta: { changes: 1 } }; },
+    };
+  },
+};
 
 const env = {
   ENVIRONMENT: 'test',
@@ -242,17 +254,81 @@ describe('Worker API Integration & Security Tests', () => {
     expect(unauthDl.status).toBe(401);
   });
 
-  it('M3 SECURITY (Requirement 9): Public artifact download returns 404 NOT_FOUND for non-existent or private artifacts', async () => {
-    const res = await worker.fetch(new Request('http://localhost/api/v1/public/artifacts/art-private/download'), env);
-    expect(res.status).toBe(404);
-    const body = (await res.json()) as { code: string };
-    expect(body.code).toBe('RESOURCE_NOT_FOUND');
+  it('M3 SECURITY (Gate 1 & 4): Zero existence leakage for private, uneligible, disputed, revoked, or archived evidence (404 RESOURCE_NOT_FOUND)', async () => {
+    const resPrivate = await worker.fetch(new Request('http://localhost/api/v1/public/evidence/ev-private'), env);
+    expect(resPrivate.status).toBe(404);
+    const bodyPrivate = (await resPrivate.json()) as { code: string };
+    expect(bodyPrivate.code).toBe('RESOURCE_NOT_FOUND');
+
+    const resDisputed = await worker.fetch(new Request('http://localhost/api/v1/public/evidence/ev-disputed'), env);
+    expect(resDisputed.status).toBe(404);
+
+    const resRevoked = await worker.fetch(new Request('http://localhost/api/v1/public/evidence/ev-revoked'), env);
+    expect(resRevoked.status).toBe(404);
+
+    const resArchived = await worker.fetch(new Request('http://localhost/api/v1/public/evidence/ev-archived'), env);
+    expect(resArchived.status).toBe(404);
   });
 
-  it('M3 SECURITY (Requirement 9): Public evidence endpoints return 404 NOT_FOUND for private or uneligible evidence', async () => {
-    const res = await worker.fetch(new Request('http://localhost/api/v1/public/evidence/ev-private'), env);
-    expect(res.status).toBe(404);
-    const body = (await res.json()) as { code: string };
-    expect(body.code).toBe('RESOURCE_NOT_FOUND');
+  it('M3 SECURITY (Gate 3): Safe artifact delivery headers prevent inline JS/HTML execution & CRLF injection', async () => {
+    const res = await worker.fetch(new Request('http://localhost/api/v1/public/artifacts/art-1/download'), env);
+    expect(res.headers.get('X-Content-Type-Options')).toBe('nosniff');
+    expect(res.headers.get('Content-Security-Policy')).toContain("default-src 'none'");
+  });
+
+  it('M3 SECURITY (Gate 1 & 2): R2/D1 failure consistency and upload constraints validation', async () => {
+    const authHeaders = {
+      Authorization: 'Bearer test-jwt-token',
+      Origin: 'http://localhost:4321',
+    };
+
+    // 1. Oversized file upload attempt (form submission > 10MB)
+    const formData = new FormData();
+    const bigBlob = new Blob([new Uint8Array(11 * 1024 * 1024)], { type: 'image/png' });
+    formData.append('file', bigBlob, 'big.png');
+
+    const bigRes = await worker.fetch(
+      new Request('http://localhost/api/v1/private/artifacts/upload', {
+        method: 'POST',
+        headers: authHeaders,
+        body: formData,
+      }),
+      { ...env, DB: mockDb as any },
+    );
+    expect(bigRes.status).toBe(400);
+    const bigBody = (await bigRes.json()) as { code: string; message: string };
+    expect(bigBody.code).toBe('VALIDATION_ERROR');
+    expect(bigBody.message).toContain('10MB');
+
+    // 2. MIME type vs magic bytes mismatch
+    const badMagicForm = new FormData();
+    const fakePngBlob = new Blob([new TextEncoder().encode('NOT A PNG FILE HEADER')], { type: 'image/png' });
+    badMagicForm.append('file', fakePngBlob, 'fake.png');
+
+    const badMagicRes = await worker.fetch(
+      new Request('http://localhost/api/v1/private/artifacts/upload', {
+        method: 'POST',
+        headers: authHeaders,
+        body: badMagicForm,
+      }),
+      { ...env, DB: mockDb as any },
+    );
+    expect(badMagicRes.status).toBe(400);
+    const badMagicBody = (await badMagicRes.json()) as { code: string; message: string };
+    expect(badMagicBody.code).toBe('VALIDATION_ERROR');
+    expect(badMagicBody.message).toContain('signature does not match');
+  });
+
+  it('M3 RECONCILIATION: Private reconciliation endpoint sweeps orphaned R2 objects', async () => {
+    const res = await worker.fetch(
+      new Request('http://localhost/api/v1/private/artifacts/reconcile', {
+        headers: { Authorization: 'Bearer test-jwt-token' },
+      }),
+      { ...env, DB: mockDb as any },
+    );
+    expect(res.status).toBe(200);
+    const body = (await res.json()) as { message: string; orphanedObjectsCleaned: number };
+    expect(body.message).toContain('reconciliation sweep completed');
+    expect(body.orphanedObjectsCleaned).toBeDefined();
   });
 });

@@ -19,9 +19,10 @@ import type {
 /**
  * Computes deterministic SHA-256 content hash of string or object payload.
  */
-export async function computeContentHash(payload: string | Record<string, unknown>): Promise<string> {
-  const text = typeof payload === 'string' ? payload : JSON.stringify(payload);
-  const dataBuffer = new TextEncoder().encode(text);
+export async function computeContentHash(payload: string | Uint8Array | Record<string, unknown>): Promise<string> {
+  const dataBuffer = payload instanceof Uint8Array
+    ? payload
+    : new TextEncoder().encode(typeof payload === 'string' ? payload : JSON.stringify(payload));
   const hashBuffer = await crypto.subtle.digest('SHA-256', dataBuffer);
   const hashArray = Array.from(new Uint8Array(hashBuffer));
   return hashArray.map((b) => b.toString(16).padStart(2, '0')).join('');
@@ -43,6 +44,10 @@ export function validateVerificationStateTransition(
 
   if (current === 'archived') {
     return { valid: false, reason: 'Archived evidence is immutable and cannot transition states without unarchiving.' };
+  }
+
+  if (current === 'revoked' && next !== 'archived' && next !== 'unverified') {
+    return { valid: false, reason: 'Revoked evidence cannot transition directly to verified states.' };
   }
 
   const allowedStates: EvidenceVerificationState[] = [

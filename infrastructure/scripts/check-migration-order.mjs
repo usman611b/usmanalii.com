@@ -23,6 +23,9 @@ const CANONICAL_ORDER = [
   '004_content_projects_activities.sql',
   '005_claims_integrations_proposals.sql',
   '006_engineering_records.sql',
+  '007_embargo_until.sql',
+  '008_evidence_ledger_m3.sql',
+  '009_evidence_constraints_m3.sql',
 ];
 
 console.log('🔍 Checking migration file order and completeness...\n');

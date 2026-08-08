@@ -291,10 +291,19 @@ Immediate sequence:
 - **V3:** Prompt-injection/red-team suite, embedding authorization, public Q&A abuse controls and private job-data retention.
 - **V4:** New dedicated multi-tenant threat model, isolation proof, customer authentication, support access, billing abuse, per-tenant backup/export/deletion and independent penetration test.
 
-## 22. Critical conclusion
+## 24. R2/D1 Consistency & Safe Artifact Delivery Model (M3 Verification Baseline)
 
-The architecture is viable for a secure personal system only if the Worker is treated as the complete authorization boundary, R2 remains private by default, publication uses allowlisted projections, and imported/AI content is treated as hostile data. Cloudflare services reduce infrastructure burden but do not remove application-level authorization, content security or operational responsibility.
+### A. R2/D1 Failure Consistency & Orphan Cleanup
+1. **Server-Only Unpredictable Keys**: Binary storage keys generated exclusively on server (`artifacts/${ownerId}/${uuid}.${ext}`). User paths stripped via `sanitizeFilename`.
+2. **Atomic Rollback & Failure Isolation**:
+   - If R2 `put()` fails -> request aborts with 500 error; no D1 metadata created.
+   - If R2 succeeds but D1 `create()` fails -> immediate `r2.delete(r2Key)` issued to prevent orphaned R2 objects.
+   - If R2 deletion fails during hard delete -> failure logged for reconciliation sweep without breaking D1 integrity.
+3. **Reconciliation Sweeps**: Endpoint `/api/v1/private/artifacts/reconcile` sweeps orphaned objects and missing D1 bindings without public storage key exposure.
 
-## 23. Approval decision
-
-Approval makes this threat model part of the definition of done. Security tests and remediation stories must be added to the implementation backlog before application code is considered launchable.
+### B. Safe Artifact Delivery Headers
+- **Content-Type**: Allowlisted media type (`text/html` forced to `text/plain`).
+- **Content-Security-Policy**: Restrictive `default-src 'none'`.
+- **X-Content-Type-Options**: `nosniff`.
+- **Content-Disposition**: `attachment; filename="..."` with CRLF/header injection sanitization (`replace(/[\r\n\0]/g, '')`).
+- **Cache-Control**: `private, no-store, must-revalidate` (private) / `public, max-age=3600, s-maxage=86400` (public eligible).

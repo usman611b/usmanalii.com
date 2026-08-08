@@ -77,24 +77,24 @@
 | `EDT-003` | Exact public mode preview before publishing | E04 | M2 | `packages/domain/src/value-objects/index.ts` (`isPubliclyDiscoverable`) |
 | `EDT-004` | Publish validation (title, slug, metadata, sanitization) | E04 | M2 | `packages/domain/src/rules/index.ts` (`canTransitionToPublished`) |
 | `EDT-005` | Immutable revisions & rollback-as-new-revision | E04 | M2 | `packages/database/migrations/004_content_projects_activities.sql` (`content_revisions`) |
-| `EVD-001` | Evidence Ledger: manual creation, URL capture, file | E05 | M3 | `packages/database/migrations/003_evidence_ledger.sql` |
-| `EVD-002` | Complete provenance metadata storage | E05 | M3 | `packages/domain/src/entities/index.ts` (`EvidenceItemEntity`) |
-| `EVD-003` | Duplicate detection by source ID, URL, checksum | E05 | M3 | `packages/database/migrations/003_evidence_ledger.sql` (`idx_evidence_provider_external`) |
-| `EVD-004` | Evidence lifecycle (accept, edit, reject, archive) | E05 | M3 | `packages/domain/src/entities/index.ts` (`EvidenceVerificationState`) |
-| `EVD-005` | Verification states (unreviewed, owner_verified, etc.) | E05 | M3 | `packages/domain/src/entities/index.ts` (`EvidenceVerificationState`) |
-| `EVD-006` | Typed evidence support edges with single target | E05 | M3 | `packages/database/migrations/003_evidence_ledger.sql` (`evidence_link_single_target`) |
-| `CAP-001` | Skill taxonomy management (aliases, hierarchy) | E06 | M4 | `packages/database/migrations/002_skills_capabilities.sql` (`skills`) |
-| `CAP-002` | Bounded capability with qualifying evidence rules | E06 | M4 | `packages/database/migrations/002_skills_capabilities.sql` (`capabilities`) |
-| `CAP-003` | Descriptive maturity transitions with rationale | E06 | M4 | `packages/domain/src/entities/index.ts` (`CapabilityMaturity`) |
-| `CLM-001` | Claim library with wording, context, audience, expiry | E06 | M4 | `packages/database/migrations/005_claims_integrations_proposals.sql` (`claims`) |
-| `CLM-002` | Claim integrity validation (evidence edge required) | E06 | M4 | `packages/domain/src/value-objects/index.ts` (`validateClaimIntegrity`) |
-| `PRV-001` | Project workspace (milestones, ADRs, experiments) | E07 | M5 | `packages/database/migrations/006_engineering_records.sql` |
-| `APR-001` | Approval queue showing source material beside proposed diff | E02 | M1, M2 | `packages/database/migrations/005_claims_integrations_proposals.sql` |
-| `APR-002` | Proposal envelope: model version, confidence, risk | E02 | M1, M2 | `packages/domain/src/entities/index.ts` (`AiProposalEntity`) |
-| `APR-003` | Proposal actions (approve, edit, reject, defer) | E02 | M1, M2 | `packages/domain/src/rules/index.ts` (`AI_ALLOWED_PROPOSAL_TRANSITIONS`) |
-| `APR-004` | Transactional approval (`db.batch()`) | E02 | M1 | `docs/adrs/ADR-004-d1-transaction-batch-strategy.md` |
-| `APR-005` | Published surface changes require preview & confirmation | E04 | M2 | `packages/domain/src/rules/index.ts` |
-| `APR-006` | Append-only security audit log | E02 | M1 | `packages/database/migrations/001_initial.sql` (`audit_events`) |
+| `EVD-001` | Evidence Ledger: manual creation, URL capture, file | E05 | M3 | `packages/database/migrations/003_evidence_ledger.sql`, `008_evidence_ledger_m3.sql` | ✅ **COMPLETED** (`database.test.ts`, `worker.test.ts`) |
+| `EVD-002` | Complete provenance metadata storage | E05 | M3 | `packages/domain/src/entities/index.ts`, `@usmanalii/evidence` | ✅ **COMPLETED** (`evidence.test.ts`) |
+| `EVD-003` | Duplicate detection by source ID, URL, checksum | E05 | M3 | `packages/database/migrations/009_evidence_constraints_m3.sql` (`idx_evidence_items_owner_provider_external`) | ✅ **COMPLETED** (`database.test.ts`) |
+| `EVD-004` | Evidence lifecycle (accept, edit, reject, archive) | E05 | M3 | `packages/domain/src/entities/index.ts`, `D1EvidenceRepository` | ✅ **COMPLETED** (`database.test.ts`) |
+| `EVD-005` | Verification states (unreviewed, owner_verified, etc.) | E05 | M3 | `packages/domain/src/entities/index.ts`, `evidence_verification_events` | ✅ **COMPLETED** (`database.test.ts`, `evidence.test.ts`) |
+| `EVD-006` | Typed evidence support edges with single target | E05 | M3 | `packages/database/migrations/003_evidence_ledger.sql` (`evidence_link_single_target`), `008_evidence_ledger_m3.sql` | ✅ **COMPLETED** (`database.test.ts`, `evidence.test.ts`) |
+| `CAP-001` | Skill taxonomy management (aliases, hierarchy) | E06 | M4 | `packages/database/migrations/002_skills_capabilities.sql` (`skills`) | ⏳ Pending M4 |
+| `CAP-002` | Bounded capability with qualifying evidence rules | E06 | M4 | `packages/database/migrations/002_skills_capabilities.sql` (`capabilities`) | ⏳ Pending M4 |
+| `CAP-003` | Descriptive maturity transitions with rationale | E06 | M4 | `packages/domain/src/entities/index.ts` (`CapabilityMaturity`) | ⏳ Pending M4 |
+| `CLM-001` | Claim library with wording, context, audience, expiry | E06 | M4 | `packages/database/migrations/005_claims_integrations_proposals.sql` (`claims`) | ⏳ Pending M4 |
+| `CLM-002` | Claim integrity validation (evidence edge required) | E06 | M4 | `packages/domain/src/value-objects/index.ts` (`validateClaimIntegrity`) | ⏳ Pending M4 |
+| `PRV-001` | Project workspace (milestones, ADRs, experiments) | E07 | M5 | `packages/database/migrations/006_engineering_records.sql` | ⏳ Pending M5 |
+| `APR-001` | Approval queue showing source material beside proposed diff | E02 | M1, M2 | `packages/database/migrations/005_claims_integrations_proposals.sql` | ✅ **VERIFIED** |
+| `APR-002` | Proposal envelope: model version, confidence, risk | E02 | M1, M2 | `packages/domain/src/entities/index.ts` (`AiProposalEntity`) | ✅ **VERIFIED** |
+| `APR-003` | Proposal actions (approve, edit, reject, defer) | E02 | M1, M2 | `packages/domain/src/rules/index.ts` (`AI_ALLOWED_PROPOSAL_TRANSITIONS`) | ✅ **VERIFIED** |
+| `APR-004` | Transactional approval (`db.batch()`) | E02 | M1 | `docs/adrs/ADR-004-d1-transaction-batch-strategy.md` | ✅ **VERIFIED** |
+| `APR-005` | Published surface changes require preview & confirmation | E04 | M2 | `packages/domain/src/rules/index.ts` | ✅ **VERIFIED** |
+| `APR-006` | Append-only security audit log | E02 | M1 | `packages/database/migrations/001_initial.sql` (`audit_events`) | ✅ **VERIFIED** |
 
 ---
 
@@ -102,11 +102,11 @@
 
 | Security Gate (5B §19) | Implementation Target | Code / Config Location | Status |
 |---|---|---|---|
-| **CRITICAL-01: Cryptographic JWT Verification** | Full RS256 signature verification via WebCrypto, JWKS fetching, key rotation cache, issuer/audience/expiry/OWNER_EMAIL validation | `packages/authorization/src/index.ts` | ✅ **VERIFIED** (`authorization.test.ts`) |
-| **CRITICAL-02: D1 IDOR Prevention** | `AuthorizationContext` required on all repository methods, parameterized queries | `packages/authorization/src/index.ts`, `packages/database/src/repositories/profile.ts` | ✅ **VERIFIED** (`authorization.test.ts`) |
-| **CRITICAL-03: R2 Private Object Isolation** | Private-only buckets, randomized keys, Worker-mediated streaming/presigned URLs | `docs/adrs/ADR-006-r2-object-delivery.md`, `packages/database/migrations/003_evidence_ledger.sql` | ✅ **DECIDED** |
-| **CRITICAL-04: Publication Privacy** | Central effective-visibility resolver, public DTO allowlists | `packages/domain/src/value-objects/index.ts`, `packages/contracts/src/index.ts` | ✅ **VERIFIED** (`invariants.test.ts`, `contracts.test.ts`) |
-| **CRITICAL-05: Content Execution Isolation** | JSON block canonical format with schema versions, automatic Markdown export, strict CSP | `docs/adrs/ADR-005-content-block-format.md` | ✅ **DECIDED** |
-| **Secret Protection** | `OWNER_EMAIL` as Cloudflare secret, `verify-no-secrets.mjs`, `gitleaks` | `docs/adrs/ADR-003-cloudflare-access-owner-identity.md`, `infrastructure/scripts/verify-no-secrets.mjs` | ✅ **VERIFIED** (0 findings) |
+| **CRITICAL-01: Cryptographic JWT Verification** | Full RS256 signature verification via WebCrypto, JWKS fetching, key rotation cache, issuer/audience/expiry/OWNER_EMAIL validation | `packages/authorization/src/index.ts` | ✅ **VERIFIED** (`authorization.test.ts`, `worker.test.ts`) |
+| **CRITICAL-02: D1 IDOR Prevention** | `AuthorizationContext` required on all repository methods, parameterized queries | `packages/authorization/src/index.ts`, `D1EvidenceRepository`, `D1ArtifactRepository` | ✅ **VERIFIED** (`database.test.ts`, `worker.test.ts`) |
+| **CRITICAL-03: R2 Private Object Isolation** | Private-only buckets, randomized keys, Worker-mediated streaming, safe delivery headers | `apps/worker/src/routes/artifacts.ts`, `008_evidence_ledger_m3.sql` | ✅ **VERIFIED** (`worker.test.ts`) |
+| **CRITICAL-04: Publication Privacy** | Central effective-visibility resolver, public DTO allowlists | `packages/domain/src/value-objects/index.ts`, `@usmanalii/evidence` | ✅ **VERIFIED** (`evidence.test.ts`, `worker.test.ts`) |
+| **CRITICAL-05: Content Execution Isolation** | JSON block canonical format with schema versions, strict non-executable CSP | `docs/adrs/ADR-005-content-block-format.md`, `apps/worker/src/routes/artifacts.ts` | ✅ **VERIFIED** (`worker.test.ts`) |
+| **Secret Protection** | `OWNER_EMAIL` as Cloudflare secret, `verify-no-secrets.mjs`, `gitleaks` | `docs/adrs/ADR-003-cloudflare-access-owner-identity.md`, `verify-no-secrets.mjs` | ✅ **VERIFIED** (0 findings) |
 | **Encrypted Off-Provider Backups** | Client-side AES-256-GCM backup uploaded to Google Drive / OneDrive + local copy | `docs/adrs/ADR-008-backup-encryption.md` | ✅ **DECIDED** |
-| **Migration Determinism** | Reproduce empty DB, single-target CHECK, no proficiency | `infrastructure/scripts/verify-migrations.mjs`, `001..006` migrations | ✅ **VERIFIED** (all 6 migrations pass) |
+| **Migration Determinism** | Reproduce empty DB, single-target CHECK, no proficiency | `infrastructure/scripts/verify-migrations.mjs`, `001..009` migrations | ✅ **VERIFIED** (all 9 migrations pass) |

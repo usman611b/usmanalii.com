@@ -185,6 +185,7 @@ publicRoutes.get('/artifacts/:id/download', async (c) => {
       c.header('Content-Disposition', `attachment; filename="${sanitizeFilename(artifact.originalName || 'artifact')}"`);
       c.header('Content-Security-Policy', "default-src 'none'");
       c.header('X-Content-Type-Options', 'nosniff');
+      c.header('Cache-Control', 'public, max-age=3600, s-maxage=86400');
       return c.body(object.body as unknown as ReadableStream);
     }
   }

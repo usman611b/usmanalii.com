@@ -264,6 +264,8 @@ export type EvidenceLinkTarget =
   | { targetType: 'deployment'; targetId: EntityId }
   | { targetType: 'resume_statement'; targetId: EntityId };
 
+export type EvidenceLinkApprovalState = 'pending' | 'approved' | 'rejected';
+
 export interface EvidenceLinkEntity {
   readonly id: EntityId;
   readonly evidenceItemId: EntityId;
@@ -273,7 +275,7 @@ export interface EvidenceLinkEntity {
   readonly ordering: number;
   readonly provenance: string | null;
   readonly rationale: string;
-  readonly approvalState: 'pending' | 'approved' | 'rejected';
+  readonly approvalState: EvidenceLinkApprovalState;
   readonly approvedBy: string | null;
   readonly approvedAt: ISODateTime | null;
   readonly createdAt: ISODateTime;

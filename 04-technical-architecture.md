@@ -393,3 +393,10 @@ The system must be reconstructible from Git, database export and artifact archiv
 ## 26. Approval decision
 
 Approval freezes the platform, trust boundaries, static-first strategy, Worker authorization boundary, D1/R2 responsibilities, publication pipeline and portability requirements. Implementation may refine internal modules through ADRs without weakening evidence integrity, privacy, accessibility, cost controls or human approval.
+
+## 27. R2/D1 Consistency & Safe Artifact Delivery Architecture (M3 Verification)
+
+- **Unpredictable Server Storage Keys**: Randomized R2 keys `artifacts/${ownerId}/${uuid}.${ext}` generated exclusively on server. User file paths stripped.
+- **R2/D1 Failure Isolation & Rollback**: If R2 upload succeeds but D1 `create()` fails, the Worker immediately deletes the newly created R2 object (`await r2.delete(r2Key)`).
+- **Reconciliation Endpoint**: `/api/v1/private/artifacts/reconcile` sweeps orphaned R2 objects and flags missing D1 bindings without public key exposure.
+- **Strict Delivery Headers**: Sets `Content-Type`, `X-Content-Type-Options: nosniff`, `Content-Security-Policy: default-src 'none'`, sanitized `Content-Disposition: attachment; filename="..."`, and `Cache-Control: private, no-store, must-revalidate` (private) / `public, max-age=3600` (public eligible).

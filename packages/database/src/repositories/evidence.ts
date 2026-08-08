@@ -3,6 +3,8 @@ import type {
   EvidenceItemEntity,
   EvidenceVerificationEventEntity,
   EvidenceLinkEntity,
+  EvidenceLinkTarget,
+  EvidenceLinkApprovalState,
   ArtifactEntity,
   EvidenceType,
   EvidenceSourceType,

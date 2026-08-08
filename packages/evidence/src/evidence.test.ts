@@ -93,4 +93,15 @@ describe('Milestone M3 — Evidence Ledger & Provenance Engine Tests', () => {
     expect(publicEligible).toHaveLength(1);
     expect(publicEligible[0]!.id).toBe('art-1');
   });
+
+  it('7. validateVerificationStateTransition disallows invalid transitions like revoked -> source_verified', () => {
+    expect(validateVerificationStateTransition('revoked', 'source_verified').valid).toBe(false);
+    expect(validateVerificationStateTransition('archived', 'automatically_observed').valid).toBe(false);
+  });
+
+  it('8. validateEvidenceLinkTarget rejects null, empty, or invalid targets', () => {
+    expect(validateEvidenceLinkTarget(null as any).valid).toBe(false);
+    expect(validateEvidenceLinkTarget({} as any).valid).toBe(false);
+    expect(validateEvidenceLinkTarget({ targetType: 'capability' } as any).valid).toBe(false);
+  });
 });

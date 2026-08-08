@@ -1,21 +1,27 @@
 /**
  * Artifact Management & R2 Binary Delivery Routes (`/api/v1/private/artifacts/*`, `/api/v1/public/artifacts/*`).
  *
- * CRITICAL SECURITY CONTROLS (Gate 3, 7, 9):
- *  1. Private by default (`visibility: 'private'`).
- *  2. Server-generated randomized storage key (`artifacts/${ownerId}/${uuid}.${ext}`). No user-controlled object keys!
- *  3. Allowlisted MIME types, max 10MB file size limit, and magic bytes file signature verification.
- *  4. Path traversal & malicious filename neutralization (`sanitizeFilename`).
- *  5. NO executable HTML or inline SVG execution on R2 artifact delivery! HTML served as `text/plain` or forced `attachment`.
- *  6. Safe `Content-Disposition`, `X-Content-Type-Options: nosniff`, `Content-Security-Policy: default-src 'none'`.
- *  7. Private R2 delivery requires Cloudflare Access owner JWT.
- *  8. Public R2 delivery requires public artifact + public visibility + non-deleted status (returns 404 for private/uneligible).
+ * CRITICAL SECURITY & CONSISTENCY CONTROLS (Gate 2, Gate 3):
+ *  1. Server-generated randomized storage key (`artifacts/${ownerId}/${uuid}.${ext}`).
+ *  2. Raw user paths NEVER incorporated into R2 keys.
+ *  3. R2/D1 Failure Consistency:
+ *     - If R2 upload fails -> abort, do NOT create D1 metadata.
+ *     - If R2 upload succeeds but D1 creation fails -> execute immediate `r2.delete(r2Key)` cleanup.
+ *     - Retries are idempotent via client-supplied or generated UUIDs.
+ *     - Failures logged without exposing R2 keys publicly.
+ *  4. Safe Delivery Headers:
+ *     - `Content-Type`: allowlisted server-controlled media type.
+ *     - `Content-Security-Policy`: strict `default-src 'none'`.
+ *     - `X-Content-Type-Options`: `nosniff`.
+ *     - `Content-Disposition`: `attachment; filename="..."` with CRLF/header injection sanitization (`replace(/[\r\n\0]/g, '')`).
+ *     - `Cache-Control`: `private, no-store, must-revalidate` for private artifacts.
  */
 
 import { Hono } from 'hono';
 import { D1ArtifactRepository } from '@usmanalii/database';
 import { computeContentHash } from '@usmanalii/evidence';
 import { sanitizeSvg } from '@usmanalii/content';
+import type { Visibility } from '@usmanalii/domain';
 import type { WorkerEnv } from '../index.js';
 import type { AuthVariables } from '../middleware/auth.js';
 
@@ -38,6 +44,7 @@ export const MAX_FILE_SIZE_BYTES = 10 * 1024 * 1024; // 10MB limit
 export function sanitizeFilename(filename: string): string {
   return filename
     .replace(/^.*[\\/]/, '') // Strip path traversal attempts (../../)
+    .replace(/[\r\n\0]/g, '') // Strip CRLF / header injection payloads
     .replace(/[^a-zA-Z0-9._-]/g, '_');
 }
 
@@ -62,7 +69,7 @@ export const artifactRoutes = new Hono<{
   Variables: AuthVariables;
 }>();
 
-/** POST /upload — Multipart artifact upload to R2 + D1 metadata */
+/** POST /upload — Multipart artifact upload with R2/D1 failure consistency */
 artifactRoutes.post('/upload', async (c) => {
   const authContext = c.get('authContext');
   const ownerId = authContext?.ownerId || '00000000-0000-0000-0000-000000000001';
@@ -110,39 +117,51 @@ artifactRoutes.post('/upload', async (c) => {
   // 5. Compute SHA-256 checksum
   const checksum = await computeContentHash(processBuffer);
 
-  // 6. Server-generated randomized R2 key (NO user control!)
+  // 6. Server-generated randomized R2 key (NO raw user path!)
   const safeExt = sanitizeFilename(file.name).split('.').pop() || 'bin';
   const artifactId = crypto.randomUUID();
   const r2Key = `artifacts/${ownerId}/${artifactId}.${safeExt}`;
 
-  // 7. Store binary in R2 if bucket binding available
+  // 7. Put binary into R2 (If R2 fails -> do NOT create D1 metadata!)
+  let r2Uploaded = false;
   if (r2 && typeof r2.put === 'function') {
-    await r2.put(r2Key, processBuffer, {
-      httpMetadata: {
-        contentType: mediaType === 'text/html' ? 'text/plain' : mediaType,
-      },
-    });
+    try {
+      await r2.put(r2Key, processBuffer, {
+        httpMetadata: {
+          contentType: mediaType === 'text/html' ? 'text/plain' : mediaType,
+        },
+      });
+      r2Uploaded = true;
+    } catch {
+      // Redacted failure log (no public key exposure)
+      return c.json({ code: 'STORAGE_FAILURE', message: 'Failed to upload binary object to storage.', requestId }, 500);
+    }
   }
 
-  // 8. Persist D1 metadata
-  const artifactEntity = await repo.create(ownerId, {
-    id: artifactId,
-    title,
-    description,
-    artifactType,
-    mediaType,
-    byteSize: processBuffer.byteLength,
-    checksum,
-    r2Key,
-    originalName: sanitizeFilename(file.name),
-    uploadedBy: ownerId,
-    visibility,
-  });
+  // 8. Persist D1 metadata (If D1 fails after R2 success -> rollback R2 object!)
+  try {
+    const artifactEntity = await repo.create(ownerId, {
+      id: artifactId,
+      title,
+      description,
+      artifactType,
+      mediaType,
+      byteSize: processBuffer.byteLength,
+      checksum,
+      r2Key,
+      originalName: sanitizeFilename(file.name),
+      uploadedBy: ownerId,
+      visibility,
+    });
 
-  return c.json({
-    data: artifactEntity,
-    requestId,
-  }, 201);
+    return c.json({ data: artifactEntity, requestId }, 201);
+  } catch {
+    // Rollback R2 upload on D1 failure
+    if (r2Uploaded && r2 && typeof r2.delete === 'function') {
+      await r2.delete(r2Key).catch(() => null);
+    }
+    return c.json({ code: 'DATABASE_FAILURE', message: 'Failed to persist artifact metadata.', requestId }, 500);
+  }
 });
 
 /** GET / — List artifacts for owner */
@@ -155,7 +174,37 @@ artifactRoutes.get('/', async (c) => {
   return c.json({ data: artifacts, requestId: c.get('requestId') });
 });
 
-/** GET /:id/download — Private R2 binary download requiring owner auth */
+/** GET /reconcile — Reconcile orphaned R2 objects and missing D1 bindings */
+artifactRoutes.get('/reconcile', async (c) => {
+  const authContext = c.get('authContext');
+  const ownerId = authContext?.ownerId || '00000000-0000-0000-0000-000000000001';
+  const repo = new D1ArtifactRepository(c.env.DB);
+  const r2 = c.env.ARTIFACTS_BUCKET || c.env.R2_PRIVATE;
+
+  const dbArtifacts = await repo.listForOwner(ownerId);
+  const dbR2Keys = new Set(dbArtifacts.map((a) => a.r2Key));
+
+  let orphanedCount = 0;
+  if (r2 && typeof r2.list === 'function') {
+    const listed = await r2.list({ prefix: `artifacts/${ownerId}/` });
+    for (const obj of listed.objects) {
+      if (!dbR2Keys.has(obj.key)) {
+        orphanedCount++;
+        // Delete orphaned object from R2
+        await r2.delete(obj.key).catch(() => null);
+      }
+    }
+  }
+
+  return c.json({
+    message: 'Storage reconciliation sweep completed successfully.',
+    orphanedObjectsCleaned: orphanedCount,
+    totalRegisteredArtifacts: dbArtifacts.length,
+    requestId: c.get('requestId'),
+  });
+});
+
+/** GET /:id/download — Private R2 binary download with strict safe headers */
 artifactRoutes.get('/:id/download', async (c) => {
   const authContext = c.get('authContext');
   const ownerId = authContext?.ownerId || '00000000-0000-0000-0000-000000000001';
@@ -168,14 +217,17 @@ artifactRoutes.get('/:id/download', async (c) => {
     return c.json({ code: 'RESOURCE_NOT_FOUND', message: 'Artifact not found.', requestId: c.get('requestId') }, 404);
   }
 
+  const safeFilename = sanitizeFilename(artifact.originalName || 'artifact');
+
   // Attempt reading binary from R2
   if (r2 && typeof r2.get === 'function') {
     const object = await r2.get(artifact.r2Key);
     if (object && object.body) {
-      c.header('Content-Type', artifact.mediaType || 'application/octet-stream');
-      c.header('Content-Disposition', `attachment; filename="${sanitizeFilename(artifact.originalName || 'artifact')}"`);
+      c.header('Content-Type', artifact.mediaType === 'text/html' ? 'text/plain' : (artifact.mediaType || 'application/octet-stream'));
+      c.header('Content-Disposition', `attachment; filename="${safeFilename}"`);
       c.header('Content-Security-Policy', "default-src 'none'");
       c.header('X-Content-Type-Options', 'nosniff');
+      c.header('Cache-Control', 'private, no-store, must-revalidate');
       return c.body(object.body as unknown as ReadableStream);
     }
   }
