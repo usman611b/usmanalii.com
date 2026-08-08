@@ -1,0 +1,13 @@
+{
+  "name": "@usmanalii/infrastructure-scripts",
+  "version": "0.0.1",
+  "private": true,
+  "description": "Backup, restore and migration verification scripts.",
+  "scripts": {
+    "verify-migrations": "node verify-migrations.mjs",
+    "check-migration-order": "node check-migration-order.mjs",
+    "verify-no-secrets": "node verify-no-secrets.mjs",
+    "typecheck": "echo 'Scripts are pure ESM — no TS compilation needed'",
+    "lint": "echo 'No lint in infrastructure/scripts'"
+  }
+}

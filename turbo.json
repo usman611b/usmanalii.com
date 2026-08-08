@@ -1,0 +1,43 @@
+{
+  "$schema": "https://turbo.build/schema.json",
+  "globalEnv": ["NODE_ENV", "CF_PAGES_BRANCH"],
+  "tasks": {
+    "build": {
+      "dependsOn": ["^build"],
+      "inputs": ["src/**", "public/**", "*.config.*", "tsconfig.json"],
+      "outputs": ["dist/**", ".astro/**", ".output/**"]
+    },
+    "dev": {
+      "cache": false,
+      "persistent": true
+    },
+    "typecheck": {
+      "dependsOn": ["^typecheck"],
+      "inputs": ["src/**", "*.config.*", "tsconfig.json", "tsconfig.*.json"]
+    },
+    "lint": {
+      "inputs": ["src/**", "*.config.*", ".eslintrc*", "eslint.config.*"]
+    },
+    "lint:fix": {
+      "cache": false,
+      "inputs": ["src/**", "*.config.*", ".eslintrc*", "eslint.config.*"]
+    },
+    "test": {
+      "dependsOn": ["^build"],
+      "inputs": ["src/**", "tests/**", "*.config.*"],
+      "outputs": ["coverage/**"]
+    },
+    "test:coverage": {
+      "dependsOn": ["^build"],
+      "inputs": ["src/**", "tests/**", "*.config.*"],
+      "outputs": ["coverage/**"]
+    },
+    "test:e2e": {
+      "dependsOn": ["^build"],
+      "cache": false
+    },
+    "clean": {
+      "cache": false
+    }
+  }
+}

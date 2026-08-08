@@ -1,0 +1,29 @@
+[extend]
+useDefault = true
+
+[allowlist]
+# Allow example/placeholder values in documented example files
+paths = [
+  ".dev.vars.example",
+  "infrastructure/wrangler/wrangler.toml"
+]
+
+# Allow documentation references to secret names (not values)
+regexes = [
+  '''PLACEHOLDER_REPLACE_IN_CF_DASHBOARD''',
+  '''local-dev-only-salt''',
+  '''local-dev-placeholder-not-real-key'''
+]
+
+[[rules]]
+description = "Cloudflare API tokens"
+id = "cloudflare-api-token"
+regex = '''[a-z0-9_-]{40,}'''
+keywords = ["CLOUDFLARE", "CF_API", "CF_TOKEN"]
+
+[[rules]]
+description = "Prevent real owner email in source"
+id = "owner-email-hardcoded"
+regex = '''OWNER_EMAIL\s*=\s*[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}'''
+[rules.allowlist]
+  regexes = ['''OWNER_EMAIL=your-owner-email@example\.com''']

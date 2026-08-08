@@ -1,0 +1,67 @@
+# Dependencies
+node_modules/
+.pnp
+.pnp.js
+
+# Build outputs
+dist/
+.output/
+.vercel/
+.astro/
+.wrangler/
+
+# Environment files (NEVER commit real secrets)
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+.env.staging
+.env.production
+.dev.vars
+# Allow example files
+!.dev.vars.example
+!.env.example
+
+# Cloudflare / Wrangler
+.wrangler/
+*.d1
+
+# Turbo
+.turbo/
+
+# Test outputs
+coverage/
+test-results/
+playwright-report/
+blob-report/
+
+# OS
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Editor
+.vscode/settings.json
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# Logs
+*.log
+logs/
+npm-debug.log*
+pnpm-debug.log*
+
+# TypeScript
+*.tsbuildinfo
+
+# Temporary
+tmp/
+temp/
+
+# pnpm
+.pnpm-store/

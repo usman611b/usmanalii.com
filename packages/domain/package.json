@@ -1,0 +1,27 @@
+{
+  "name": "@usmanalii/domain",
+  "version": "0.0.1",
+  "private": true,
+  "description": "Pure domain entities, value objects and business rules. No Cloudflare or application adapters.",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts",
+    "./entities": "./src/entities/index.ts",
+    "./value-objects": "./src/value-objects/index.ts",
+    "./rules": "./src/rules/index.ts",
+    "./flags": "./src/flags/index.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint src --max-warnings=0",
+    "lint:fix": "eslint src --fix",
+    "test": "vitest run",
+    "test:coverage": "vitest run --coverage",
+    "clean": "rm -rf dist *.tsbuildinfo"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.0",
+    "typescript": "^5.7.2",
+    "vitest": "^2.1.8"
+  }
+}

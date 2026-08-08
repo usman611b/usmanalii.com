@@ -1,0 +1,34 @@
+{
+  "name": "@usmanalii/worker",
+  "version": "0.0.1",
+  "private": true,
+  "description": "Cloudflare Worker API — routes, authentication, jobs and webhook handlers.",
+  "type": "module",
+  "scripts": {
+    "dev": "wrangler dev --env local",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint src --max-warnings=0",
+    "lint:fix": "eslint src --fix",
+    "test": "vitest run",
+    "build": "wrangler deploy --dry-run --outdir=dist",
+    "clean": "rm -rf dist *.tsbuildinfo"
+  },
+  "dependencies": {
+    "@usmanalii/authorization": "workspace:*",
+    "@usmanalii/contracts": "workspace:*",
+    "@usmanalii/database": "workspace:*",
+    "@usmanalii/domain": "workspace:*",
+    "@usmanalii/evidence": "workspace:*",
+    "@usmanalii/observability": "workspace:*",
+    "hono": "^4.6.14",
+    "zod": "^3.24.1"
+  },
+  "devDependencies": {
+    "@cloudflare/vitest-pool-workers": "^0.6.0",
+    "@cloudflare/workers-types": "^4.20241224.0",
+    "@types/node": "^22.10.0",
+    "typescript": "^5.7.2",
+    "vitest": "^2.1.8",
+    "wrangler": "^3.100.0"
+  }
+}

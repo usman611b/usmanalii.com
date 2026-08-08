@@ -1,0 +1,10 @@
+{
+  "name": "@usmanalii/infrastructure-wrangler",
+  "version": "0.0.1",
+  "private": true,
+  "description": "Wrangler environment configuration stubs.",
+  "scripts": {
+    "typecheck": "echo 'No TypeScript in infrastructure/wrangler'",
+    "lint": "echo 'No lint in infrastructure/wrangler'"
+  }
+}

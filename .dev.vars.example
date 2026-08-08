@@ -1,0 +1,30 @@
+# ============================================================================
+# .dev.vars.example — Local development secrets template
+#
+# INSTRUCTIONS:
+#  1. Copy this file to .dev.vars (git-ignored)
+#  2. Fill in the values for your local development environment
+#  3. NEVER commit .dev.vars to Git
+#  4. NEVER use production or real secrets in this file
+#
+# Security Threat Model §13: Secrets must be in Cloudflare secret storage.
+# For local development only, use Wrangler's .dev.vars mechanism.
+# ============================================================================
+
+# Cloudflare Access configuration
+# ADR-003: Owner identity configuration
+# These values come from your Cloudflare Zero Trust dashboard.
+CF_ACCESS_TEAM_DOMAIN=https://your-team.cloudflareaccess.com
+CF_ACCESS_AUD_TAG=your-access-application-aud-tag
+
+# Owner identity — the exact email address configured in Cloudflare Access
+# SECURITY: This must match the JWT 'email' claim exactly.
+# See ADR-003 for configuration details.
+OWNER_EMAIL=your-owner-email@example.com
+
+# Request ID salt — for generating correlation IDs
+REQUEST_ID_SALT=local-dev-only-salt-replace-for-staging
+
+# Backup encryption — placeholder only for local
+# ADR-008: Real key stored in Cloudflare secrets for staging/production
+BACKUP_ENCRYPTION_KEY_PLACEHOLDER=local-dev-placeholder-not-real-key

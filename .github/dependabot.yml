@@ -1,0 +1,33 @@
+version: 2
+updates:
+  # pnpm dependencies
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+      time: "09:00"
+    labels:
+      - dependencies
+    # Limit to security updates in production
+    open-pull-requests-limit: 5
+    groups:
+      development-dependencies:
+        dependency-type: development
+        update-types:
+          - minor
+          - patch
+      security-critical:
+        patterns:
+          - "zod"
+          - "hono"
+          - "astro"
+          - "@cloudflare/*"
+          - "wrangler"
+
+  # GitHub Actions — pin to SHA for supply-chain security
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
