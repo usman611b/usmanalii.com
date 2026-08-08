@@ -12,7 +12,7 @@ import type { WorkerEnv } from '../index.js';
 import type { AuthVariables } from '../middleware/auth.js';
 import { D1ContentRepository, D1EvidenceRepository, D1ArtifactRepository } from '@usmanalii/database';
 import { filterPublicEvidence, filterPublicArtifacts } from '@usmanalii/evidence';
-import { sanitizeFilename } from './artifacts.js';
+import { formatContentDisposition } from './artifacts.js';
 import type { ContentType } from '@usmanalii/domain';
 
 export const publicRoutes = new Hono<{
@@ -181,11 +181,11 @@ publicRoutes.get('/artifacts/:id/download', async (c) => {
   if (r2 && typeof r2.get === 'function') {
     const object = await r2.get(artifact.r2Key);
     if (object && object.body) {
-      c.header('Content-Type', artifact.mediaType === 'text/html' ? 'text/plain' : (artifact.mediaType || 'application/octet-stream'));
-      c.header('Content-Disposition', `attachment; filename="${sanitizeFilename(artifact.originalName || 'artifact')}"`);
+      c.header('Content-Type', artifact.mediaType || 'application/octet-stream');
+      c.header('Content-Disposition', formatContentDisposition(artifact.originalName || 'artifact'));
       c.header('Content-Security-Policy', "default-src 'none'");
       c.header('X-Content-Type-Options', 'nosniff');
-      c.header('Cache-Control', 'public, max-age=3600, s-maxage=86400');
+      c.header('Cache-Control', 'public, no-cache, must-revalidate');
       return c.body(object.body as unknown as ReadableStream);
     }
   }

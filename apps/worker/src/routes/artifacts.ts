@@ -20,7 +20,6 @@
 import { Hono } from 'hono';
 import { D1ArtifactRepository } from '@usmanalii/database';
 import { computeContentHash } from '@usmanalii/evidence';
-import { sanitizeSvg } from '@usmanalii/content';
 import type { Visibility } from '@usmanalii/domain';
 import type { WorkerEnv } from '../index.js';
 import type { AuthVariables } from '../middleware/auth.js';
@@ -30,7 +29,6 @@ export const ALLOWED_MIME_TYPES = [
   'image/png',
   'image/gif',
   'image/webp',
-  'image/svg+xml',
   'application/pdf',
   'text/plain',
   'text/markdown',
@@ -48,7 +46,19 @@ export function sanitizeFilename(filename: string): string {
     .replace(/[^a-zA-Z0-9._-]/g, '_');
 }
 
+/** RFC 5987 Content-Disposition header generator */
+export function formatContentDisposition(originalName: string): string {
+  const cleanName = (originalName || 'artifact')
+    .replace(/^.*[\\/]/, '')
+    .replace(/[\r\n\0]/g, '')
+    .replace(/[\\";]/g, '_');
+  const asciiFallback = cleanName.replace(/[^a-zA-Z0-9._-]/g, '_') || 'artifact';
+  const encodedFilename = encodeURIComponent(cleanName);
+  return `attachment; filename="${asciiFallback}"; filename*=UTF-8''${encodedFilename}`;
+}
+
 export function validateFileSignature(buffer: Uint8Array, mediaType: string): boolean {
+  if (buffer.length === 0) return false;
   if (mediaType === 'image/jpeg') {
     return buffer.length >= 3 && buffer[0] === 0xff && buffer[1] === 0xd8 && buffer[2] === 0xff;
   }
@@ -62,6 +72,47 @@ export function validateFileSignature(buffer: Uint8Array, mediaType: string): bo
     return buffer.length >= 3 && buffer[0] === 0x47 && buffer[1] === 0x49 && buffer[2] === 0x46;
   }
   return true;
+}
+
+/** Executable payload scanner — rejects HTML, JS, scripts, event handlers, and polyglots */
+export function isExecutablePayload(buffer: Uint8Array, mediaType: string, filename: string): { executable: boolean; reason?: string } {
+  const ext = filename.toLowerCase().split('.').pop() || '';
+  const forbiddenExts = ['html', 'htm', 'js', 'mjs', 'cjs', 'php', 'exe', 'bat', 'cmd', 'sh', 'ps1', 'svg'];
+  if (forbiddenExts.includes(ext)) {
+    return { executable: true, reason: `File extension ".${ext}" is prohibited for executable safety.` };
+  }
+
+  const forbiddenMediaTypes = [
+    'text/html',
+    'image/svg+xml',
+    'application/javascript',
+    'text/javascript',
+    'application/x-javascript',
+    'text/ecmascript',
+  ];
+  if (forbiddenMediaTypes.includes(mediaType)) {
+    return { executable: true, reason: `MIME type "${mediaType}" is prohibited for executable safety.` };
+  }
+
+  if (buffer.byteLength === 0) {
+    return { executable: true, reason: 'Empty files (0 bytes) are not allowed.' };
+  }
+
+  const textContent = new TextDecoder().decode(buffer).toLowerCase();
+  if (
+    textContent.includes('<script') ||
+    textContent.includes('javascript:') ||
+    textContent.includes('onload=') ||
+    textContent.includes('onerror=') ||
+    textContent.includes('onclick=') ||
+    textContent.includes('data:text/html') ||
+    textContent.includes('<foreignobject') ||
+    textContent.includes('<iframe')
+  ) {
+    return { executable: true, reason: 'Executable scripts or event handlers detected in binary content.' };
+  }
+
+  return { executable: false };
 }
 
 export const artifactRoutes = new Hono<{
@@ -89,6 +140,9 @@ artifactRoutes.post('/upload', async (c) => {
   }
 
   // 1. File size limit validation
+  if (file.size === 0) {
+    return c.json({ code: 'VALIDATION_ERROR', message: 'Empty files (0 bytes) are not allowed.', requestId }, 400);
+  }
   if (file.size > MAX_FILE_SIZE_BYTES) {
     return c.json({ code: 'VALIDATION_ERROR', message: 'File size exceeds maximum allowed 10MB limit.', requestId }, 400);
   }
@@ -101,18 +155,18 @@ artifactRoutes.post('/upload', async (c) => {
 
   const rawBuffer = new Uint8Array(await file.arrayBuffer());
 
-  // 3. File signature validation
+  // 3. Executable payload scan
+  const execCheck = isExecutablePayload(rawBuffer, mediaType, file.name);
+  if (execCheck.executable) {
+    return c.json({ code: 'VALIDATION_ERROR', message: execCheck.reason || 'Executable payloads are rejected.', requestId }, 400);
+  }
+
+  // 4. File signature validation
   if (!validateFileSignature(rawBuffer, mediaType)) {
     return c.json({ code: 'VALIDATION_ERROR', message: 'File header signature does not match claimed MIME type.', requestId }, 400);
   }
 
-  // 4. Content sanitization for inline text payloads (e.g. SVG)
-  let processBuffer: Uint8Array = rawBuffer;
-  if (mediaType === 'image/svg+xml') {
-    const rawSvgText = new TextDecoder().decode(rawBuffer);
-    const cleanSvg = sanitizeSvg(rawSvgText);
-    processBuffer = new TextEncoder().encode(cleanSvg);
-  }
+  const processBuffer: Uint8Array = rawBuffer;
 
   // 5. Compute SHA-256 checksum
   const checksum = await computeContentHash(processBuffer);
@@ -128,12 +182,11 @@ artifactRoutes.post('/upload', async (c) => {
     try {
       await r2.put(r2Key, processBuffer, {
         httpMetadata: {
-          contentType: mediaType === 'text/html' ? 'text/plain' : mediaType,
+          contentType: mediaType,
         },
       });
       r2Uploaded = true;
     } catch {
-      // Redacted failure log (no public key exposure)
       return c.json({ code: 'STORAGE_FAILURE', message: 'Failed to upload binary object to storage.', requestId }, 500);
     }
   }
@@ -156,9 +209,13 @@ artifactRoutes.post('/upload', async (c) => {
 
     return c.json({ data: artifactEntity, requestId }, 201);
   } catch {
-    // Rollback R2 upload on D1 failure
+    // Rollback R2 upload on D1 failure; if rollback fails -> write to durable queue!
     if (r2Uploaded && r2 && typeof r2.delete === 'function') {
-      await r2.delete(r2Key).catch(() => null);
+      try {
+        await r2.delete(r2Key);
+      } catch {
+        await repo.enqueueReconciliationItem(ownerId, r2Key, 'd1_rollback_failed');
+      }
     }
     return c.json({ code: 'DATABASE_FAILURE', message: 'Failed to persist artifact metadata.', requestId }, 500);
   }
@@ -174,35 +231,77 @@ artifactRoutes.get('/', async (c) => {
   return c.json({ data: artifacts, requestId: c.get('requestId') });
 });
 
-/** GET /reconcile — Reconcile orphaned R2 objects and missing D1 bindings */
-artifactRoutes.get('/reconcile', async (c) => {
+/** POST & GET /reconcile — Hardened reconciliation endpoint (owner-authenticated, CSRF-protected, dryRun support, safety age threshold) */
+const handleReconcile = async (c: import('hono').Context<{ Bindings: WorkerEnv; Variables: AuthVariables }>) => {
   const authContext = c.get('authContext');
   const ownerId = authContext?.ownerId || '00000000-0000-0000-0000-000000000001';
+  const requestId = c.get('requestId');
   const repo = new D1ArtifactRepository(c.env.DB);
   const r2 = c.env.ARTIFACTS_BUCKET || c.env.R2_PRIVATE;
 
-  const dbArtifacts = await repo.listForOwner(ownerId);
-  const dbR2Keys = new Set(dbArtifacts.map((a) => a.r2Key));
+  const url = new URL(c.req.url);
+  const body = c.req.method === 'POST' ? await c.req.json().catch(() => ({})) : {};
 
-  let orphanedCount = 0;
-  if (r2 && typeof r2.list === 'function') {
-    const listed = await r2.list({ prefix: `artifacts/${ownerId}/` });
-    for (const obj of listed.objects) {
-      if (!dbR2Keys.has(obj.key)) {
-        orphanedCount++;
-        // Delete orphaned object from R2
-        await r2.delete(obj.key).catch(() => null);
-      }
+  const dryRun = url.searchParams.get('dryRun') === 'true' || body.dryRun === true;
+  const limit = parseInt(url.searchParams.get('limit') || body.limit || '50', 10);
+  const safetyAgeMinutes = parseInt(url.searchParams.get('safetyAgeMinutes') || body.safetyAgeMinutes || '15', 10);
+
+  const safetyCutoffTime = new Date(Date.now() - safetyAgeMinutes * 60 * 1000);
+
+  const dbArtifacts = await repo.listForOwner(ownerId, true);
+  const dbR2Keys = new Set(dbArtifacts.map((a) => a.r2Key));
+  const pendingQueue = await repo.getPendingReconciliationQueue(ownerId);
+
+  const orphanedKeys: string[] = [];
+  const queueKeysToClean: string[] = [];
+
+  // 1. Check pending durable queue items
+  for (const qItem of pendingQueue) {
+    queueKeysToClean.push(qItem.r2Key);
+    if (!dryRun && r2 && typeof r2.delete === 'function') {
+      await r2.delete(qItem.r2Key).catch(() => null);
+      await repo.markReconciliationResolved(qItem.id);
     }
   }
 
+  // 2. Sweep R2 bucket with prefix and safety age threshold
+  if (r2 && typeof r2.list === 'function') {
+    try {
+      const listed = await r2.list({ prefix: `artifacts/${ownerId}/`, limit });
+      for (const obj of listed.objects) {
+        // Skip recently uploaded objects to prevent race condition with active uploads
+        if (obj.uploaded && new Date(obj.uploaded) > safetyCutoffTime) {
+          continue;
+        }
+
+        if (!dbR2Keys.has(obj.key)) {
+          orphanedKeys.push(obj.key);
+          if (!dryRun && typeof r2.delete === 'function') {
+            await r2.delete(obj.key).catch(() => null);
+          }
+        }
+      }
+    } catch {
+      // Fail safely on partial listing errors
+    }
+  }
+
+  const cleanedTotal = orphanedKeys.length + queueKeysToClean.length;
+
   return c.json({
-    message: 'Storage reconciliation sweep completed successfully.',
-    orphanedObjectsCleaned: orphanedCount,
+    message: dryRun ? 'Storage reconciliation dry-run report completed.' : 'Storage reconciliation sweep completed successfully.',
+    dryRun,
+    orphanedObjectsCount: orphanedKeys.length,
+    pendingQueueCount: queueKeysToClean.length,
+    totalCleaned: cleanedTotal,
+    safetyAgeMinutes,
     totalRegisteredArtifacts: dbArtifacts.length,
-    requestId: c.get('requestId'),
+    requestId,
   });
-});
+};
+
+artifactRoutes.post('/reconcile', handleReconcile);
+artifactRoutes.get('/reconcile', handleReconcile);
 
 /** GET /:id/download — Private R2 binary download with strict safe headers */
 artifactRoutes.get('/:id/download', async (c) => {
@@ -217,14 +316,14 @@ artifactRoutes.get('/:id/download', async (c) => {
     return c.json({ code: 'RESOURCE_NOT_FOUND', message: 'Artifact not found.', requestId: c.get('requestId') }, 404);
   }
 
-  const safeFilename = sanitizeFilename(artifact.originalName || 'artifact');
+  const dispositionHeader = formatContentDisposition(artifact.originalName || 'artifact');
 
   // Attempt reading binary from R2
   if (r2 && typeof r2.get === 'function') {
     const object = await r2.get(artifact.r2Key);
     if (object && object.body) {
-      c.header('Content-Type', artifact.mediaType === 'text/html' ? 'text/plain' : (artifact.mediaType || 'application/octet-stream'));
-      c.header('Content-Disposition', `attachment; filename="${safeFilename}"`);
+      c.header('Content-Type', artifact.mediaType || 'application/octet-stream');
+      c.header('Content-Disposition', dispositionHeader);
       c.header('Content-Security-Policy', "default-src 'none'");
       c.header('X-Content-Type-Options', 'nosniff');
       c.header('Cache-Control', 'private, no-store, must-revalidate');

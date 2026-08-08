@@ -618,7 +618,7 @@ export class D1ArtifactRepository {
     return res;
   }
 
-  /** Query public eligible artifact by ID (returns null if private/uneligible) */
+  /** Query public eligible artifact by ID (returns null if private, uneligible, or parent is uneligible) */
   async getPublicArtifactById(id: string): Promise<ArtifactEntity | null> {
     const stmt = this.db.prepare(`
       SELECT * FROM artifacts
@@ -629,7 +629,83 @@ export class D1ArtifactRepository {
     `).bind(id);
 
     const row = await stmt.first<Record<string, unknown>>();
-    return row ? this.mapRowToArtifactEntity(row) : null;
+    if (!row) return null;
+
+    const artifact = this.mapRowToArtifactEntity(row);
+
+    // 1. Check linked evidence eligibility
+    const evLinksStmt = this.db.prepare(`
+      SELECT el.*, ei.visibility as ev_visibility, ei.verification_state as ev_verification_state,
+             ei.deleted_at as ev_deleted_at, ei.archived_at as ev_archived_at, ei.embargo_until as ev_embargo_until
+      FROM evidence_links el
+      JOIN evidence_items ei ON el.evidence_item_id = ei.id
+      WHERE el.artifact_id = ?
+    `).bind(id);
+
+    const { results: evLinks } = await evLinksStmt.all<Record<string, unknown>>();
+    if (evLinks && evLinks.length > 0) {
+      const now = new Date();
+      for (const link of evLinks) {
+        if (link.approval_state === 'rejected') continue;
+        if (link.ev_visibility !== 'public') return null;
+        if (link.ev_deleted_at !== null || link.ev_archived_at !== null) return null;
+        if (['disputed', 'revoked', 'archived'].includes(link.ev_verification_state as string)) return null;
+        if (link.ev_embargo_until && new Date(link.ev_embargo_until as string) > now) return null;
+      }
+    }
+
+    // 2. Check parent content item eligibility (if linked to content item)
+    const contentLinksStmt = this.db.prepare(`
+      SELECT ci.visibility, ci.state, ci.deleted_at, ci.scheduled_for, ci.embargo_until
+      FROM evidence_links el
+      JOIN content_items ci ON el.content_item_id = ci.id
+      WHERE el.artifact_id = ?
+    `).bind(id);
+
+    const { results: contentLinks } = await contentLinksStmt.all<Record<string, unknown>>();
+    if (contentLinks && contentLinks.length > 0) {
+      const now = new Date();
+      for (const parent of contentLinks) {
+        if (parent.visibility !== 'public') return null;
+        if (parent.state !== 'published') return null;
+        if (parent.deleted_at !== null) return null;
+        if (parent.scheduled_for && new Date(parent.scheduled_for as string) > now) return null;
+        if (parent.embargo_until && new Date(parent.embargo_until as string) > now) return null;
+      }
+    }
+
+    return artifact;
+  }
+
+  /** Enqueue durable cleanup task when immediate R2 delete fails */
+  async enqueueReconciliationItem(ownerId: string, r2Key: string, reason: string): Promise<void> {
+    const id = crypto.randomUUID();
+    const stmt = this.db.prepare(`
+      INSERT INTO artifact_reconciliation_queue (id, owner_id, r2_key, reason, status)
+      VALUES (?, ?, ?, ?, 'pending')
+    `).bind(id, ownerId, r2Key, reason);
+    await stmt.run().catch(() => null);
+  }
+
+  /** Get pending durable reconciliation queue items */
+  async getPendingReconciliationQueue(ownerId: string): Promise<Array<{ id: string; r2Key: string; reason: string; createdAt: string }>> {
+    const stmt = this.db.prepare(`
+      SELECT id, r2_key as r2Key, reason, created_at as createdAt
+      FROM artifact_reconciliation_queue
+      WHERE owner_id = ? AND status = 'pending'
+      ORDER BY created_at ASC
+    `).bind(ownerId);
+    const { results } = await stmt.all<Record<string, unknown>>();
+    return (results || []) as Array<{ id: string; r2Key: string; reason: string; createdAt: string }>;
+  }
+
+  /** Mark durable reconciliation item as resolved */
+  async markReconciliationResolved(id: string): Promise<void> {
+    const now = new Date().toISOString();
+    const stmt = this.db.prepare(`
+      UPDATE artifact_reconciliation_queue SET status = 'resolved', retried_at = ? WHERE id = ?
+    `).bind(now, id);
+    await stmt.run().catch(() => null);
   }
 
   private mapRowToArtifactEntity(row: Record<string, unknown>): ArtifactEntity {

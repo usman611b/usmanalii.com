@@ -123,6 +123,15 @@ export function validateEvidenceLinkTarget(target: EvidenceLinkTarget): { valid:
 }
 
 /**
+ * Evaluates whether a timestamp (e.g. embargoUntil or scheduledFor) has passed relative to `now`.
+ * Boundary rule: timestamp <= now is public; timestamp > now is private.
+ */
+export function isBoundaryTimestampPublic(timestampIso: string | null, now: Date = new Date()): boolean {
+  if (!timestampIso) return true;
+  return new Date(timestampIso).getTime() <= now.getTime();
+}
+
+/**
  * Filter public evidence eligibility (Section 7, Section 18).
  * Public eligibility requires:
  *  - visibility === 'public'
@@ -137,7 +146,7 @@ export function filterPublicEvidence(items: EvidenceItemEntity[], now: Date = ne
     if (item.verificationState === 'disputed' || item.verificationState === 'revoked' || item.verificationState === 'archived') {
       return false;
     }
-    if (item.embargoUntil !== null && new Date(item.embargoUntil) > now) return false;
+    if (!isBoundaryTimestampPublic(item.embargoUntil, now)) return false;
     return true;
   });
 }

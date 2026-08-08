@@ -8,6 +8,7 @@ import {
   validateEvidenceLinkTarget,
   filterPublicEvidence,
   filterPublicArtifacts,
+  isBoundaryTimestampPublic,
 } from './index.js';
 
 describe('Milestone M3 — Evidence Ledger & Provenance Engine Tests', () => {
@@ -103,5 +104,17 @@ describe('Milestone M3 — Evidence Ledger & Provenance Engine Tests', () => {
     expect(validateEvidenceLinkTarget(null as any).valid).toBe(false);
     expect(validateEvidenceLinkTarget({} as any).valid).toBe(false);
     expect(validateEvidenceLinkTarget({ targetType: 'capability' } as any).valid).toBe(false);
+  });
+
+  it('9. isBoundaryTimestampPublic correctly evaluates exact-now, past, and future boundaries', () => {
+    const now = new Date('2026-08-09T00:00:00.000Z');
+    const past = new Date('2026-08-08T23:59:59.000Z').toISOString();
+    const exactNow = new Date('2026-08-09T00:00:00.000Z').toISOString();
+    const future = new Date('2026-08-09T00:00:01.000Z').toISOString();
+
+    expect(isBoundaryTimestampPublic(null, now)).toBe(true);
+    expect(isBoundaryTimestampPublic(past, now)).toBe(true);
+    expect(isBoundaryTimestampPublic(exactNow, now)).toBe(true);
+    expect(isBoundaryTimestampPublic(future, now)).toBe(false);
   });
 });
