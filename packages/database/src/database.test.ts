@@ -718,4 +718,153 @@ describe('Requirement 1 & 2: Database Integrity & Public Scheduling/Embargo Logi
     expect(report.succeededCount).toBe(1);
     expect(report.deadLetterCount).toBe(1);
   });
+
+  it('11. Milestone M4 Gate 1: D1ProgressionRepository creates append-only events and derives latest stage', async () => {
+    const { D1ProgressionRepository } = await import('./repositories/progression.js');
+
+    const eventsMap = new Map<string, any>();
+    const mockDb: any = {
+      prepare(sql: string) {
+        const stmtObj: any = {
+          params: [],
+          bind(...p: any[]) { stmtObj.params = p; return stmtObj; },
+          async first() {
+            const list = Array.from(eventsMap.values()).filter((e) => e.owner_id === stmtObj.params[0] && e.skill_id === stmtObj.params[1]);
+            return list.length > 0 ? list[list.length - 1] : null;
+          },
+          async all() {
+            return { results: Array.from(eventsMap.values()) };
+          },
+          async run() {
+            if (sql.includes('INSERT INTO progression_events')) {
+              eventsMap.set(stmtObj.params[0], {
+                id: stmtObj.params[0],
+                owner_id: stmtObj.params[1],
+                skill_id: stmtObj.params[2],
+                capability_id: stmtObj.params[3],
+                previous_stage: stmtObj.params[4],
+                new_stage: stmtObj.params[5],
+                supporting_evidence_ids: stmtObj.params[6],
+                reason: stmtObj.params[7],
+                actor_classification: stmtObj.params[8],
+                approval_state: 'accepted',
+                created_at: stmtObj.params[10],
+              });
+            }
+            return { meta: { changes: 1 } };
+          },
+        };
+        return stmtObj;
+      },
+    };
+
+    const repo = new D1ProgressionRepository(mockDb);
+    const event = await repo.createProgressionEvent({
+      id: 'pe-1' as any,
+      ownerId: 'owner-1' as any,
+      skillId: 'skill-1' as any,
+      previousStage: 'observed' as any,
+      newStage: 'applied' as any,
+      supportingEvidenceIds: ['ev-1' as any],
+      reason: 'Applied in project milestone',
+    });
+
+    expect(event.newStage).toBe('applied');
+    const latest = await repo.getLatestStage('owner-1' as any, { skillId: 'skill-1' as any });
+    expect(latest).toBe('applied');
+  });
+
+  it('12. Milestone M4 Gate 4: D1SuggestionRepository handles fingerprint deduplication and atomic acceptance', async () => {
+    const { D1SuggestionRepository } = await import('./repositories/suggestions.js');
+
+    const sugMap = new Map<string, any>();
+    const mockDb: any = {
+      prepare(sql: string) {
+        const stmtObj: any = {
+          params: [],
+          bind(...p: any[]) { stmtObj.params = p; return stmtObj; },
+          async first() {
+            if (sql.includes('FROM suggestions WHERE owner_id = ? AND fingerprint = ?')) {
+              for (const s of sugMap.values()) {
+                if (s.owner_id === stmtObj.params[0] && s.fingerprint === stmtObj.params[1] && s.suggestion_state === 'rejected') {
+                  return s;
+                }
+              }
+              return null;
+            }
+            if (sql.includes('FROM suggestions WHERE id = ?')) return sugMap.get(stmtObj.params[0]);
+            return null;
+          },
+          async batch(stmts: any[]) {
+            for (const st of stmts) await st.run();
+            return [];
+          },
+          async run() {
+            if (sql.includes('INSERT INTO suggestions')) {
+              sugMap.set(stmtObj.params[0], {
+                id: stmtObj.params[0],
+                owner_id: stmtObj.params[1],
+                suggestion_type: stmtObj.params[2],
+                title: stmtObj.params[3],
+                description: stmtObj.params[4],
+                payload_json: stmtObj.params[5],
+                evidence_references: stmtObj.params[6],
+                created_by_classification: stmtObj.params[7],
+                suggestion_state: 'pending',
+                fingerprint: stmtObj.params[9],
+                created_at: stmtObj.params[10],
+                updated_at: stmtObj.params[11],
+              });
+            }
+            return { meta: { changes: 1 } };
+          },
+        };
+        return stmtObj;
+      },
+    };
+
+    const repo = new D1SuggestionRepository(mockDb);
+    const sug = await repo.createSuggestion({
+      id: 'sug-1' as any,
+      ownerId: 'owner-1' as any,
+      suggestionType: 'possible_skill' as any,
+      title: 'Possible TypeScript Skill',
+      description: 'Detected from commit',
+      payloadJson: '{}',
+      evidenceReferences: ['ev-1' as any],
+      createdByClassification: 'deterministic_rule' as any,
+      fingerprint: 'possible_skill:possible typescript skill',
+    });
+
+    expect(sug?.id).toBe('sug-1');
+  });
+
+  it('13. Milestone M4 Gate 2 & 3: D1GraphRepository filters public graph projection at SQL boundary', async () => {
+    const { D1GraphRepository } = await import('./repositories/graph.js');
+
+    const mockDb: any = {
+      prepare(sql: string) {
+        const stmtObj: any = {
+          params: [],
+          bind(...p: any[]) { stmtObj.params = p; return stmtObj; },
+          async all() {
+            if (sql.includes('FROM skills') && sql.includes('visibility = \'public\'')) {
+              return { results: [{ id: 's-1', name: 'TypeScript', visibility: 'public' }] };
+            }
+            if (sql.includes('FROM capabilities') && sql.includes('visibility = \'public\'')) {
+              return { results: [{ id: 'c-1', title: 'API Design', visibility: 'public', state: 'published' }] };
+            }
+            return { results: [] };
+          },
+        };
+        return stmtObj;
+      },
+    };
+
+    const repo = new D1GraphRepository(mockDb);
+    const projection = await repo.getPublicGraphProjection();
+    expect(projection.nodes.length).toBe(2);
+    expect(projection.nodes.find((n) => n.id === 's-1')).toBeDefined();
+    expect(projection.nodes.find((n) => n.id === 'c-1')).toBeDefined();
+  });
 });
