@@ -1,5 +1,5 @@
 import type { D1Database } from '@cloudflare/workers-types';
-import type { ContentItemEntity, ContentRevisionEntity, ContentType, PublicationState, Visibility, ID, ISO8601Timestamp } from '@usmanalii/domain';
+import type { ContentItemEntity, ContentRevisionEntity, ContentType, PublicationState, Visibility, EntityId, ISODateTime } from '@usmanalii/domain';
 
 export interface CreateContentDraftInput {
   id: string;
@@ -240,16 +240,22 @@ export class D1ContentRepository {
     return { success: true, item: updated.item };
   }
 
-  /** Update state (e.g. publish, unlist, archive) */
+  /** Update state (e.g. publish, unlist, archive) atomically with revision audit log */
   async transitionState(
     ownerId: string,
     id: string,
     targetState: PublicationState,
     publishedAt?: string | null,
+    changedBy?: string,
   ): Promise<ContentItemEntity> {
+    const current = await this.findById(ownerId, id);
+    if (!current) throw new Error(`Content item ${id} not found for state transition.`);
+
     const now = new Date().toISOString();
-    let sql = `UPDATE content_items SET state = ?, updated_at = ?, version_no = version_no + 1`;
-    const params: (string | number | null)[] = [targetState, now];
+    const newVersionNo = current.item.versionNo + 1;
+
+    let sql = `UPDATE content_items SET state = ?, updated_at = ?, version_no = ?`;
+    const params: (string | number | null)[] = [targetState, now, newVersionNo];
 
     if (targetState === 'published' && publishedAt !== undefined) {
       sql += `, published_at = ?`;
@@ -262,7 +268,34 @@ export class D1ContentRepository {
     sql += ` WHERE id = ? AND owner_id = ? AND deleted_at IS NULL`;
     params.push(id, ownerId);
 
-    await this.db.prepare(sql).bind(...params).run();
+    const updateStateStmt = this.db.prepare(sql).bind(...params);
+
+    const revId = crypto.randomUUID();
+    const latestBodySnapshot = current.latestBodySnapshot || '[]';
+
+    const maxRevStmt = this.db.prepare(
+      `SELECT COALESCE(MAX(revision_no), 0) AS max_rev FROM content_revisions WHERE content_item_id = ? AND owner_id = ?`,
+    ).bind(id, ownerId);
+    const maxRevRow = await maxRevStmt.first<{ max_rev: number }>();
+    const nextRevNo = (maxRevRow?.max_rev || 0) + 1;
+
+    const auditRevStmt = this.db.prepare(
+      `INSERT INTO content_revisions (
+        id, content_item_id, owner_id, revision_no,
+        body_snapshot, body_schema_version, revision_note, created_at, created_by
+      ) VALUES (?, ?, ?, ?, ?, 'v1', ?, ?, ?)`,
+    ).bind(
+      revId,
+      id,
+      ownerId,
+      nextRevNo,
+      latestBodySnapshot,
+      `State transition: ${current.item.state} -> ${targetState}`,
+      now,
+      changedBy || 'owner',
+    );
+
+    await this.db.batch([updateStateStmt, auditRevStmt]);
 
     const updated = await this.findById(ownerId, id);
     if (!updated) throw new Error(`Content item ${id} not found after state transition.`);
@@ -315,14 +348,14 @@ export class D1ContentRepository {
     await this.db.batch([insertRevStmt, updateItemStmt]);
 
     return {
-      id: newRevId as unknown as ID,
-      contentItemId: contentItemId as unknown as ID,
-      ownerId: ownerId as unknown as ID,
+      id: newRevId as unknown as EntityId,
+      contentItemId: contentItemId as unknown as EntityId,
+      ownerId: ownerId as unknown as EntityId,
       revisionNo: nextRevNo,
       bodySnapshot: targetRev.body_snapshot,
       bodySchemaVersion: 'v1',
       revisionNote: `Rollback to revision #${targetRev.revision_no}`,
-      createdAt: now as unknown as ISO8601Timestamp,
+      createdAt: now as unknown as ISODateTime,
       createdBy,
     };
   }
@@ -334,22 +367,23 @@ export class D1ContentRepository {
     ).bind(contentItemId, ownerId);
     const { results } = await stmt.all<Record<string, unknown>>();
     return (results || []).map((row) => ({
-      id: row.id as unknown as ID,
-      contentItemId: row.content_item_id as unknown as ID,
-      ownerId: row.owner_id as unknown as ID,
+      id: String(row.id) as unknown as EntityId,
+      contentItemId: String(row.content_item_id) as unknown as EntityId,
+      ownerId: String(row.owner_id) as unknown as EntityId,
       revisionNo: Number(row.revision_no),
       bodySnapshot: String(row.body_snapshot),
       bodySchemaVersion: String(row.body_schema_version),
       revisionNote: row.revision_note ? String(row.revision_note) : null,
-      createdAt: String(row.created_at) as unknown as ISO8601Timestamp,
+      createdAt: String(row.created_at) as unknown as ISODateTime,
       createdBy: String(row.created_by),
     }));
   }
 
-  /** Public allowlisted query for public Journey pages */
+  /** Public allowlisted query for public Journey pages with embargo enforcement */
   async getPublicPublishedEntries(filters?: { contentType?: ContentType; yearMonth?: string }): Promise<ContentItemEntity[]> {
-    let sql = `SELECT * FROM content_items WHERE state = 'published' AND visibility = 'public' AND deleted_at IS NULL AND archived_at IS NULL`;
-    const params: string[] = [];
+    const now = new Date().toISOString();
+    let sql = `SELECT * FROM content_items WHERE state = 'published' AND visibility = 'public' AND deleted_at IS NULL AND archived_at IS NULL AND (scheduled_for IS NULL OR scheduled_for <= ?)`;
+    const params: string[] = [now];
 
     if (filters?.contentType) {
       sql += ` AND content_type = ?`;
@@ -367,11 +401,12 @@ export class D1ContentRepository {
     return (results || []).map((row) => this.mapRowToEntity(row));
   }
 
-  /** Get single public published entry by slug */
+  /** Get single public published entry by slug with embargo enforcement */
   async getPublicPublishedEntryBySlug(slug: string): Promise<{ item: ContentItemEntity; bodySnapshot: string | null } | null> {
+    const now = new Date().toISOString();
     const stmt = this.db.prepare(
-      `SELECT * FROM content_items WHERE slug = ? AND state = 'published' AND visibility = 'public' AND deleted_at IS NULL AND archived_at IS NULL`,
-    ).bind(slug);
+      `SELECT * FROM content_items WHERE slug = ? AND state = 'published' AND visibility = 'public' AND deleted_at IS NULL AND archived_at IS NULL AND (scheduled_for IS NULL OR scheduled_for <= ?)`,
+    ).bind(slug, now);
     const row = await stmt.first<Record<string, unknown>>();
     if (!row) return null;
 
@@ -435,8 +470,8 @@ export class D1ContentRepository {
 
   private mapRowToEntity(row: Record<string, unknown>): ContentItemEntity {
     return {
-      id: String(row.id) as unknown as ID,
-      ownerId: String(row.owner_id) as unknown as ID,
+      id: String(row.id) as unknown as EntityId,
+      ownerId: String(row.owner_id) as unknown as EntityId,
       contentType: row.content_type as ContentType,
       title: String(row.title),
       slug: String(row.slug),
@@ -446,13 +481,13 @@ export class D1ContentRepository {
       readingTimeMinutes: row.reading_time_minutes ? Number(row.reading_time_minutes) : null,
       visibility: row.visibility as Visibility,
       state: row.state as PublicationState,
-      occurredAt: row.occurred_at ? (String(row.occurred_at) as unknown as ISO8601Timestamp) : null,
-      publishedAt: row.published_at ? (String(row.published_at) as unknown as ISO8601Timestamp) : null,
-      scheduledFor: row.scheduled_for ? (String(row.scheduled_for) as unknown as ISO8601Timestamp) : null,
-      createdAt: String(row.created_at) as unknown as ISO8601Timestamp,
-      updatedAt: String(row.updated_at) as unknown as ISO8601Timestamp,
-      archivedAt: row.archived_at ? (String(row.archived_at) as unknown as ISO8601Timestamp) : null,
-      deletedAt: row.deleted_at ? (String(row.deleted_at) as unknown as ISO8601Timestamp) : null,
+      occurredAt: row.occurred_at ? (String(row.occurred_at) as unknown as ISODateTime) : null,
+      publishedAt: row.published_at ? (String(row.published_at) as unknown as ISODateTime) : null,
+      scheduledFor: row.scheduled_for ? (String(row.scheduled_for) as unknown as ISODateTime) : null,
+      createdAt: String(row.created_at) as unknown as ISODateTime,
+      updatedAt: String(row.updated_at) as unknown as ISODateTime,
+      archivedAt: row.archived_at ? (String(row.archived_at) as unknown as ISODateTime) : null,
+      deletedAt: row.deleted_at ? (String(row.deleted_at) as unknown as ISODateTime) : null,
       versionNo: Number(row.version_no || 1),
     };
   }

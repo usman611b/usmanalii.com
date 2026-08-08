@@ -365,7 +365,7 @@ privateRoutes.get('/content/:id/export/markdown', async (c) => {
   return c.text(markdown);
 });
 
-/** POST /api/v1/private/content/:id/preview-token — Signed preview token generator */
+/** POST /api/v1/private/content/:id/preview-token — Signed preview token generator with bound version_no, owner_id, and purpose */
 privateRoutes.post('/content/:id/preview-token', async (c) => {
   const authContext = c.get('authContext')!;
   const id = c.req.param('id');
@@ -376,12 +376,15 @@ privateRoutes.post('/content/:id/preview-token', async (c) => {
     return c.json({ code: 'NOT_FOUND', message: 'Content item not found.', requestId: c.get('requestId') }, 404);
   }
 
-  // Create HMAC token valid for 1 hour
-  const expiresAt = Date.now() + 3600 * 1000;
-  const tokenPayload = `${id}:${expiresAt}`;
+  // Bind token to: id:ownerId:versionNo:purpose:expiresAt
+  const expiresAt = Date.now() + 3600 * 1000; // 1 hour
+  const purpose = 'preview';
+  const tokenPayload = `${id}:${authContext.ownerId}:${found.item.versionNo}:${purpose}:${expiresAt}`;
+  const secretKey = c.env.PREVIEW_SECRET || c.env.CF_ACCESS_AUD_TAG || 'preview-secret-key';
+
   const key = await crypto.subtle.importKey(
     'raw',
-    new TextEncoder().encode(c.env.CF_ACCESS_AUD_TAG || 'preview-secret-key'),
+    new TextEncoder().encode(secretKey),
     { name: 'HMAC', hash: 'SHA-256' },
     false,
     ['sign'],
@@ -392,7 +395,89 @@ privateRoutes.post('/content/:id/preview-token', async (c) => {
     .join('');
 
   const token = `${tokenPayload}:${signature}`;
-  return c.json({ token, expiresAt, previewUrl: `/journey/preview?id=${id}&token=${encodeURIComponent(token)}`, requestId: c.get('requestId') });
+  return c.json({
+    token,
+    expiresAt,
+    versionNo: found.item.versionNo,
+    previewUrl: `/dashboard/journal/${id}/edit?preview=true&token=${encodeURIComponent(token)}`,
+    requestId: c.get('requestId'),
+  });
+});
+
+/** GET /api/v1/private/content/:id/preview — Authenticated, Access-protected preview endpoint (Gate 1, 2, 3) */
+privateRoutes.get('/content/:id/preview', async (c) => {
+  const authContext = c.get('authContext')!;
+  const id = c.req.param('id');
+  const token = c.req.query('token');
+  const repo = new D1ContentRepository(c.env.DB);
+
+  // Set strict privacy & anti-indexing headers
+  c.header('Cache-Control', 'private, no-store, no-cache, must-revalidate');
+  c.header('X-Robots-Tag', 'noindex, nofollow');
+  c.header('Referrer-Policy', 'no-referrer');
+
+  if (!token) {
+    return c.json({ code: 'PREVIEW_TOKEN_REQUIRED', message: 'Preview token parameter is required.', requestId: c.get('requestId') }, 400);
+  }
+
+  // Parse token payload: id:ownerId:versionNo:purpose:expiresAt:signature
+  const parts = token.split(':');
+  if (parts.length !== 6) {
+    return c.json({ code: 'INVALID_PREVIEW_TOKEN', message: 'Malformed preview token structure.', requestId: c.get('requestId') }, 403);
+  }
+
+  const [tokenId, tokenOwnerId, tokenVersionNoStr, purpose, expiresAtStr, signature] = parts;
+  if (!signature) {
+    return c.json({ code: 'INVALID_PREVIEW_TOKEN', message: 'Missing token signature.', requestId: c.get('requestId') }, 403);
+  }
+
+  const expiresAt = Number(expiresAtStr);
+  const tokenVersionNo = Number(tokenVersionNoStr);
+
+  if (tokenId !== id || tokenOwnerId !== authContext.ownerId || purpose !== 'preview') {
+    return c.json({ code: 'INVALID_PREVIEW_TOKEN', message: 'Preview token binding mismatch.', requestId: c.get('requestId') }, 403);
+  }
+
+  if (isNaN(expiresAt) || Date.now() > expiresAt) {
+    return c.json({ code: 'PREVIEW_TOKEN_EXPIRED', message: 'Preview token has expired.', requestId: c.get('requestId') }, 403);
+  }
+
+  const tokenPayload = `${tokenId}:${tokenOwnerId}:${tokenVersionNoStr}:${purpose}:${expiresAtStr}`;
+  const secretKey = c.env.PREVIEW_SECRET || c.env.CF_ACCESS_AUD_TAG || 'preview-secret-key';
+
+  const key = await crypto.subtle.importKey(
+    'raw',
+    new TextEncoder().encode(secretKey),
+    { name: 'HMAC', hash: 'SHA-256' },
+    false,
+    ['verify'],
+  );
+
+  const hexBytes = new Uint8Array(signature.match(/.{1,2}/g)?.map((byte) => parseInt(byte, 16)) || []);
+  const valid = await crypto.subtle.verify('HMAC', key, hexBytes, new TextEncoder().encode(tokenPayload));
+
+  if (!valid) {
+    return c.json({ code: 'INVALID_PREVIEW_SIGNATURE', message: 'Invalid preview token signature.', requestId: c.get('requestId') }, 403);
+  }
+
+  const found = await repo.findById(authContext.ownerId, id);
+  if (!found) {
+    return c.json({ code: 'NOT_FOUND', message: 'Content item not found.', requestId: c.get('requestId') }, 404);
+  }
+
+  // Version invalidation check: editing content increments versionNo, invalidating old preview tokens
+  if (found.item.versionNo !== tokenVersionNo) {
+    return c.json({ code: 'PREVIEW_TOKEN_STALE', message: 'Content has been updated since this preview token was issued.', requestId: c.get('requestId') }, 403);
+  }
+
+  const blocks: ContentBlockV1[] = found.latestBodySnapshot ? JSON.parse(found.latestBodySnapshot) : [];
+
+  return c.json({
+    item: found.item,
+    blocks,
+    isPreview: true,
+    requestId: c.get('requestId'),
+  });
 });
 
 /** GET /api/v1/private/relationships/available — Fetch available entities for relationship pickers */

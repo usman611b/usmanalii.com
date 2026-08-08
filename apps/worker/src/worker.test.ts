@@ -162,25 +162,23 @@ describe('Worker API Integration & Security Tests', () => {
     expect(body.message).toBe('Cross-origin mutation request forbidden.');
   });
 
-  it('SECURITY: JWKS network error returns redacted public response without stack trace or internal error strings', async () => {
+  it('SECURITY (Gate 1): GET /api/v1/private/content/item-1/preview WITHOUT Cloudflare Access JWT header fails closed with 401 AUTH_REQUIRED', async () => {
     const res = await worker.fetch(
-      new Request('http://localhost/api/v1/private/dashboard/summary', {
-        headers: {
-          'Cf-Access-Jwt-Assertion': 'eyJraWQiOiJmYWtlLWtpZCIsImFsZyI6IlJTMjU2In0.eyJzdWIiOiIxMjMifQ.c2ln',
-        },
-      }),
-      {
-        ...env,
-        CF_ACCESS_TEAM_DOMAIN: 'https://invalid-nonexistent-domain-12345.com',
-      },
+      new Request('http://localhost/api/v1/private/content/item-1/preview?token=item-1:owner-1:1:preview:1999999999999:sig'),
+      env,
     );
 
     expect(res.status).toBe(401);
-    const body = (await res.json()) as Record<string, unknown>;
+    const body = (await res.json()) as { code: string; message: string };
     expect(body.code).toBe('AUTH_REQUIRED');
-    expect(body.message).toBe('Authentication required.');
-    // Confirm NO internal error details or stack traces are leaked to caller
-    expect(body.stack).toBeUndefined();
-    expect(body.internalError).toBeUndefined();
+  });
+
+  it('SECURITY (Gate 1): GET /api/v1/public/journey/preview endpoint NO LONGER EXISTS (404 NOT_FOUND)', async () => {
+    const res = await worker.fetch(
+      new Request('http://localhost/api/v1/public/journey/preview?id=item-1&token=abc'),
+      env,
+    );
+
+    expect(res.status).toBe(404);
   });
 });

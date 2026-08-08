@@ -27,6 +27,7 @@ export interface WorkerEnv {
   OWNER_EMAIL: string;
   CF_ACCESS_TEAM_DOMAIN: string;
   CF_ACCESS_AUD_TAG: string;
+  PREVIEW_SECRET?: string;
   ENVIRONMENT: string;
 }
 

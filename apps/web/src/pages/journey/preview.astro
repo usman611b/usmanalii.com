@@ -3,16 +3,20 @@ import BaseLayout from '../../layouts/BaseLayout.astro';
 ---
 
 <BaseLayout title="Authenticated Content Preview — usmanalii.com" description="Exact public preview rendered using the same component pipeline." currentPath="/journey/preview">
+  <link rel="canonical" href="https://usmanalii.com/dashboard/journal" slot="head" />
+  <meta name="robots" content="noindex, nofollow" slot="head" />
+  <meta name="referrer" content="no-referrer" slot="head" />
+
   <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-12 space-y-6">
     <div class="p-3 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-300 text-xs font-mono flex items-center justify-between">
-      <span>● EXACT PUBLIC PREVIEW MODE (Authenticated Token Verified)</span>
-      <span class="text-[10px] text-[#9CAAC1]">Private Preview — Unlisted</span>
+      <span>● AUTHENTICATED PREVIEW MODE (Cloudflare Access & Token Bound)</span>
+      <span class="text-[10px] text-[#9CAAC1]">Private Preview — Unindexed / No-Store</span>
     </div>
 
     <div class="p-8 rounded-2xl glass-panel space-y-4">
       <span class="px-2 py-0.5 text-[10px] font-mono rounded bg-[#22D3EE]/20 text-[#22D3EE]">JOURNAL DRAFT</span>
       <h1 class="text-3xl font-bold text-white">Previewing Content Entry Snapshot</h1>
-      <p class="text-sm text-[#9CAAC1]">This page renders using the exact same HTML component pipeline as published public pages.</p>
+      <p class="text-sm text-[#9CAAC1]">This page renders using the exact same HTML component pipeline as published public pages under authenticated owner session.</p>
     </div>
   </div>
 </BaseLayout>
