@@ -1,0 +1,96 @@
+---
+import '../styles/global.css';
+
+interface Props {
+  title?: string;
+  activeSection?: string;
+}
+
+const {
+  title = 'Dashboard — usmanalii.com',
+  activeSection = 'overview',
+} = Astro.props;
+
+const dashboardLinks = [
+  { href: '/dashboard', id: 'overview', label: 'Overview', icon: '📊' },
+  { href: '/dashboard/journal', id: 'journal', label: 'Journal', icon: '📝' },
+  { href: '/dashboard/evidence', id: 'evidence', label: 'Evidence Ledger', icon: '🔗' },
+  { href: '/dashboard/skills', id: 'skills', label: 'Skills & Capabilities', icon: '🎯' },
+  { href: '/dashboard/projects', id: 'projects', label: 'Projects', icon: '🚀' },
+  { href: '/dashboard/claims', id: 'claims', label: 'Claims Library', icon: '📜' },
+  { href: '/dashboard/settings', id: 'settings', label: 'Settings', icon: '⚙️' },
+];
+---
+
+<!DOCTYPE html>
+<html lang="en" class="dark">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>{title}</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  </head>
+  <body class="bg-[#050509] text-[#F7FBFF] flex min-h-screen">
+    
+    <!-- Sidebar Navigation -->
+    <aside class="w-64 border-r border-white/10 bg-[#080D1A] flex flex-col p-4">
+      <div class="flex items-center space-x-2 px-3 py-2 mb-6">
+        <span class="w-3 h-3 rounded-full bg-[#8B5CF6] inline-block"></span>
+        <span class="font-bold text-sm tracking-tight text-white">Private OS Dashboard</span>
+      </div>
+
+      <nav class="flex-grow space-y-1" aria-label="Dashboard Navigation">
+        {dashboardLinks.map((link) => {
+          const isActive = activeSection === link.id;
+          return (
+            <a
+              href={link.href}
+              class={`flex items-center space-x-3 px-3 py-2 rounded-lg text-xs font-medium transition-colors ${
+                isActive
+                  ? 'bg-[#101A31] text-[#22D3EE] font-semibold border border-white/10'
+                  : 'text-[#9CAAC1] hover:text-white hover:bg-white/5'
+              }`}
+            >
+              <span>{link.icon}</span>
+              <span>{link.label}</span>
+            </a>
+          );
+        })}
+      </nav>
+
+      <!-- Quick Capture Trigger -->
+      <div class="pt-4 border-t border-white/10 space-y-2">
+        <button
+          type="button"
+          class="w-full py-2 px-3 bg-[#22D3EE] text-[#050509] font-semibold rounded-lg text-xs hover:opacity-90 transition-opacity flex items-center justify-center space-x-1"
+        >
+          <span>⚡</span>
+          <span>Quick Capture</span>
+        </button>
+
+        <a href="/" class="block text-center text-xs text-[#9CAAC1] hover:text-white py-1">
+          ← Back to Public Site
+        </a>
+      </div>
+    </aside>
+
+    <!-- Main Content Area -->
+    <div class="flex-1 flex flex-col min-w-0 overflow-hidden">
+      <!-- Top App Bar -->
+      <header class="h-14 border-b border-white/10 bg-[#080D1A]/50 px-6 flex items-center justify-between">
+        <h1 class="text-sm font-semibold text-white">{title}</h1>
+        <div class="flex items-center space-x-3 text-xs">
+          <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+            ● Protected Session
+          </span>
+        </div>
+      </header>
+
+      <main class="flex-1 overflow-y-auto p-6">
+        <slot />
+      </main>
+    </div>
+  </body>
+</html>

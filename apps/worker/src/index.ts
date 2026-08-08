@@ -1,87 +1,75 @@
 /**
- * Worker API entry point.
+ * Worker API Entrypoint — Cloudflare Worker (Hono Framework).
  *
- * SECURITY ARCHITECTURE (Architecture §8, Security §8):
- * Every request passes through these layers IN ORDER:
- *  1. Route and request parsing (Hono)
- *  2. Authentication — validate Cf-Access-Jwt-Assertion (CRITICAL-01)
- *  3. Authorization — establish owner context (CRITICAL-02)
- *  4. Application use case
- *  5. Domain rules
- *  6. D1/R2 repository (never exposed to browser)
- *  7. Response DTO and field redaction
- *  8. Audit and telemetry (safe fields only)
- *
- * SECURITY: D1 and R2 bindings NEVER reach browser code.
- * SECURITY: owner_id is NEVER accepted from request bodies.
- * SECURITY: Public endpoints never accept visibility filters from clients.
- *
- * M0 NOTE: This is a skeleton. Authentication middleware and routes are
- * implemented in M1 (E02). This file establishes the architecture pattern.
+ * Architecture §8 & Security §8: Request Pipeline execution order:
+ *  1. Request correlation ID generation (`X-Request-Id`)
+ *  2. Security Headers & strict CSP (`securityHeaders()`)
+ *  3. CSRF & Origin validation on mutation requests (`csrfProtection()`)
+ *  4. Global error handler (`globalErrorHandler`)
+ *  5. Cloudflare Access RS256 JWT Authentication (`authenticate()`)
+ *  6. Public & Private Route Handlers (`publicRoutes`, `privateRoutes`)
+ *  7. Safe Redacted Structured Logging (`@usmanalii/observability`)
  */
 
 import { Hono } from 'hono';
-import { createLogEntry } from '@usmanalii/observability';
+import { securityHeaders } from './middleware/security-headers.js';
+import { csrfProtection } from './middleware/csrf.js';
+import { globalErrorHandler } from './middleware/error-handler.js';
+import { authenticate, type AuthVariables } from './middleware/auth.js';
+import { publicRoutes } from './routes/public.js';
+import { privateRoutes } from './routes/private.js';
 
-// Cloudflare Worker bindings interface
-// SECURITY: These bindings are never exposed to browser code
 export interface WorkerEnv {
-  // D1 database binding — Worker-only (CRITICAL-02)
   DB: D1Database;
-  // R2 buckets — private originals, never public URLs (CRITICAL-03)
   R2_PRIVATE: R2Bucket;
   R2_PUBLIC: R2Bucket;
-  // Queue for background jobs
   PUBLICATION_QUEUE: Queue;
-  // Secrets — from Cloudflare secret storage, not plaintext env
-  // Access configuration (ADR-003) — set via: wrangler secret put OWNER_EMAIL
   OWNER_EMAIL: string;
   CF_ACCESS_TEAM_DOMAIN: string;
   CF_ACCESS_AUD_TAG: string;
-  // Environment identifier
   ENVIRONMENT: string;
 }
 
-const app = new Hono<{ Bindings: WorkerEnv }>();
+const app = new Hono<{ Bindings: WorkerEnv; Variables: AuthVariables }>();
 
-// ---------------------------------------------------------------------------
-// Health check — public-safe variant (Architecture §9)
-// SECURITY: Never expose internal state, database counts or private entity info
-// ---------------------------------------------------------------------------
-app.get('/api/v1/health', (c) => {
-  return c.json({
-    status: 'ok',
-    version: '1.0.0',
-    environment: c.env.ENVIRONMENT,
-    // SECURITY: No database info, no private counts, no internal state
-  });
+// 1. Global Error Handler
+app.onError(globalErrorHandler);
+
+// 2. Correlation ID middleware
+app.use('*', async (c, next) => {
+  const reqId = c.req.header('X-Request-Id') || crypto.randomUUID();
+  c.set('requestId', reqId);
+  c.header('X-Request-Id', reqId);
+  await next();
 });
 
-// ---------------------------------------------------------------------------
-// M0 placeholder routes — implementations in M1+
-// ---------------------------------------------------------------------------
-app.all('/api/v1/*', (c) => {
-  const entry = createLogEntry('info', 'API route not yet implemented', {
-    environment: c.env.ENVIRONMENT,
-    requestId: 'placeholder',
-    route: c.req.path,
-    statusCode: 501,
-  });
-  console.warn(JSON.stringify(entry));
+// 3. Security Headers & CSP
+app.use('*', securityHeaders());
 
+// 4. CSRF / Origin protection on mutations
+app.use('*', csrfProtection());
+
+// 5. Cloudflare Access JWT Authentication
+app.use('*', authenticate());
+
+// 6. Mount routes
+app.route('/api/v1/public', publicRoutes);
+app.route('/api/v1/private', privateRoutes);
+
+// Root fallback handler
+app.notFound((c) => {
   return c.json(
     {
-      code: 'SERVICE_UNAVAILABLE',
-      message: 'This endpoint is not yet implemented. M0 foundation only.',
-      requestId: 'placeholder',
+      code: 'RESOURCE_NOT_FOUND',
+      message: 'The requested API route does not exist.',
+      requestId: c.get('requestId'),
     },
-    501,
+    404,
   );
 });
 
-// ---------------------------------------------------------------------------
-// Default handler
-// ---------------------------------------------------------------------------
+export { app };
+
 export default {
   fetch: app.fetch,
 } satisfies ExportedHandler<WorkerEnv>;

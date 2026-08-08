@@ -1,19 +1,87 @@
 ---
-// M0 placeholder page
+import BaseLayout from '../layouts/BaseLayout.astro';
+import { ModeSwitcher } from '../components/ModeSwitcher';
 ---
-<!DOCTYPE html>
-<html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>usmanalii.com — Personal Career OS</title>
-  </head>
-  <body class="bg-[#050509] text-[#F7FBFF]">
-    <main class="min-h-screen flex items-center justify-center p-8">
-      <div class="text-center space-y-4">
-        <h1 class="text-4xl font-bold tracking-tight">usmanalii.com</h1>
-        <p class="text-[#9CAAC1]">Personal Career OS — M0 Foundation Baseline</p>
+
+<BaseLayout title="usmanalii.com — Personal Career OS" currentPath="/">
+  <!-- Hero Section -->
+  <section class="relative pt-20 pb-16 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto">
+    <div class="space-y-6 max-w-3xl">
+      <div class="inline-flex items-center space-x-2 px-3 py-1 rounded-full bg-[#101A31] border border-white/10 text-xs font-medium text-[#22D3EE]">
+        <span class="w-2 h-2 rounded-full bg-[#22D3EE] animate-pulse"></span>
+        <span>Canonical Evidence-Backed Record</span>
       </div>
-    </main>
-  </body>
-</html>
+
+      <h1 class="text-4xl sm:text-6xl font-bold tracking-tight text-white leading-tight">
+        Usman Ali
+        <span class="block text-gradient-hero mt-2">Systems Architect & Software Engineer</span>
+      </h1>
+
+      <p class="text-lg text-[#9CAAC1] leading-relaxed">
+        A personal Career Operating System recording learning history, verifiable work evidence, capabilities, and engineering case studies from one approved source of truth.
+      </p>
+
+      <div class="flex flex-wrap items-center gap-4 pt-4">
+        <a
+          href="/journey"
+          class="px-6 py-3 rounded-xl bg-[#22D3EE] text-[#050509] font-bold text-sm hover:opacity-90 transition-opacity shadow-lg shadow-[#22D3EE]/20"
+        >
+          Explore Journey →
+        </a>
+        <a
+          href="/recruiter"
+          class="px-6 py-3 rounded-xl border border-white/15 bg-[#0D1528] text-white font-semibold text-sm hover:border-white/30 transition-all"
+        >
+          Recruiter View (90s)
+        </a>
+      </div>
+    </div>
+  </section>
+
+  <!-- Proof At A Glance Bento Grid -->
+  <section class="py-16 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto border-t border-white/10">
+    <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-8 gap-4">
+      <div>
+        <h2 class="text-2xl font-bold text-white tracking-tight">Proof at a Glance</h2>
+        <p class="text-xs text-[#9CAAC1] mt-1">Verified capabilities and project deliverables.</p>
+      </div>
+      <ModeSwitcher client:load />
+    </div>
+
+    <!-- Bento Grid Container -->
+    <div class="grid grid-cols-1 md:grid-cols-12 gap-6">
+      
+      <!-- Capability Highlight Card (Col 8) -->
+      <div class="md:col-span-8 p-6 rounded-2xl glass-panel relative overflow-hidden group">
+        <div class="absolute -right-10 -bottom-10 w-40 h-40 bg-[#8B5CF6]/10 rounded-full blur-2xl group-hover:bg-[#8B5CF6]/20 transition-all"></div>
+        <span class="text-xs font-semibold uppercase tracking-wider text-[#22D3EE]">Featured Capability</span>
+        <h3 class="text-xl font-bold text-white mt-2">Cloudflare Workers & Distributed Edge Systems</h3>
+        <p class="text-xs text-[#9CAAC1] mt-2 leading-relaxed">
+          Deploys low-latency TypeScript microservices on Cloudflare Workers with cryptographic Access JWT verification, D1 transactions, and R2 object storage isolation.
+        </p>
+        <div class="mt-6 flex flex-wrap items-center gap-3 text-xs">
+          <span class="px-2.5 py-1 rounded-md bg-[#22D3EE]/10 text-[#22D3EE] border border-[#22D3EE]/20 font-medium">
+            Maturity: Delivered
+          </span>
+          <span class="text-[#9CAAC1]">6 Verified Evidence Items</span>
+        </div>
+      </div>
+
+      <!-- Quick Metrics Card (Col 4) -->
+      <div class="md:col-span-4 p-6 rounded-2xl glass-panel flex flex-col justify-between">
+        <div>
+          <span class="text-xs font-semibold uppercase tracking-wider text-[#EC4899]">Evidence Ledger</span>
+          <h3 class="text-xl font-bold text-white mt-2">100% Provenance</h3>
+          <p class="text-xs text-[#9CAAC1] mt-2">
+            Every published claim is tied to verifiable evidence or explicitly attributed background statements.
+          </p>
+        </div>
+        <div class="pt-6 border-t border-white/10 flex items-center justify-between text-xs text-[#9CAAC1]">
+          <span>Single Owner Model</span>
+          <span class="text-[#B6F43A] font-semibold">Zero Fake Metrics</span>
+        </div>
+      </div>
+
+    </div>
+  </section>
+</BaseLayout>

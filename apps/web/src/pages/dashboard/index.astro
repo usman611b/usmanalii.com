@@ -1,0 +1,47 @@
+---
+import DashboardLayout from '../../layouts/DashboardLayout.astro';
+---
+
+<DashboardLayout title="Overview — Private Dashboard" activeSection="overview">
+  <div class="space-y-6">
+    <div class="flex items-center justify-between">
+      <div>
+        <h2 class="text-xl font-bold text-white">System Overview & Health</h2>
+        <p class="text-xs text-[#9CAAC1] mt-1">Single-owner private management dashboard baseline (M1).</p>
+      </div>
+      <button
+        type="button"
+        class="px-3 py-1.5 bg-[#22D3EE] text-[#050509] font-bold text-xs rounded-lg hover:opacity-90 transition-opacity"
+      >
+        Sync Cloudflare D1
+      </button>
+    </div>
+
+    <!-- Health Metrics Grid -->
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div class="p-4 rounded-xl glass-panel">
+        <span class="text-xs text-[#9CAAC1]">Pending Approvals</span>
+        <p class="text-2xl font-bold text-white mt-1">0</p>
+        <span class="text-[10px] text-emerald-400 mt-1 inline-block">● Up to date</span>
+      </div>
+
+      <div class="p-4 rounded-xl glass-panel">
+        <span class="text-xs text-[#9CAAC1]">Unreviewed Evidence</span>
+        <p class="text-2xl font-bold text-white mt-1">0</p>
+        <span class="text-[10px] text-[#9CAAC1] mt-1 inline-block">Ledger active</span>
+      </div>
+
+      <div class="p-4 rounded-xl glass-panel">
+        <span class="text-xs text-[#9CAAC1]">Published Records</span>
+        <p class="text-2xl font-bold text-white mt-1">6</p>
+        <span class="text-[10px] text-emerald-400 mt-1 inline-block">● Projections synced</span>
+      </div>
+
+      <div class="p-4 rounded-xl glass-panel">
+        <span class="text-xs text-[#9CAAC1]">Security System</span>
+        <p class="text-2xl font-bold text-[#22D3EE] mt-1">RS256 Auth</p>
+        <span class="text-[10px] text-emerald-400 mt-1 inline-block">● Fail-closed active</span>
+      </div>
+    </div>
+  </div>
+</DashboardLayout>

@@ -1,0 +1,73 @@
+---
+import Navigation from '../components/Navigation.astro';
+import '../styles/global.css';
+
+interface Props {
+  title?: string;
+  description?: string;
+  currentPath?: string;
+}
+
+const {
+  title = 'usmanalii.com — Personal Career OS',
+  description = 'Canonical evidence-backed professional identity system, learning journey, capabilities, and engineering record of Usman Ali.',
+  currentPath = '/',
+} = Astro.props;
+---
+
+<!DOCTYPE html>
+<html lang="en" class="dark">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    
+    <!-- Primary Meta Tags -->
+    <title>{title}</title>
+    <meta name="title" content={title} />
+    <meta name="description" content={description} />
+
+    <!-- Open Graph / Facebook -->
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content={title} />
+    <meta property="og:description" content={description} />
+
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  </head>
+  <body class="bg-[#050509] text-[#F7FBFF] flex flex-col min-h-screen">
+    
+    <!-- Accessibility Skip Link -->
+    <a
+      href="#main-content"
+      class="sr-only focus:not-sr-only focus:absolute focus:top-4 focus:left-4 bg-[#22D3EE] text-[#050509] px-4 py-2 rounded-md font-bold z-50 shadow-lg"
+    >
+      Skip to main content
+    </a>
+
+    <!-- Header Navigation -->
+    <Navigation currentPath={currentPath} />
+
+    <!-- Main Content Body -->
+    <main id="main-content" class="flex-grow">
+      <slot />
+    </main>
+
+    <!-- Footer -->
+    <footer class="border-t border-white/10 bg-[#080D1A] py-12 mt-20 text-xs text-[#9CAAC1]">
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row items-center justify-between gap-4">
+        <div>
+          <p class="font-medium text-white">usmanalii.com — Personal Career OS</p>
+          <p class="mt-1">Evidence-backed professional identity & learning journey.</p>
+        </div>
+        <div class="flex items-center space-x-6">
+          <a href="/recruiter" class="hover:text-white transition-colors">Recruiter View</a>
+          <a href="/deep-dive" class="hover:text-white transition-colors">Deep Dive</a>
+          <a href="/about" class="hover:text-white transition-colors">About</a>
+        </div>
+      </div>
+    </footer>
+  </body>
+</html>
