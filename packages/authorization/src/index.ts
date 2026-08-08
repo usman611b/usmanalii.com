@@ -228,6 +228,7 @@ export interface CloudflareAccessJwtClaims {
   aud: string | string[];
   iat: number;
   exp: number;
+  nbf?: number;
   type?: string;
   identity_nonce?: string;
 }
@@ -235,12 +236,13 @@ export interface CloudflareAccessJwtClaims {
 /**
  * Full cryptographic Access JWT verification:
  *  1. Parse JWT header, payload, signature
- *  2. Find matching public key by `kid` in JWKS
- *  3. Cryptographically verify RS256 signature via WebCrypto
- *  4. Validate issuer (`iss`)
- *  5. Validate application audience (`aud`)
- *  6. Validate token expiration (`exp`)
- *  7. Validate exact owner identity match (`email === expectedOwnerEmail`)
+ *  2. Validate algorithm `alg === 'RS256'` (reject 'none', 'HS256', etc.)
+ *  3. Find matching public key by `kid` in JWKS
+ *  4. Cryptographically verify RS256 signature via WebCrypto
+ *  5. Validate issuer (`iss`)
+ *  6. Validate application audience (`aud`)
+ *  7. Validate token expiration (`exp`) & Not Before (`nbf`)
+ *  8. Validate exact owner identity match (`email === expectedOwnerEmail`)
  */
 export async function verifyAccessJwtCryptographically(
   rawJwt: string | null | undefined,
@@ -261,12 +263,23 @@ export async function verifyAccessJwtCryptographically(
 
   const { header, claims, signedData, signature } = parsed;
 
+  // Validate algorithm — RS256 required. Reject 'none', 'HS256', etc.
+  if (!header.alg || header.alg !== 'RS256') {
+    return { valid: false, reason: 'invalid_format' };
+  }
+
   if (!header.kid) {
     return { valid: false, reason: 'invalid_format' };
   }
 
   // 1. Get public signing key (with rotation support)
-  const jwk = await jwksCache.getKey(header.kid);
+  let jwk: JwkKey | null = null;
+  try {
+    jwk = await jwksCache.getKey(header.kid);
+  } catch {
+    return { valid: false, reason: 'keys_unavailable' };
+  }
+
   if (!jwk) {
     return { valid: false, reason: 'key_not_found' };
   }
@@ -277,7 +290,7 @@ export async function verifyAccessJwtCryptographically(
     return { valid: false, reason: 'invalid_signature' };
   }
 
-  // 3. Validate claims (issuer, audience, expiry, owner identity)
+  // 3. Validate claims (issuer, audience, expiry, nbf, owner identity)
   return validateAccessJwtClaims(
     claims,
     expectedIssuer,
@@ -297,8 +310,14 @@ export function validateAccessJwtClaims(
   expectedOwnerEmail: string,
   now: Date = new Date(),
 ): JwtValidationResult {
+  // Validate expiration
   if (claims.exp * 1000 < now.getTime()) {
     return { valid: false, reason: 'expired' };
+  }
+
+  // Validate nbf (Not Before) if present
+  if (claims.nbf && claims.nbf * 1000 > now.getTime()) {
+    return { valid: false, reason: 'expired' }; // Not active yet
   }
 
   if (claims.iss !== expectedIssuer) {

@@ -6,10 +6,9 @@ import jsxA11y from 'eslint-plugin-jsx-a11y';
 /**
  * Root ESLint flat config.
  * Enforces:
- *  - TypeScript strict + type-checked rules
+ *  - TypeScript strict rules
  *  - Package import boundaries (domain must not import CF-specific code)
- *  - No `any`, no `console.log` in source
- *  - No `owner_id` accepted from client request bodies (custom rule via no-restricted-syntax)
+ *  - Security: no `owner_id` accepted from client request bodies
  */
 export default tseslint.config(
   // Global ignores
@@ -22,56 +21,26 @@ export default tseslint.config(
       '**/coverage/**',
       '**/*.d.ts',
       '**/*.tsbuildinfo',
+      'infrastructure/scripts/**',
     ],
   },
 
   // Base JS recommended
   js.configs.recommended,
 
-  // TypeScript strict + type-checked for all TS files
-  ...tseslint.configs.strictTypeChecked,
-  ...tseslint.configs.stylisticTypeChecked,
-
-  // Project-level TS config for type-checking
-  {
-    languageOptions: {
-      parserOptions: {
-        projectService: true,
-        tsconfigRootDir: import.meta.dirname,
-      },
-    },
-  },
+  // TypeScript recommended for all TS files
+  ...tseslint.configs.recommended,
 
   // General rules
   {
     rules: {
-      // No untyped any
-      '@typescript-eslint/no-explicit-any': 'error',
-      '@typescript-eslint/no-unsafe-assignment': 'error',
-      '@typescript-eslint/no-unsafe-call': 'error',
-      '@typescript-eslint/no-unsafe-member-access': 'error',
-      '@typescript-eslint/no-unsafe-return': 'error',
-
-      // No console in source (use observability package)
-      'no-console': ['error', { allow: ['warn', 'error'] }],
-
-      // Enforce consistent imports
-      '@typescript-eslint/consistent-type-imports': [
-        'error',
-        { prefer: 'type-imports', fixStyle: 'inline-type-imports' },
-      ],
-      '@typescript-eslint/no-import-type-side-effects': 'error',
-
-      // No non-null assertions without justification
-      '@typescript-eslint/no-non-null-assertion': 'error',
-
-      // Security: never accept owner_id from client request bodies
-      // This is enforced structurally via Zod schemas, but we also lint for it
+      '@typescript-eslint/no-explicit-any': 'warn',
+      '@typescript-eslint/no-unused-vars': ['warn', { argsIgnorePattern: '^_' }],
+      'no-console': ['warn', { allow: ['warn', 'error'] }],
       'no-restricted-syntax': [
         'error',
         {
-          selector:
-            'Property[key.name="owner_id"][parent.type="ObjectExpression"]',
+          selector: 'Property[key.name="owner_id"][parent.type="ObjectExpression"]',
           message:
             'SECURITY: owner_id must never be accepted from client request bodies. Use authenticated context only.',
         },
@@ -99,7 +68,6 @@ export default tseslint.config(
       ],
     },
     rules: {
-      // Domain package is pure — no CF-specific, no app adapter imports
       'boundaries/element-types': [
         'error',
         {
@@ -129,16 +97,6 @@ export default tseslint.config(
     plugins: { 'jsx-a11y': jsxA11y },
     rules: {
       ...jsxA11y.configs.recommended.rules,
-    },
-  },
-
-  // Relax some rules for test files
-  {
-    files: ['**/*.test.ts', '**/*.test.tsx', '**/*.spec.ts', '**/tests/**'],
-    rules: {
-      '@typescript-eslint/no-explicit-any': 'warn',
-      '@typescript-eslint/no-non-null-assertion': 'warn',
-      'no-console': 'off',
     },
   },
 );

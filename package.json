@@ -26,6 +26,12 @@
   },
   "devDependencies": {
     "@turbo/gen": "^2.3.3",
+    "@typescript-eslint/eslint-plugin": "^8.18.0",
+    "@typescript-eslint/parser": "^8.18.0",
+    "eslint": "^9.16.0",
+    "eslint-plugin-boundaries": "^5.0.1",
+    "eslint-plugin-jsx-a11y": "^6.10.2",
+    "typescript-eslint": "^8.18.0",
     "prettier": "^3.4.2",
     "turbo": "^2.3.3"
   },
