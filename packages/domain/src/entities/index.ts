@@ -136,6 +136,7 @@ export interface SkillEntity {
   readonly createdAt: ISODateTime;
   readonly updatedAt: ISODateTime;
   readonly archivedAt: ISODateTime | null;
+  readonly versionNo: number;
   // INVARIANT: No proficiencyLevel, proficiencyPercent or similar field exists.
 }
 
@@ -165,19 +166,207 @@ export interface CapabilityEntity {
   readonly title: string; // bounded, observable, specific
   readonly slug: string;
   readonly description: string;
+  readonly outcomeStatement: string; // bounded outcome description
   readonly maturity: CapabilityMaturity;
   readonly maturityRationale: string; // required — explains the maturity state
   readonly maturityRuleVersion: string; // versioned rule set
   readonly qualifyingEvidenceRules: string; // JSON text — what evidence qualifies
   readonly visibility: Visibility;
   readonly state: PublicationState;
+  readonly lifecycleState: SkillLifecycleState;
+  readonly ownerConfirmed: boolean;
+  readonly firstDemonstratedAt: ISODateTime | null;
+  readonly lastDemonstratedAt: ISODateTime | null;
+  readonly provenanceMetadata: string; // JSON
   readonly skillIds: readonly EntityId[]; // linked taxonomy nodes
   readonly lastReviewedAt: ISODate | null;
   readonly createdAt: ISODateTime;
   readonly updatedAt: ISODateTime;
   readonly archivedAt: ISODateTime | null;
+  readonly versionNo: number;
   // INVARIANT: No percentage, score, or numeric proficiency field.
 }
+
+// ---------------------------------------------------------------------------
+// Milestone M4 — Skills & Capabilities Graph Entity Models
+// ---------------------------------------------------------------------------
+
+export type SkillCategory =
+  | 'programming_language'
+  | 'framework_library'
+  | 'tool_platform'
+  | 'architecture'
+  | 'data'
+  | 'security'
+  | 'testing'
+  | 'devops_infrastructure'
+  | 'design_accessibility'
+  | 'engineering_practice'
+  | 'communication_leadership'
+  | 'domain_knowledge';
+
+export type SkillType = 'technical' | 'domain' | 'methodology' | 'soft';
+
+export type SkillLifecycleState = 'draft' | 'active' | 'deprecated' | 'archived';
+
+export type SkillRelationshipType =
+  | 'parent_child'
+  | 'related'
+  | 'prerequisite'
+  | 'complementary'
+  | 'supersedes'
+  | 'applied_with';
+
+export type CapabilitySkillRelationshipType = 'required' | 'supporting' | 'complementary';
+
+export type EvidenceSkillRelationshipType =
+  | 'introduces'
+  | 'practices'
+  | 'applies'
+  | 'demonstrates'
+  | 'sustains'
+  | 'validates'
+  | 'refreshes'
+  | 'contradicts';
+
+export type EvidenceCapabilityRelationshipType =
+  | 'supports'
+  | 'demonstrates'
+  | 'validates'
+  | 'contradicts';
+
+export type ProgressionStage =
+  | 'exploring'
+  | 'practicing'
+  | 'applying'
+  | 'demonstrated'
+  | 'sustained'
+  | 'leadership';
+
+export type CreatedByClassification = 'owner' | 'system' | 'suggestion';
+
+export type ApprovalState = 'pending' | 'accepted' | 'rejected';
+
+export interface SkillRelationshipEntity {
+  readonly id: EntityId;
+  readonly ownerId: EntityId;
+  readonly sourceSkillId: EntityId;
+  readonly targetSkillId: EntityId;
+  readonly relationshipType: SkillRelationshipType;
+  readonly relevance: number; // 1–5
+  readonly ordering: number;
+  readonly evidenceProvenance: string; // JSON
+  readonly createdByClassification: CreatedByClassification;
+  readonly approvalState: ApprovalState;
+  readonly ownerNote: string | null;
+  readonly createdAt: ISODateTime;
+  readonly archivedAt: ISODateTime | null;
+}
+
+export interface CapabilitySkillRelationshipEntity {
+  readonly id: EntityId;
+  readonly ownerId: EntityId;
+  readonly capabilityId: EntityId;
+  readonly skillId: EntityId;
+  readonly relationshipType: CapabilitySkillRelationshipType;
+  readonly relevance: number; // 1–5
+  readonly ordering: number;
+  readonly evidenceProvenance: string; // JSON
+  readonly createdByClassification: CreatedByClassification;
+  readonly approvalState: ApprovalState;
+  readonly ownerNote: string | null;
+  readonly createdAt: ISODateTime;
+  readonly archivedAt: ISODateTime | null;
+}
+
+export interface EvidenceSkillLinkEntity {
+  readonly id: EntityId;
+  readonly ownerId: EntityId;
+  readonly evidenceId: EntityId;
+  readonly skillId: EntityId;
+  readonly relationshipType: EvidenceSkillRelationshipType;
+  readonly relevance: number; // 1–5
+  readonly ordering: number;
+  readonly evidenceProvenance: string; // JSON
+  readonly createdByClassification: CreatedByClassification;
+  readonly approvalState: ApprovalState;
+  readonly ownerNote: string | null;
+  readonly createdAt: ISODateTime;
+  readonly archivedAt: ISODateTime | null;
+}
+
+export interface EvidenceCapabilityLinkEntity {
+  readonly id: EntityId;
+  readonly ownerId: EntityId;
+  readonly evidenceId: EntityId;
+  readonly capabilityId: EntityId;
+  readonly relationshipType: EvidenceCapabilityRelationshipType;
+  readonly relevance: number; // 1–5
+  readonly ordering: number;
+  readonly evidenceProvenance: string; // JSON
+  readonly createdByClassification: CreatedByClassification;
+  readonly approvalState: ApprovalState;
+  readonly ownerNote: string | null;
+  readonly createdAt: ISODateTime;
+  readonly archivedAt: ISODateTime | null;
+}
+
+export type ProgressionActor = 'owner' | 'system' | 'suggestion';
+
+export interface ProgressionEventEntity {
+  readonly id: EntityId;
+  readonly ownerId: EntityId;
+  readonly skillId: EntityId | null;
+  readonly capabilityId: EntityId | null;
+  readonly previousStage: ProgressionStage | null;
+  readonly newStage: ProgressionStage;
+  readonly supportingEvidenceIds: readonly EntityId[];
+  readonly reason: string;
+  readonly actorClassification: ProgressionActor;
+  readonly approvalState: ApprovalState;
+  readonly supersedesEventId: EntityId | null;
+  readonly createdAt: ISODateTime;
+}
+
+export type SuggestionType =
+  | 'possible_skill'
+  | 'possible_evidence_skill_link'
+  | 'possible_capability'
+  | 'possible_progression_event'
+  | 'possible_related_skill';
+
+export type SuggestionState =
+  | 'pending'
+  | 'accepted'
+  | 'edited_and_accepted'
+  | 'rejected'
+  | 'superseded'
+  | 'expired';
+
+export type SuggestionOrigin = 'deterministic_rule' | 'system' | 'ai_model';
+
+export interface SuggestionEntity {
+  readonly id: EntityId;
+  readonly ownerId: EntityId;
+  readonly suggestionType: SuggestionType;
+  readonly title: string;
+  readonly description: string;
+  readonly payloadJson: string;
+  readonly evidenceReferences: readonly EntityId[];
+  readonly createdByClassification: SuggestionOrigin;
+  readonly modelMetadataJson: string;
+  readonly suggestionState: SuggestionState;
+  readonly rejectionReason: string | null;
+  readonly fingerprint: string;
+  readonly createdAt: ISODateTime;
+  readonly updatedAt: ISODateTime;
+}
+
+export type EvidenceStrength =
+  | 'limited_evidence'
+  | 'emerging_evidence'
+  | 'established_evidence'
+  | 'strong_evidence';
 
 // ---------------------------------------------------------------------------
 // Claim — Section 3, 11 of Database Model

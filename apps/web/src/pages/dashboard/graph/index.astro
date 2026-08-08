@@ -1,0 +1,28 @@
+---
+import DashboardLayout from '../../../layouts/DashboardLayout.astro';
+import { GraphVisualization } from '../../../components/GraphVisualization';
+
+const mockNodes: any[] = [
+  { id: 'skill-1', name: 'TypeScript', type: 'skill', category: 'programming_language' },
+  { id: 'skill-2', name: 'API Security & OAuth', type: 'skill', category: 'security' },
+  { id: 'cap-1', name: 'Design Secure Multi-Tenant APIs', type: 'capability', stage: 'delivered' },
+];
+
+const mockEdges: any[] = [
+  { sourceId: 'skill-1', targetId: 'cap-1', relationshipType: 'required' },
+  { sourceId: 'skill-2', targetId: 'cap-1', relationshipType: 'supporting' },
+];
+---
+
+<DashboardLayout title="Graph Engine & Edge Explorer — Private Dashboard" activeSection="graph">
+  <div class="space-y-6">
+    <div class="flex items-center justify-between">
+      <div>
+        <h2 class="text-xl font-bold text-white">Skills & Capabilities Graph Engine</h2>
+        <p class="text-xs text-[#9CAAC1] mt-1">Explore typed graph relationships, evidence-backed capabilities, and progressive enhancement visualization.</p>
+      </div>
+    </div>
+
+    <GraphVisualization client:load nodes={mockNodes} edges={mockEdges} />
+  </div>
+</DashboardLayout>

@@ -7,6 +7,8 @@
 
 import type { Visibility, PublicationState } from '../entities/index.js';
 
+export * from './graph-invariants.js';
+
 // ---------------------------------------------------------------------------
 // Default visibility rule — Section 4 of Database Model
 // INVARIANT: Imported, generated and newly created records default to private.

@@ -23,6 +23,10 @@ import type { ContentType, PublicationState, Visibility } from '@usmanalii/domai
 
 import { evidenceRoutes } from './evidence.js';
 import { artifactRoutes } from './artifacts.js';
+import { skillRoutes } from './skills.js';
+import { capabilityRoutes } from './capabilities.js';
+import { graphRoutes } from './graph.js';
+import { suggestionRoutes } from './suggestions.js';
 
 export const privateRoutes = new Hono<{
   Bindings: WorkerEnv;
@@ -32,9 +36,13 @@ export const privateRoutes = new Hono<{
 // Apply requireOwnerAuth guard to ALL private routes
 privateRoutes.use('*', requireOwnerAuth());
 
-// Mount Evidence & Artifact sub-routers
+// Mount Sub-routers
 privateRoutes.route('/evidence', evidenceRoutes);
 privateRoutes.route('/artifacts', artifactRoutes);
+privateRoutes.route('/skills', skillRoutes);
+privateRoutes.route('/capabilities', capabilityRoutes);
+privateRoutes.route('/graph', graphRoutes);
+privateRoutes.route('/suggestions', suggestionRoutes);
 
 // Dashboard summary stats
 privateRoutes.get('/dashboard/summary', async (c) => {

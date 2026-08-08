@@ -12,6 +12,11 @@
 export type { ProfileRepository } from './repositories/profile.js';
 export { D1ContentRepository } from './repositories/content.js';
 export * from './repositories/evidence.js';
+export * from './repositories/skills.js';
+export * from './repositories/capabilities.js';
+export * from './repositories/graph.js';
+export * from './repositories/progression.js';
+export * from './repositories/suggestions.js';
 export type { MigrationRunner } from './migrations/runner.js';
 
 // Migration utilities

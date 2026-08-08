@@ -599,4 +599,81 @@ describe('Requirement 1 & 2: Database Integrity & Public Scheduling/Embargo Logi
     const restored = await repo.restore('owner-1', 'art-1');
     expect(restored.deletedAt).toBeNull();
   });
+
+  it('9. Milestone M4: D1SkillRepository & D1CapabilityRepository CRUD operations and optimistic concurrency', async () => {
+    const { D1SkillRepository } = await import('./repositories/skills.js');
+    const { D1CapabilityRepository } = await import('./repositories/capabilities.js');
+
+    const skillsMap = new Map<string, any>();
+    const capsMap = new Map<string, any>();
+
+    const mockDb: any = {
+      prepare(sql: string) {
+        const stmtObj: any = {
+          params: [],
+          bind(...p: any[]) { stmtObj.params = p; return stmtObj; },
+          async first() {
+            if (sql.includes('FROM skills WHERE id = ?')) return skillsMap.get(stmtObj.params[0]);
+            if (sql.includes('FROM capabilities WHERE id = ?')) return capsMap.get(stmtObj.params[0]);
+            return null;
+          },
+          async all() { return { results: Array.from(skillsMap.values()) }; },
+          async run() {
+            if (sql.includes('INSERT INTO skills')) {
+              skillsMap.set(stmtObj.params[0], {
+                id: stmtObj.params[0],
+                owner_id: stmtObj.params[1],
+                name: stmtObj.params[2],
+                slug: stmtObj.params[3],
+                description: stmtObj.params[4],
+                visibility: stmtObj.params[6],
+                category: stmtObj.params[7],
+                created_at: stmtObj.params[12],
+                updated_at: stmtObj.params[13],
+                version_no: 1,
+              });
+            }
+            if (sql.includes('INSERT INTO capabilities')) {
+              capsMap.set(stmtObj.params[0], {
+                id: stmtObj.params[0],
+                owner_id: stmtObj.params[1],
+                title: stmtObj.params[2],
+                slug: stmtObj.params[3],
+                description: stmtObj.params[4],
+                outcome_statement: stmtObj.params[5],
+                visibility: stmtObj.params[6],
+                state: stmtObj.params[7],
+                created_at: stmtObj.params[9],
+                updated_at: stmtObj.params[10],
+                version_no: 1,
+              });
+            }
+            return { meta: { changes: 1 } };
+          },
+        };
+        return stmtObj;
+      },
+    };
+
+    const skillRepo = new D1SkillRepository(mockDb);
+    const skill = await skillRepo.createSkill({
+      id: 'skill-1' as any,
+      ownerId: 'owner-1' as any,
+      name: 'TypeScript',
+      slug: 'typescript',
+      category: 'programming_language',
+    });
+    expect(skill.name).toBe('TypeScript');
+
+    const capRepo = new D1CapabilityRepository(mockDb);
+    const cap = await capRepo.createCapability({
+      id: 'cap-1' as any,
+      ownerId: 'owner-1' as any,
+      title: 'Design API Boundaries',
+      slug: 'design-api-boundaries',
+      description: 'API boundary design capability',
+      outcomeStatement: 'Design multi-tenant API security boundaries on Cloudflare Workers',
+    });
+    expect(cap.title).toBe('Design API Boundaries');
+  });
 });

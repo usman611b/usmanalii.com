@@ -51,26 +51,31 @@ const mockArtifacts = [
       </div>
 
       <div class="max-w-md mx-auto space-y-3">
+        <label for="artifact-file-input" class="sr-only">Upload artifact file</label>
         <input
           type="file"
+          id="artifact-file-input"
           name="file"
+          aria-label="Upload artifact file"
           required
           class="w-full bg-[#101A31] text-xs text-[#9CAAC1] file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-[#22D3EE] file:text-[#050509] hover:file:opacity-90"
         />
 
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 text-left">
           <div>
-            <label class="block text-[10px] text-[#9CAAC1] uppercase mb-1">Title</label>
+            <label for="artifact-title-input" class="block text-[10px] text-[#9CAAC1] uppercase mb-1">Title</label>
             <input
               type="text"
+              id="artifact-title-input"
               name="title"
               placeholder="Artifact Title"
+              aria-label="Artifact Title"
               class="w-full bg-[#101A31] text-xs text-white border border-white/10 rounded-lg px-2.5 py-1.5"
             />
           </div>
           <div>
-            <label class="block text-[10px] text-[#9CAAC1] uppercase mb-1">Artifact Type</label>
-            <select name="artifactType" class="w-full bg-[#101A31] text-xs text-white border border-white/10 rounded-lg px-2.5 py-1.5">
+            <label for="artifact-type-select" class="block text-[10px] text-[#9CAAC1] uppercase mb-1">Artifact Type</label>
+            <select id="artifact-type-select" name="artifactType" aria-label="Artifact Type" class="w-full bg-[#101A31] text-xs text-white border border-white/10 rounded-lg px-2.5 py-1.5">
               <option value="diagram">Diagram</option>
               <option value="document">Document</option>
               <option value="code_sample">Code Sample</option>

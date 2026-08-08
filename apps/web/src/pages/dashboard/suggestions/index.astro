@@ -1,0 +1,51 @@
+---
+import DashboardLayout from '../../../layouts/DashboardLayout.astro';
+
+const mockSuggestions = [
+  {
+    id: 'sug-1',
+    title: 'Possible Evidence-to-Skill Link: TypeScript & Evidence ev-1',
+    description: 'System identified code commit ev-1 introducing TypeScript security controls.',
+    suggestionType: 'possible_evidence_skill_link',
+    evidenceReferences: ['ev-1'],
+    createdByClassification: 'deterministic_rule',
+    suggestionState: 'pending',
+  },
+];
+---
+
+<DashboardLayout title="Suggestions Portal — Private Dashboard" activeSection="suggestions">
+  <div class="space-y-6">
+    <div class="flex items-center justify-between">
+      <div>
+        <h2 class="text-xl font-bold text-white">Owner Suggestion Review Portal</h2>
+        <p class="text-xs text-[#9CAAC1] mt-1">Review deterministic and system proposals. Proposals require owner approval and evidence IDs before publication.</p>
+      </div>
+    </div>
+
+    <div class="space-y-4">
+      {mockSuggestions.map((sug) => (
+        <div class="p-5 rounded-xl glass-panel border border-white/10 space-y-3">
+          <div class="flex items-center justify-between">
+            <span class="text-xs font-semibold text-[#22D3EE] uppercase tracking-wider">{sug.suggestionType.replace(/_/g, ' ')}</span>
+            <span class="text-xs text-amber-400 font-mono">Pending Owner Decision</span>
+          </div>
+          <h3 class="text-base font-bold text-white">{sug.title}</h3>
+          <p class="text-xs text-[#9CAAC1]">{sug.description}</p>
+          <div class="text-xs text-[#9CAAC1] font-mono">
+            Supporting Evidence IDs: {sug.evidenceReferences.join(', ')}
+          </div>
+          <div class="pt-3 border-t border-white/5 flex items-center gap-3">
+            <button type="button" class="px-3 py-1.5 bg-[#22D3EE] text-[#050509] font-bold text-xs rounded-lg hover:opacity-90 transition-opacity">
+              Accept Proposal
+            </button>
+
+            <button type="button" class="px-3 py-1.5 bg-rose-500/20 text-rose-300 font-semibold text-xs rounded-lg hover:bg-rose-500/30 transition-colors">
+              Reject Proposal
+            </button>
+          </div>
+        </div>
+      ))}
+    </div>
+  </div>
+</DashboardLayout>

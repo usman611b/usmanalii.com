@@ -1,0 +1,95 @@
+---
+import DashboardLayout from '../../../layouts/DashboardLayout.astro';
+
+// Fictional synthetic skill fixtures
+const mockSkills = [
+  {
+    id: 'skill-1',
+    name: 'TypeScript',
+    slug: 'typescript',
+    category: 'programming_language',
+    skillType: 'technical',
+    visibility: 'public',
+    lifecycleState: 'active',
+  },
+  {
+    id: 'skill-2',
+    name: 'API Security & OAuth/Access',
+    slug: 'api-security',
+    category: 'security',
+    skillType: 'technical',
+    visibility: 'public',
+    lifecycleState: 'active',
+  },
+  {
+    id: 'skill-3',
+    name: 'D1 & SQLite Database Design',
+    slug: 'database-design',
+    category: 'data',
+    skillType: 'technical',
+    visibility: 'private',
+    lifecycleState: 'active',
+  },
+];
+---
+
+<DashboardLayout title="Skills Taxonomy — Private Dashboard" activeSection="skills">
+  <div class="space-y-6">
+    <div class="flex items-center justify-between">
+      <div>
+        <h2 class="text-xl font-bold text-white">Skills Taxonomy</h2>
+        <p class="text-xs text-[#9CAAC1] mt-1">Organizes records and evidence. Skills do NOT assert proficiency or percentage scores.</p>
+      </div>
+      <button
+        type="button"
+        class="px-3 py-1.5 bg-[#22D3EE] text-[#050509] font-bold text-xs rounded-lg hover:opacity-90 transition-opacity"
+      >
+        + Add Skill
+      </button>
+    </div>
+
+    <!-- Category Filters -->
+    <div class="p-4 rounded-xl glass-panel flex flex-wrap items-center justify-between gap-3">
+      <div class="flex items-center gap-2 flex-wrap">
+        <select aria-label="Filter by Category" class="bg-[#101A31] text-xs text-white border border-white/10 rounded-lg px-2.5 py-1.5">
+          <option value="">All Categories</option>
+          <option value="programming_language">Programming Languages</option>
+          <option value="framework_library">Frameworks & Libraries</option>
+          <option value="security">Security</option>
+          <option value="data">Data & Storage</option>
+        </select>
+        <select aria-label="Filter by Visibility" class="bg-[#101A31] text-xs text-white border border-white/10 rounded-lg px-2.5 py-1.5">
+          <option value="">All Visibilities</option>
+          <option value="private">Private</option>
+          <option value="public">Public</option>
+        </select>
+      </div>
+      <input
+        type="search"
+        placeholder="Search skills..."
+        aria-label="Search skills"
+        class="bg-[#101A31] text-xs text-white border border-white/10 rounded-lg px-3 py-1.5 w-48 focus:outline-none focus:border-[#22D3EE]"
+      />
+    </div>
+
+    <!-- Skills List -->
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+      {mockSkills.map((skill) => (
+        <div class="p-5 rounded-xl glass-panel border border-white/10 space-y-3">
+          <div class="flex items-center justify-between">
+            <span class="text-xs font-semibold text-[#22D3EE] uppercase tracking-wider">{skill.category.replace('_', ' ')}</span>
+            <span class={`text-[10px] px-2 py-0.5 rounded ${skill.visibility === 'public' ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' : 'bg-amber-500/10 text-amber-400 border border-amber-500/20'}`}>
+              {skill.visibility}
+            </span>
+          </div>
+          <h3 class="text-base font-bold text-white">{skill.name}</h3>
+          <p class="text-xs text-[#9CAAC1]">Slug: <code class="text-[#22D3EE]">{skill.slug}</code></p>
+          <div class="pt-3 border-t border-white/5 flex items-center justify-between text-xs text-[#9CAAC1]">
+            <span>State: {skill.lifecycleState}</span>
+            <a href={`/dashboard/skills/${skill.id}`} class="text-[#22D3EE] hover:underline">Manage →</a>
+          </div>
+        </div>
+      ))}
+    </div>
+  </div>
+</DashboardLayout>

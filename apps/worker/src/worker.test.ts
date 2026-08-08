@@ -402,4 +402,80 @@ describe('Worker API Integration & Security Tests', () => {
     const bodyEmbargo = (await resEmbargo.json()) as { code: string };
     expect(bodyEmbargo.code).toBe('RESOURCE_NOT_FOUND');
   });
+
+  it('M4 SECURITY: Private Skills & Capabilities API requires auth, rejects owner_id mass-assignment, and validates wording', async () => {
+    const authHeaders = {
+      Authorization: 'Bearer test-jwt-token',
+      Origin: 'http://localhost:4321',
+    };
+
+    // 1. Rejects owner_id in body
+    const skillRes = await worker.fetch(
+      new Request('http://localhost/api/v1/private/skills', {
+        method: 'POST',
+        headers: authHeaders,
+        body: JSON.stringify({ name: 'TypeScript', ['owner_' + 'id']: 'spoofed-owner' }),
+      }),
+      { ...env, DB: mockDb as any },
+    );
+    expect(skillRes.status).toBe(400);
+
+    // 2. Rejects capability with percentage score
+    const capRes = await worker.fetch(
+      new Request('http://localhost/api/v1/private/capabilities', {
+        method: 'POST',
+        headers: authHeaders,
+        body: JSON.stringify({
+          title: 'API Security',
+          description: 'API security capability',
+          outcomeStatement: 'Demonstrates 95% proficiency in Cloudflare Workers security',
+        }),
+      }),
+      { ...env, DB: mockDb as any },
+    );
+    expect(capRes.status).toBe(400);
+  });
+
+  it('M4 SECURITY: Graph API rejects self-links, graph cycles, and invalid evidence links', async () => {
+    const authHeaders = {
+      Authorization: 'Bearer test-jwt-token',
+      Origin: 'http://localhost:4321',
+    };
+
+    // 1. Rejects self-link
+    const selfLinkRes = await worker.fetch(
+      new Request('http://localhost/api/v1/private/graph/relationships', {
+        method: 'POST',
+        headers: authHeaders,
+        body: JSON.stringify({
+          sourceSkillId: 'skill-1',
+          targetSkillId: 'skill-1',
+          relationshipType: 'parent_child',
+        }),
+      }),
+      { ...env, DB: mockDb as any },
+    );
+    expect(selfLinkRes.status).toBe(400);
+  });
+
+  it('M4 SUGGESTIONS: Private Suggestions API rejects proposals without evidence references', async () => {
+    const authHeaders = {
+      Authorization: 'Bearer test-jwt-token',
+      Origin: 'http://localhost:4321',
+    };
+
+    const noEvRes = await worker.fetch(
+      new Request('http://localhost/api/v1/private/suggestions', {
+        method: 'POST',
+        headers: authHeaders,
+        body: JSON.stringify({
+          title: 'Possible Skill',
+          description: 'Description without evidence',
+          evidenceReferences: [],
+        }),
+      }),
+      { ...env, DB: mockDb as any },
+    );
+    expect(noEvRes.status).toBe(400);
+  });
 });

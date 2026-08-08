@@ -13,7 +13,7 @@ import type { AuthVariables } from '../middleware/auth.js';
 import { D1ContentRepository, D1EvidenceRepository, D1ArtifactRepository } from '@usmanalii/database';
 import { filterPublicEvidence, filterPublicArtifacts } from '@usmanalii/evidence';
 import { formatContentDisposition } from './artifacts.js';
-import type { ContentType } from '@usmanalii/domain';
+import type { ContentType, EntityId } from '@usmanalii/domain';
 
 export const publicRoutes = new Hono<{
   Bindings: WorkerEnv;
@@ -203,5 +203,60 @@ publicRoutes.get('/artifacts/:id/download', async (c) => {
     requestId: c.get('requestId'),
   });
 });
+
+/** GET /api/v1/public/skills — List public skills */
+publicRoutes.get('/skills', async (c) => {
+  const { D1SkillRepository } = await import('@usmanalii/database');
+  const repo = new D1SkillRepository(c.env.DB);
+  const ownerId = '00000000-0000-0000-0000-000000000001' as EntityId;
+  const skills = await repo.listSkillsByOwner(ownerId, { visibility: 'public' });
+  return c.json({ data: skills, count: skills.length, requestId: c.get('requestId') });
+});
+
+/** GET /api/v1/public/skills/:slug — Get public skill by slug */
+publicRoutes.get('/skills/:slug', async (c) => {
+  const { D1SkillRepository } = await import('@usmanalii/database');
+  const repo = new D1SkillRepository(c.env.DB);
+  const ownerId = '00000000-0000-0000-0000-000000000001' as EntityId;
+  const slug = c.req.param('slug');
+
+  const skill = await repo.getSkillBySlug(ownerId, slug);
+  if (!skill || skill.visibility !== 'public') {
+    return c.json({ code: 'RESOURCE_NOT_FOUND', message: 'Skill not found.', requestId: c.get('requestId') }, 404);
+  }
+  return c.json({ data: skill, requestId: c.get('requestId') });
+});
+
+/** GET /api/v1/public/capabilities — List public capabilities */
+publicRoutes.get('/capabilities', async (c) => {
+  const { D1CapabilityRepository } = await import('@usmanalii/database');
+  const repo = new D1CapabilityRepository(c.env.DB);
+  const ownerId = '00000000-0000-0000-0000-000000000001' as EntityId;
+  const capabilities = await repo.listCapabilitiesByOwner(ownerId, { visibility: 'public', state: 'published' });
+  return c.json({ data: capabilities, count: capabilities.length, requestId: c.get('requestId') });
+});
+
+/** GET /api/v1/public/capabilities/:slug — Get public capability by slug */
+publicRoutes.get('/capabilities/:slug', async (c) => {
+  const { D1CapabilityRepository } = await import('@usmanalii/database');
+  const repo = new D1CapabilityRepository(c.env.DB);
+  const ownerId = '00000000-0000-0000-0000-000000000001' as EntityId;
+  const slug = c.req.param('slug');
+
+  const cap = await repo.getCapabilityBySlug(ownerId, slug);
+  if (!cap || cap.visibility !== 'public' || cap.state !== 'published') {
+    return c.json({ code: 'RESOURCE_NOT_FOUND', message: 'Capability not found.', requestId: c.get('requestId') }, 404);
+  }
+  return c.json({ data: cap, requestId: c.get('requestId') });
+});
+
+/** GET /api/v1/public/graph/visualization — Get sanitized public graph projection */
+publicRoutes.get('/graph/visualization', async (c) => {
+  const { D1GraphRepository } = await import('@usmanalii/database');
+  const repo = new D1GraphRepository(c.env.DB);
+  const projection = await repo.getPublicGraphProjection();
+  return c.json({ data: projection, requestId: c.get('requestId') });
+});
+
 
 

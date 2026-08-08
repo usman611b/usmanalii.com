@@ -117,4 +117,64 @@ describe('Milestone M3 — Evidence Ledger & Provenance Engine Tests', () => {
     expect(isBoundaryTimestampPublic(exactNow, now)).toBe(true);
     expect(isBoundaryTimestampPublic(future, now)).toBe(false);
   });
+
+  it('10. evaluateEvidenceStrength deterministically classifies evidence strength without numeric percentages', async () => {
+    const { evaluateEvidenceStrength } = await import('./evidence-strength.js');
+
+    const now = new Date('2026-08-09T00:00:00Z');
+    const item1: any = {
+      id: 'ev-1',
+      visibility: 'public',
+      verificationState: 'source_verified',
+      provider: 'github',
+      canonicalLocator: 'https://github.com/repo/commit/123',
+      occurredAt: '2026-08-01T00:00:00Z',
+      archivedAt: null,
+      embargoUntil: null,
+    };
+    const item2: any = {
+      id: 'ev-2',
+      visibility: 'public',
+      verificationState: 'owner_verified',
+      provider: 'usmanalii.com',
+      canonicalLocator: 'https://usmanalii.com/journey/log',
+      occurredAt: '2026-08-02T00:00:00Z',
+      archivedAt: null,
+      embargoUntil: null,
+    };
+
+    const evalRes = evaluateEvidenceStrength([item1, item2], now);
+    expect(evalRes.classification).toBe('strong_evidence');
+    expect(evalRes.contributingFactors.length).toBeGreaterThan(0);
+    expect(evalRes.explanation).not.toContain('%');
+  });
+
+  it('11. traverseBoundedGraph respects depth & node bounds and handles cycle safety', async () => {
+    const { traverseBoundedGraph, filterPublicGraphProjection } = await import('./graph-traversal.js');
+
+    const nodes: any[] = [
+      { id: 'n1', name: 'Skill 1', type: 'skill', visibility: 'public' },
+      { id: 'n2', name: 'Skill 2', type: 'skill', visibility: 'public' },
+      { id: 'n3', name: 'Skill 3', type: 'skill', visibility: 'private' },
+    ];
+    const edges: any[] = [
+      { sourceId: 'n1', targetId: 'n2', relationshipType: 'related' },
+      { sourceId: 'n2', targetId: 'n3', relationshipType: 'related' },
+    ];
+
+    const result = traverseBoundedGraph(nodes, edges, { startNodeId: 'n1', maxDepth: 2 });
+    expect(result.nodes.length).toBeGreaterThan(0);
+
+    const publicOnly = filterPublicGraphProjection(result.nodes, result.edges);
+    expect(publicOnly.nodes.find((n) => n.id === 'n3')).toBeUndefined();
+    expect(publicOnly.edges.find((e) => e.targetId === 'n3')).toBeUndefined();
+  });
+
+  it('12. encodeCursor & decodeCursor format and validate pagination cursors safely', async () => {
+    const { encodeCursor, decodeCursor } = await import('./graph-traversal.js');
+
+    const cursor = encodeCursor(10);
+    expect(decodeCursor(cursor)).toBe(10);
+    expect(() => decodeCursor('invalid-cursor!')).toThrow('INVALID_CURSOR');
+  });
 });

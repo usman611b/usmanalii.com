@@ -101,6 +101,7 @@ export const skills = {
     createdAt: fts(2024, 1, 1),
     updatedAt: fts(2024, 1, 1),
     archivedAt: null,
+    versionNo: 1,
   } satisfies SkillEntity,
 
   /** A private skill — must not appear in public queries. */
@@ -116,6 +117,7 @@ export const skills = {
     createdAt: fts(2024, 2, 1),
     updatedAt: fts(2024, 2, 1),
     archivedAt: null,
+    versionNo: 1,
   } satisfies SkillEntity,
 
   /** A different owner's skill — for IDOR tests. */
@@ -131,6 +133,7 @@ export const skills = {
     createdAt: fts(2024, 3, 1),
     updatedAt: fts(2024, 3, 1),
     archivedAt: null,
+    versionNo: 1,
   } satisfies SkillEntity,
 } as const;
 
@@ -142,15 +145,22 @@ const capabilityBase = {
   ownerId: FIXTURE_OWNER_ID,
   slug: 'generic-capability',
   description: 'Can perform a bounded generic task.',
+  outcomeStatement: 'Delivers a bounded outcome statement with verifiable evidence.',
   qualifyingEvidenceRules: '{}',
   maturityRuleVersion: 'v1.0',
   visibility: 'public' as const,
   state: 'published' as const,
+  lifecycleState: 'active' as const,
+  ownerConfirmed: true,
+  firstDemonstratedAt: null,
+  lastDemonstratedAt: null,
+  provenanceMetadata: '{}',
   skillIds: [fid(200)],
   lastReviewedAt: null,
   createdAt: fts(2024, 1, 1),
   updatedAt: fts(2024, 1, 1),
   archivedAt: null,
+  versionNo: 1,
 };
 
 export const capabilities = {

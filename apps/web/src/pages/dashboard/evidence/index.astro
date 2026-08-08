@@ -59,7 +59,7 @@ const mockEvidenceItems = [
     <!-- Filters -->
     <div class="p-4 rounded-xl glass-panel flex flex-wrap items-center justify-between gap-3">
       <div class="flex items-center gap-2 flex-wrap">
-        <select class="bg-[#101A31] text-xs text-white border border-white/10 rounded-lg px-2.5 py-1.5">
+        <select aria-label="Filter by Evidence Type" class="bg-[#101A31] text-xs text-white border border-white/10 rounded-lg px-2.5 py-1.5">
           <option value="">All Evidence Types</option>
           <option value="commit">Commit</option>
           <option value="pull_request">Pull Request</option>
@@ -68,7 +68,7 @@ const mockEvidenceItems = [
           <option value="manual_evidence">Manual Proof</option>
         </select>
 
-        <select class="bg-[#101A31] text-xs text-white border border-white/10 rounded-lg px-2.5 py-1.5">
+        <select aria-label="Filter by Verification State" class="bg-[#101A31] text-xs text-white border border-white/10 rounded-lg px-2.5 py-1.5">
           <option value="">All Verification States</option>
           <option value="owner_verified">Owner Verified</option>
           <option value="source_verified">Source Verified</option>
@@ -76,7 +76,7 @@ const mockEvidenceItems = [
           <option value="disputed">Disputed</option>
         </select>
 
-        <select class="bg-[#101A31] text-xs text-white border border-white/10 rounded-lg px-2.5 py-1.5">
+        <select aria-label="Filter by Visibility" class="bg-[#101A31] text-xs text-white border border-white/10 rounded-lg px-2.5 py-1.5">
           <option value="">All Visibilities</option>
           <option value="private">Private</option>
           <option value="public">Public</option>
@@ -86,6 +86,7 @@ const mockEvidenceItems = [
       <input
         type="search"
         placeholder="Filter evidence items..."
+        aria-label="Filter evidence items"
         class="bg-[#101A31] text-xs text-white border border-white/10 rounded-lg px-3 py-1.5 w-48 focus:outline-none focus:border-[#22D3EE]"
       />
     </div>
