@@ -77,11 +77,16 @@ export { app };
 
 export function handleScheduledReconciliation(env: WorkerEnv, ctx: ExecutionContext): void {
   ctx.waitUntil(processReconciliationQueue(env.DB, env.ARTIFACTS_BUCKET ?? env.R2_PRIVATE));
+
   if (env.GITHUB_TOKEN) {
     const repo = new D1GitHubRepository(env.DB);
     const client = new GitHubClient({ token: env.GITHUB_TOKEN });
     const service = new GitHubSyncService(repo);
-    ctx.waitUntil(service.syncSelectedRepositories('owner-1', client));
+    ctx.waitUntil(
+      service
+        .syncSelectedRepositories('00000000-0000-0000-0000-000000000001', client)
+        .catch(() => {}),
+    );
   }
 }
 

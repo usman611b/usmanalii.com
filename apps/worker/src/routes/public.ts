@@ -68,7 +68,7 @@ publicRoutes.get('/activity', async (c) => {
     id: String(row.id),
     dateIso: String(row.date_iso || new Date().toISOString()),
     type: String(row.type),
-    visibility: String(row.visibility) as any,
+    visibility: String(row.visibility) as 'public' | 'private',
     isPublished: true,
   }));
 

@@ -102,12 +102,11 @@ export const ActivityHeatmap: React.FC<ActivityHeatmapProps> = ({
 
         <div className="text-xs text-[#9CAAC1] flex items-center gap-4">
           <div>
-            <span className="text-white font-semibold">{projection.activeDaysCount}</span> active days
+            <span className="text-white font-semibold">{projection.activeDaysCount}</span> active
+            days
           </div>
           {!isPrivateView && (
-            <div className="text-[11px] text-[#22D3EE]">
-              Counts obscured for privacy
-            </div>
+            <div className="text-[11px] text-[#22D3EE]">Counts obscured for privacy</div>
           )}
         </div>
       </div>

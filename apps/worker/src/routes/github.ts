@@ -103,7 +103,11 @@ githubRoutes.post('/discover', async (c) => {
   const authContext = c.get('authContext')!;
   if (!c.env.GITHUB_TOKEN) {
     return c.json(
-      { code: 'GITHUB_TOKEN_MISSING', message: 'GITHUB_TOKEN Worker secret is not set.', requestId: c.get('requestId') },
+      {
+        code: 'GITHUB_TOKEN_MISSING',
+        message: 'GITHUB_TOKEN Worker secret is not set.',
+        requestId: c.get('requestId'),
+      },
       400,
     );
   }
@@ -114,10 +118,18 @@ githubRoutes.post('/discover', async (c) => {
 
   try {
     const res = await service.discoverRepositories(authContext.ownerId, client);
-    return c.json({ count: res.count, rateLimitRemaining: res.rateLimitRemaining, requestId: c.get('requestId') });
+    return c.json({
+      count: res.count,
+      rateLimitRemaining: res.rateLimitRemaining,
+      requestId: c.get('requestId'),
+    });
   } catch (err) {
     return c.json(
-      { code: 'SYNC_ERROR', message: err instanceof Error ? err.message : String(err), requestId: c.get('requestId') },
+      {
+        code: 'SYNC_ERROR',
+        message: err instanceof Error ? err.message : String(err),
+        requestId: c.get('requestId'),
+      },
       500,
     );
   }
@@ -128,7 +140,11 @@ githubRoutes.post('/sync', async (c) => {
   const authContext = c.get('authContext')!;
   if (!c.env.GITHUB_TOKEN) {
     return c.json(
-      { code: 'GITHUB_TOKEN_MISSING', message: 'GITHUB_TOKEN Worker secret is not set.', requestId: c.get('requestId') },
+      {
+        code: 'GITHUB_TOKEN_MISSING',
+        message: 'GITHUB_TOKEN Worker secret is not set.',
+        requestId: c.get('requestId'),
+      },
       400,
     );
   }
@@ -140,7 +156,8 @@ githubRoutes.post('/sync', async (c) => {
   const client = new GitHubClient({ token: c.env.GITHUB_TOKEN });
   const service = new GitHubSyncService(repo);
 
-  const result = await service.syncSelectedRepositories(authContext.ownerId, client, { repoId });
+  const opts = repoId !== undefined ? { repoId } : {};
+  const result = await service.syncSelectedRepositories(authContext.ownerId, client, opts);
   return c.json({ result, requestId: c.get('requestId') });
 });
 
@@ -162,15 +179,19 @@ githubRoutes.post('/candidates/:id/accept', async (c) => {
 
   const repo = new D1GitHubRepository(c.env.DB);
   try {
-    const result = await repo.acceptCandidate(authContext.ownerId, id, {
-      title: body.title as string | undefined,
-      description: body.description as string | undefined,
-      linkProjectId: body.linkProjectId as string | undefined,
-    });
+    const acceptOpts: { title?: string; description?: string; linkProjectId?: string } = {};
+    if (body.title !== undefined) acceptOpts.title = body.title as string;
+    if (body.description !== undefined) acceptOpts.description = body.description as string;
+    if (body.linkProjectId !== undefined) acceptOpts.linkProjectId = body.linkProjectId as string;
+    const result = await repo.acceptCandidate(authContext.ownerId, id, acceptOpts);
     return c.json({ ...result, requestId: c.get('requestId') });
   } catch (err) {
     return c.json(
-      { code: 'ACCEPT_ERROR', message: err instanceof Error ? err.message : String(err), requestId: c.get('requestId') },
+      {
+        code: 'ACCEPT_ERROR',
+        message: err instanceof Error ? err.message : String(err),
+        requestId: c.get('requestId'),
+      },
       400,
     );
   }
@@ -204,7 +225,11 @@ githubRoutes.post('/link-project', async (c) => {
 
   if (!repositoryId) {
     return c.json(
-      { code: 'INVALID_PAYLOAD', message: 'repositoryId is required.', requestId: c.get('requestId') },
+      {
+        code: 'INVALID_PAYLOAD',
+        message: 'repositoryId is required.',
+        requestId: c.get('requestId'),
+      },
       400,
     );
   }

@@ -2,7 +2,7 @@
  * Domain entity types for GitHub Evidence Integration — Milestone M6.
  */
 
-import type { EntityId, ISODateTime, Visibility } from './index.js';
+import type { EntityId, ISODateTime } from './index.js';
 
 export type GitHubVerificationStatus = 'unverified' | 'verified' | 'disputed' | 'revoked';
 
@@ -19,13 +19,7 @@ export interface GitHubOwnerIdentityEntity {
   readonly updatedAt: ISODateTime;
 }
 
-export type GitHubSyncStatus =
-  | 'idle'
-  | 'syncing'
-  | 'synced'
-  | 'stale'
-  | 'error'
-  | 'access_revoked';
+export type GitHubSyncStatus = 'idle' | 'syncing' | 'synced' | 'stale' | 'error' | 'access_revoked';
 
 export interface GitHubRepositoryEntity {
   readonly id: EntityId;
@@ -58,12 +52,7 @@ export interface GitHubRepositoryEntity {
 }
 
 export type GitHubExternalObjectType =
-  | 'repository'
-  | 'commit'
-  | 'pull_request'
-  | 'review'
-  | 'release'
-  | 'deployment';
+  'repository' | 'commit' | 'pull_request' | 'review' | 'release' | 'deployment';
 
 export type GitHubUpstreamState =
   | 'discovered'
@@ -89,17 +78,10 @@ export interface GitHubImportedObjectEntity {
 }
 
 export type AttributionStatus =
-  | 'verified_owner'
-  | 'unverified_author'
-  | 'bot_ignored'
-  | 'ambiguous';
+  'verified_owner' | 'unverified_author' | 'bot_ignored' | 'ambiguous';
 
 export type CandidateReviewState =
-  | 'pending_review'
-  | 'accepted'
-  | 'edited_and_accepted' | 'rejected'
-  | 'superseded'
-  | 'expired';
+  'pending_review' | 'accepted' | 'edited_and_accepted' | 'rejected' | 'superseded' | 'expired';
 
 export interface EvidenceCandidateEntity {
   readonly id: EntityId;

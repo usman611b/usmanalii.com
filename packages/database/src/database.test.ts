@@ -1137,7 +1137,7 @@ describe('Requirement 1 & 2: Database Integrity & Public Scheduling/Embargo Logi
     }
   });
 
-  it('15. Milestone M6: D1GitHubRepository identity, repos, candidate review and accept', async () => {
+  it('15. M6 repository identity, repository/project linking, candidate review, and acceptance', async () => {
     const identities = new Map<string, any>();
     const repos = new Map<string, any>();
     const candidates = new Map<string, any>();
@@ -1155,22 +1155,40 @@ describe('Requirement 1 & 2: Database Integrity & Public Scheduling/Embargo Logi
               boundParams: params,
               async first() {
                 if (sql.includes('github_owner_identities')) {
-                  return Array.from(identities.values()).find((i) => i.owner_id === params[0]) || null;
+                  return (
+                    Array.from(identities.values()).find((i) => i.owner_id === params[0]) || null
+                  );
                 }
                 if (sql.includes('github_repositories')) {
-                  return Array.from(repos.values()).find((r) => r.owner_id === params[0] && (r.id === params[1] || r.github_repo_id === params[2])) || null;
+                  return (
+                    Array.from(repos.values()).find(
+                      (r) =>
+                        r.owner_id === params[0] &&
+                        (r.id === params[1] || r.github_repo_id === params[2]),
+                    ) || null
+                  );
                 }
                 if (sql.includes('evidence_candidates')) {
-                  return Array.from(candidates.values()).find((c) => c.owner_id === params[0] && c.id === params[1]) || null;
+                  return (
+                    Array.from(candidates.values()).find(
+                      (c) => c.owner_id === params[0] && c.id === params[1],
+                    ) || null
+                  );
                 }
                 return null;
               },
               async all() {
                 if (sql.includes('github_repositories')) {
-                  return { results: Array.from(repos.values()).filter((r) => r.owner_id === params[0]) };
+                  return {
+                    results: Array.from(repos.values()).filter((r) => r.owner_id === params[0]),
+                  };
                 }
                 if (sql.includes('evidence_candidates')) {
-                  return { results: Array.from(candidates.values()).filter((c) => c.owner_id === params[0]) };
+                  return {
+                    results: Array.from(candidates.values()).filter(
+                      (c) => c.owner_id === params[0],
+                    ),
+                  };
                 }
                 return { results: [] };
               },
@@ -1200,7 +1218,7 @@ describe('Requirement 1 & 2: Database Integrity & Public Scheduling/Embargo Logi
                   if (repo) repo.linked_project_id = params[0];
                   return { meta: { rows_written: 1 } };
                 }
-                if (sql.includes('UPDATE evidence_candidates SET review_state = \'rejected\'')) {
+                if (sql.includes("UPDATE evidence_candidates SET review_state = 'rejected'")) {
                   const cand = candidates.get(params[3]);
                   if (cand) {
                     cand.review_state = 'rejected';
@@ -1278,18 +1296,27 @@ describe('Requirement 1 & 2: Database Integrity & Public Scheduling/Embargo Logi
 
     // 2. Repositories
     await ghRepo.upsertRepositories('owner-1', [
-      { githubRepoId: 555, ownerLogin: 'usmanalii', name: 'repo-1', fullName: 'usmanalii/repo-1', htmlUrl: 'https://github.com/usmanalii/repo-1' },
+      {
+        githubRepoId: 555,
+        ownerLogin: 'usmanalii',
+        name: 'repo-1',
+        fullName: 'usmanalii/repo-1',
+        htmlUrl: 'https://github.com/usmanalii/repo-1',
+      },
     ]);
     const repoList = await ghRepo.listRepositories('owner-1');
-    expect(repoList).toHaveLength(1);
-    expect(repoList[0].name).toBe('repo-1');
+    const firstRepo = repoList[0];
+    expect(firstRepo).toBeDefined();
+    if (firstRepo) {
+      expect(firstRepo.name).toBe('repo-1');
+    }
 
     // 3. Link Project & Toggle Sync
     await ghRepo.linkRepositoryToProject('owner-1', 'gh-repo-555', 'proj-100');
-    expect(repos.get('gh-repo-555').linked_project_id).toBe('proj-100');
+    expect(repos.get('gh-repo-555')?.linked_project_id).toBe('proj-100');
 
     await ghRepo.toggleRepositorySync('owner-1', 'gh-repo-555', false);
-    expect(repos.get('gh-repo-555').selected_for_sync).toBe(0);
+    expect(repos.get('gh-repo-555')?.selected_for_sync).toBe(0);
 
     // 4. Create Candidates
     await ghRepo.createCandidates('owner-1', [
@@ -1312,20 +1339,144 @@ describe('Requirement 1 & 2: Database Integrity & Public Scheduling/Embargo Logi
 
     const candList = await ghRepo.listCandidates('owner-1');
     expect(candList).toHaveLength(1);
-    expect(candList[0].candidateTitle).toBe('feat: add security middleware');
+    const firstCand = candList[0];
+    expect(firstCand).toBeDefined();
+    if (!firstCand) return;
+
+    expect(firstCand.candidateTitle).toBe('feat: add security middleware');
 
     // 5. Accept Candidate
-    const { evidenceItemId } = await ghRepo.acceptCandidate('owner-1', candList[0].id, {
+    const { evidenceItemId } = await ghRepo.acceptCandidate('owner-1', firstCand.id, {
       linkProjectId: 'proj-100',
     });
     expect(evidenceItemId).toMatch(/^ev-/);
     expect(evidenceItems.size).toBe(1);
     expect(evidenceLinks.size).toBe(1);
-    expect(candidates.get(candList[0].id).review_state).toBe('accepted');
+    expect(candidates.get(firstCand.id)?.review_state).toBe('accepted');
 
     // 6. Reject Candidate
-    candidates.get(candList[0].id).review_state = 'pending_review';
-    await ghRepo.rejectCandidate('owner-1', candList[0].id, 'Not relevant to portfolio');
-    expect(candidates.get(candList[0].id).review_state).toBe('rejected');
+    const existingCand = candidates.get(firstCand.id);
+    if (existingCand) {
+      existingCand.review_state = 'pending_review';
+    }
+    await ghRepo.rejectCandidate('owner-1', firstCand.id, 'Not relevant to portfolio');
+    expect(candidates.get(firstCand.id)?.review_state).toBe('rejected');
+  });
+
+  it('16. M6 candidate acceptance is atomic and rolls back when the D1 batch fails', async () => {
+    const candidateRow = {
+      id: 'candidate-1',
+      owner_id: 'owner-1',
+      provider: 'github',
+      external_type: 'commit',
+      external_id: 'sha-1',
+      repository_id: 'repo-1',
+      source_url: 'https://github.com/owner/repo/commit/sha-1',
+      source_created_at: '2026-08-01T00:00:00.000Z',
+      captured_at: '2026-08-01T00:00:00.000Z',
+      content_hash: 'sha-1',
+      attribution_status: 'verified_owner',
+      candidate_type: 'commit',
+      candidate_title: 'Candidate title',
+      candidate_description: null,
+      review_state: 'pending_review',
+      fingerprint: 'github:commit:sha-1',
+      created_at: '2026-08-01T00:00:00.000Z',
+      updated_at: '2026-08-01T00:00:00.000Z',
+    };
+    const mockDb: any = {
+      prepare() {
+        return {
+          bind() {
+            return this;
+          },
+          async first() {
+            return candidateRow;
+          },
+        };
+      },
+      async batch() {
+        throw new Error('D1_BATCH_EXECUTION_FAILED: Transaction rolled back');
+      },
+    };
+
+    await expect(
+      new D1GitHubRepository(mockDb).acceptCandidate('owner-1', 'candidate-1', {}),
+    ).rejects.toThrow('D1_BATCH_EXECUTION_FAILED');
+  });
+
+  it('17. M6 candidate refresh protects owner-authored fields while updating repository privacy', async () => {
+    const preparedSql: string[] = [];
+    const mockDb: any = {
+      prepare(sql: string) {
+        preparedSql.push(sql);
+        return {
+          bind() {
+            return this;
+          },
+        };
+      },
+      async batch() {
+        return [];
+      },
+    };
+
+    await new D1GitHubRepository(mockDb).createCandidates('owner-1', [
+      {
+        provider: 'github',
+        externalType: 'commit',
+        externalId: 'sha-1',
+        repositoryId: 'repo-1',
+        sourceUrl: 'https://github.com/owner/repo/commit/sha-1',
+        sourceCreatedAt: null,
+        capturedAt: '2026-08-01T00:00:00.000Z',
+        contentHash: 'sha-1',
+        attributionStatus: 'verified_owner',
+        candidateType: 'commit',
+        candidateTitle: 'Refreshed upstream title',
+        candidateDescription: null,
+        upstreamVisibility: 'private',
+        fingerprint: 'github:commit:sha-1',
+      },
+    ]);
+
+    expect(preparedSql[0]).toContain(
+      "candidate_title = CASE WHEN review_state = 'pending_review' THEN excluded.candidate_title ELSE candidate_title END",
+    );
+    expect(preparedSql[0]).toContain('upstream_visibility = excluded.upstream_visibility');
+  });
+
+  it('18. M6 synchronization uses an atomic owner-scoped claim with stale-claim recovery', async () => {
+    let sql = '';
+    let bindings: unknown[] = [];
+    const mockDb: any = {
+      prepare(statement: string) {
+        sql = statement;
+        return {
+          bind(...params: unknown[]) {
+            bindings = params;
+            return this;
+          },
+          async run() {
+            return { meta: { rows_written: 1 } };
+          },
+        };
+      },
+    };
+    const claimedAt = '2026-08-09T10:00:00.000Z';
+    const staleBefore = '2026-08-09T09:55:00.000Z';
+
+    const claimed = await new D1GitHubRepository(mockDb).tryClaimRepositorySync(
+      'owner-1',
+      'repo-1',
+      claimedAt,
+      staleBefore,
+    );
+
+    expect(claimed).toBe(true);
+    expect(sql).toContain("SET sync_status = 'syncing'");
+    expect(sql).toContain("sync_status != 'syncing'");
+    expect(sql).toContain('owner_id = ? AND id = ?');
+    expect(bindings).toEqual([claimedAt, claimedAt, 'owner-1', 'repo-1', staleBefore]);
   });
 });

@@ -37,7 +37,11 @@ export interface EvidenceCandidate {
 }
 
 export const GitHubEvidenceManager: React.FC = () => {
-  const [status, setStatus] = useState<any>(null);
+  const [status, setStatus] = useState<{
+    hasToken?: boolean;
+    status?: string;
+    identity?: { githubUserId: number; githubLogin: string; commitEmails: string[] };
+  } | null>(null);
   const [repositories, setRepositories] = useState<GitHubRepository[]>([]);
   const [candidates, setCandidates] = useState<EvidenceCandidate[]>([]);
   const [loading, setLoading] = useState(true);
@@ -82,7 +86,7 @@ export const GitHubEvidenceManager: React.FC = () => {
         const cData = await candRes.json();
         setCandidates(cData.candidates || []);
       }
-    } catch (err) {
+    } catch {
       setMessage({ type: 'error', text: 'Failed to load GitHub integration data.' });
     } finally {
       setLoading(false);
@@ -102,7 +106,10 @@ export const GitHubEvidenceManager: React.FC = () => {
         body: JSON.stringify({
           githubUserId: parseInt(githubUserId, 10),
           githubLogin,
-          commitEmails: commitEmails.split(',').map((e) => e.trim()).filter(Boolean),
+          commitEmails: commitEmails
+            .split(',')
+            .map((e) => e.trim())
+            .filter(Boolean),
         }),
       });
 
@@ -120,11 +127,14 @@ export const GitHubEvidenceManager: React.FC = () => {
 
   const handleToggleSync = async (repoId: string, currentSelected: boolean) => {
     try {
-      const res = await fetch(`/api/v1/private/integrations/github/repositories/${repoId}/sync-toggle`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ selectedForSync: !currentSelected }),
-      });
+      const res = await fetch(
+        `/api/v1/private/integrations/github/repositories/${repoId}/sync-toggle`,
+        {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ selectedForSync: !currentSelected }),
+        },
+      );
 
       if (res.ok) {
         setRepositories((prev) =>
@@ -172,13 +182,20 @@ export const GitHubEvidenceManager: React.FC = () => {
     }
   };
 
-  const handleAcceptCandidate = async (candidateId: string, customTitle?: string, customDesc?: string) => {
+  const handleAcceptCandidate = async (
+    candidateId: string,
+    customTitle?: string,
+    customDesc?: string,
+  ) => {
     try {
-      const res = await fetch(`/api/v1/private/integrations/github/candidates/${candidateId}/accept`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ title: customTitle, description: customDesc }),
-      });
+      const res = await fetch(
+        `/api/v1/private/integrations/github/candidates/${candidateId}/accept`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ title: customTitle, description: customDesc }),
+        },
+      );
 
       if (!res.ok) {
         const err = await res.json();
@@ -195,11 +212,14 @@ export const GitHubEvidenceManager: React.FC = () => {
 
   const handleRejectCandidate = async (candidateId: string) => {
     try {
-      const res = await fetch(`/api/v1/private/integrations/github/candidates/${candidateId}/reject`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ reason: 'Rejected by owner from dashboard' }),
-      });
+      const res = await fetch(
+        `/api/v1/private/integrations/github/candidates/${candidateId}/reject`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ reason: 'Rejected by owner from dashboard' }),
+        },
+      );
 
       if (!res.ok) throw new Error('Reject failed.');
       setMessage({ type: 'success', text: 'Evidence candidate rejected.' });
@@ -210,7 +230,11 @@ export const GitHubEvidenceManager: React.FC = () => {
   };
 
   if (loading && !status) {
-    return <div className="p-8 text-center text-xs text-[#9CAAC1]">Loading GitHub integration settings...</div>;
+    return (
+      <div className="p-8 text-center text-xs text-[#9CAAC1]">
+        Loading GitHub integration settings...
+      </div>
+    );
   }
 
   return (
@@ -277,13 +301,17 @@ export const GitHubEvidenceManager: React.FC = () => {
           <div>
             <h3 className="text-base font-bold text-white">Owner Identity & Commit Attribution</h3>
             <p className="text-xs text-[#9CAAC1] mt-1">
-              Match ingested commits strictly by numeric user ID, GitHub login, or approved commit emails.
+              Match ingested commits strictly by numeric user ID, GitHub login, or approved commit
+              emails.
             </p>
           </div>
 
           <form onSubmit={handleSaveIdentity} className="space-y-4 pt-2">
             <div>
-              <label htmlFor="githubUserId" className="block text-xs font-semibold text-[#9CAAC1] mb-1">
+              <label
+                htmlFor="githubUserId"
+                className="block text-xs font-semibold text-[#9CAAC1] mb-1"
+              >
                 GitHub Numeric User ID *
               </label>
               <input
@@ -298,7 +326,10 @@ export const GitHubEvidenceManager: React.FC = () => {
             </div>
 
             <div>
-              <label htmlFor="githubLogin" className="block text-xs font-semibold text-[#9CAAC1] mb-1">
+              <label
+                htmlFor="githubLogin"
+                className="block text-xs font-semibold text-[#9CAAC1] mb-1"
+              >
                 GitHub Username / Login *
               </label>
               <input
@@ -313,7 +344,10 @@ export const GitHubEvidenceManager: React.FC = () => {
             </div>
 
             <div>
-              <label htmlFor="commitEmails" className="block text-xs font-semibold text-[#9CAAC1] mb-1">
+              <label
+                htmlFor="commitEmails"
+                className="block text-xs font-semibold text-[#9CAAC1] mb-1"
+              >
                 Approved Commit Emails (comma separated)
               </label>
               <input
@@ -345,7 +379,8 @@ export const GitHubEvidenceManager: React.FC = () => {
               </p>
             </div>
             <span className="text-xs text-[#22D3EE] font-semibold">
-              {repositories.filter((r) => r.selectedForSync).length} / {repositories.length} Selected
+              {repositories.filter((r) => r.selectedForSync).length} / {repositories.length}{' '}
+              Selected
             </span>
           </div>
 
@@ -362,7 +397,9 @@ export const GitHubEvidenceManager: React.FC = () => {
                 >
                   <div className="min-w-0 pr-3">
                     <div className="flex items-center space-x-2">
-                      <span className="font-semibold text-xs text-white truncate">{repo.fullName}</span>
+                      <span className="font-semibold text-xs text-white truncate">
+                        {repo.fullName}
+                      </span>
                       {repo.isPrivate && (
                         <span className="text-[10px] px-1.5 py-0.5 rounded bg-white/10 text-[#9CAAC1]">
                           Private
@@ -370,7 +407,9 @@ export const GitHubEvidenceManager: React.FC = () => {
                       )}
                     </div>
                     {repo.description && (
-                      <p className="text-[11px] text-[#9CAAC1] truncate mt-0.5">{repo.description}</p>
+                      <p className="text-[11px] text-[#9CAAC1] truncate mt-0.5">
+                        {repo.description}
+                      </p>
                     )}
                   </div>
 
@@ -403,19 +442,24 @@ export const GitHubEvidenceManager: React.FC = () => {
               </span>
             </h3>
             <p className="text-xs text-[#9CAAC1] mt-1">
-              Ingested commits and releases awaiting human owner review before entering the Evidence Ledger.
+              Ingested commits and releases awaiting human owner review before entering the Evidence
+              Ledger.
             </p>
           </div>
         </div>
 
         {candidates.length === 0 ? (
           <div className="p-8 text-center text-xs text-[#9CAAC1] border border-dashed border-white/10 rounded-xl">
-            No pending evidence candidates. Ingested commits and releases will appear here after sync runs.
+            No pending evidence candidates. Ingested commits and releases will appear here after
+            sync runs.
           </div>
         ) : (
           <div className="space-y-4">
             {candidates.map((cand) => (
-              <div key={cand.id} className="p-4 rounded-xl bg-[#0D1528] border border-white/10 space-y-3">
+              <div
+                key={cand.id}
+                className="p-4 rounded-xl bg-[#0D1528] border border-white/10 space-y-3"
+              >
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                   <div className="flex items-center space-x-2">
                     <span className="text-xs px-2 py-0.5 rounded bg-white/10 text-white font-mono uppercase">
@@ -430,7 +474,9 @@ export const GitHubEvidenceManager: React.FC = () => {
                     >
                       {cand.attributionStatus}
                     </span>
-                    <span className="text-xs text-[#9CAAC1] font-mono">{cand.externalId.slice(0, 7)}</span>
+                    <span className="text-xs text-[#9CAAC1] font-mono">
+                      {cand.externalId.slice(0, 7)}
+                    </span>
                   </div>
 
                   <a
@@ -446,7 +492,9 @@ export const GitHubEvidenceManager: React.FC = () => {
                 <div>
                   <h4 className="text-sm font-bold text-white">{cand.candidateTitle}</h4>
                   {cand.candidateDescription && (
-                    <p className="text-xs text-[#9CAAC1] mt-1 line-clamp-2">{cand.candidateDescription}</p>
+                    <p className="text-xs text-[#9CAAC1] mt-1 line-clamp-2">
+                      {cand.candidateDescription}
+                    </p>
                   )}
                 </div>
 
@@ -492,7 +540,10 @@ export const GitHubEvidenceManager: React.FC = () => {
             <h3 className="text-base font-bold text-white">Edit Evidence Candidate</h3>
 
             <div>
-              <label htmlFor="editTitleInput" className="block text-xs font-semibold text-[#9CAAC1] mb-1">
+              <label
+                htmlFor="editTitleInput"
+                className="block text-xs font-semibold text-[#9CAAC1] mb-1"
+              >
                 Title *
               </label>
               <input
@@ -505,7 +556,10 @@ export const GitHubEvidenceManager: React.FC = () => {
             </div>
 
             <div>
-              <label htmlFor="editDescInput" className="block text-xs font-semibold text-[#9CAAC1] mb-1">
+              <label
+                htmlFor="editDescInput"
+                className="block text-xs font-semibold text-[#9CAAC1] mb-1"
+              >
                 Description
               </label>
               <textarea

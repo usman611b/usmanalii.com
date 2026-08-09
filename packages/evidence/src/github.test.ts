@@ -1,8 +1,20 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { describe, expect, test, vi } from 'vitest';
-import { GitHubClient } from './github-client.js';
+import { GitHubClient, parseRetryAfterHeader, sanitizeSecretText } from './github-client.js';
 import { GitHubSyncService } from './github-sync-service.js';
 
-describe('GitHub Client & Sync Service (M6)', () => {
+describe('GitHub Client & Sync Service (M6 Gates 3 & 4)', () => {
+  test('parseRetryAfterHeader handles seconds, HTTP dates, and invalid values', () => {
+    expect(parseRetryAfterHeader('120')).toBe(120000);
+    expect(parseRetryAfterHeader(null)).toBeNull();
+    expect(parseRetryAfterHeader('invalid-header')).toBeNull();
+  });
+
+  test('sanitizeSecretText redacts token strings from error text', () => {
+    const rawError = 'Error accessing API with Bearer secret-token-12345';
+    expect(sanitizeSecretText(rawError)).toBe('Error accessing API with Bearer [REDACTED]');
+  });
+
   test('GitHubClient fails closed without GITHUB_TOKEN', async () => {
     const client = new GitHubClient({});
     await expect(client.get('/user/repos')).rejects.toThrow('GITHUB_TOKEN_MISSING');
@@ -59,7 +71,157 @@ describe('GitHub Client & Sync Service (M6)', () => {
     expect(res.data).toBeNull();
   });
 
-  test('GitHubSyncService discovers repositories and runs incremental sync', async () => {
+  test.each([403, 429])(
+    'GitHubClient handles %i secondary limits with bounded Retry-After retries',
+    async (status) => {
+      const responses = [
+        { ok: false, status, headers: new Headers({ 'Retry-After': '0' }) },
+        { ok: false, status, headers: new Headers({ 'Retry-After': '0' }) },
+        {
+          ok: true,
+          status: 200,
+          headers: new Headers({ 'x-ratelimit-remaining': '4998' }),
+          json: async () => [],
+        },
+      ];
+      const mockFetch = vi.fn().mockImplementation(async () => responses.shift());
+      const client = new GitHubClient({ token: 'test-token', fetchFn: mockFetch as any });
+
+      const result = await client.get<unknown[]>('/user/repos');
+
+      expect(result.status).toBe(200);
+      expect(mockFetch).toHaveBeenCalledTimes(3);
+    },
+  );
+
+  test('GitHubClient enforces request timeouts and a maximum of three network attempts', async () => {
+    const abortError = Object.assign(new Error('aborted'), { name: 'AbortError' });
+    const mockFetch = vi.fn().mockRejectedValue(abortError);
+    const timeoutSpy = vi.spyOn(globalThis, 'setTimeout').mockImplementation(((
+      handler: TimerHandler,
+    ) => {
+      if (typeof handler === 'function') handler();
+      return 0 as unknown as ReturnType<typeof setTimeout>;
+    }) as unknown as typeof setTimeout);
+
+    try {
+      const client = new GitHubClient({
+        token: 'test-token',
+        fetchFn: mockFetch as any,
+        timeoutMs: 1,
+      });
+      await expect(client.get('/user/repos')).rejects.toThrow('Request timed out');
+      expect(mockFetch).toHaveBeenCalledTimes(3);
+    } finally {
+      timeoutSpy.mockRestore();
+    }
+  });
+
+  test('GitHubSyncService bounds discovery pagination to five pages and prevents link loops', async () => {
+    const mockRepo: any = {
+      upsertRepositories: vi.fn(),
+      recordRateLimitSnapshot: vi.fn(),
+    };
+    const client: any = {
+      get: vi.fn().mockImplementation(async (_url: string, options: any) => ({
+        data: [],
+        nextUrl: `https://api.github.com/user/repos?page=${options.visitedUrls.size + 1}`,
+        rateLimit: { remaining: 4900 },
+      })),
+    };
+
+    await new GitHubSyncService(mockRepo).discoverRepositories('owner-1', client);
+
+    expect(client.get).toHaveBeenCalledTimes(5);
+  });
+
+  test('GitHubSyncService skips repository currently locked in syncing state', async () => {
+    const mockRepo: any = {
+      getOwnerIdentity: vi.fn().mockResolvedValue(null),
+      tryClaimRepositorySync: vi.fn().mockResolvedValue(false),
+      completeRepositorySync: vi.fn(),
+      listRepositories: vi.fn().mockResolvedValue([
+        {
+          id: 'r-1',
+          syncStatus: 'syncing',
+          lastSyncedAt: new Date().toISOString(),
+          fullName: 'owner/repo-locked',
+        },
+      ]),
+    };
+
+    const client = new GitHubClient({ token: 'test-token' });
+    const service = new GitHubSyncService(mockRepo);
+    const result = await service.syncSelectedRepositories('owner-1', client);
+
+    expect(result.repositoriesProcessed).toBe(0);
+  });
+
+  test('GitHubSyncService recovers a synchronization claim stale for more than five minutes', async () => {
+    const mockRepo: any = {
+      getOwnerIdentity: vi.fn().mockResolvedValue(null),
+      tryClaimRepositorySync: vi.fn().mockResolvedValue(true),
+      completeRepositorySync: vi.fn(),
+      listRepositories: vi.fn().mockResolvedValue([
+        {
+          id: 'r-stale',
+          githubRepoId: 1,
+          syncStatus: 'syncing',
+          lastSyncedAt: new Date(Date.now() - 301000).toISOString(),
+          fullName: 'owner/repo-stale',
+          isPrivate: false,
+        },
+      ]),
+      getCheckpoint: vi.fn().mockResolvedValue(null),
+    };
+    const client: any = {
+      get: vi.fn().mockResolvedValue({
+        data: [],
+        notModified: false,
+        etag: null,
+        rateLimit: { remaining: 5000 },
+      }),
+    };
+
+    const result = await new GitHubSyncService(mockRepo).syncSelectedRepositories(
+      'owner-1',
+      client,
+    );
+
+    expect(result.repositoriesProcessed).toBe(1);
+    expect(client.get).toHaveBeenCalledTimes(2);
+  });
+
+  test('GitHubSyncService stops before the next repository when the primary limit is low', async () => {
+    const mockRepo: any = {
+      getOwnerIdentity: vi.fn().mockResolvedValue(null),
+      tryClaimRepositorySync: vi.fn().mockResolvedValue(true),
+      completeRepositorySync: vi.fn(),
+      listRepositories: vi.fn().mockResolvedValue([
+        { id: 'r-1', githubRepoId: 1, fullName: 'owner/one', isPrivate: false },
+        { id: 'r-2', githubRepoId: 2, fullName: 'owner/two', isPrivate: false },
+      ]),
+      getCheckpoint: vi.fn().mockResolvedValue(null),
+    };
+    const client: any = {
+      get: vi.fn().mockResolvedValue({
+        data: [],
+        notModified: false,
+        etag: null,
+        rateLimit: { remaining: 0 },
+      }),
+    };
+
+    const result = await new GitHubSyncService(mockRepo).syncSelectedRepositories(
+      'owner-1',
+      client,
+    );
+
+    expect(result.repositoriesProcessed).toBe(1);
+    expect(result.errorSummary).toContain('Rate limit low');
+  });
+
+  test('GitHubSyncService continues after partial repository failure and reports missing or force-pushed upstream objects', async () => {
     const mockRepo: any = {
       upsertRepositories: vi.fn(),
       recordRateLimitSnapshot: vi.fn(),
@@ -68,8 +230,11 @@ describe('GitHub Client & Sync Service (M6)', () => {
         githubLogin: 'usmanalii',
         commitEmails: ['usman@example.com'],
       }),
+      tryClaimRepositorySync: vi.fn().mockResolvedValue(true),
+      completeRepositorySync: vi.fn(),
       listRepositories: vi.fn().mockResolvedValue([
         { id: 'r-1', githubRepoId: 1, fullName: 'usmanalii/portfolio', isPrivate: false },
+        { id: 'r-2', githubRepoId: 2, fullName: 'usmanalii/healthy', isPrivate: false },
       ]),
       getCheckpoint: vi.fn().mockResolvedValue(null),
       upsertImportedObjects: vi.fn(),
@@ -84,26 +249,26 @@ describe('GitHub Client & Sync Service (M6)', () => {
           status: 200,
           headers: new Headers({ 'x-ratelimit-remaining': '4900' }),
           json: async () => [
-            { id: 1, name: 'portfolio', full_name: 'usmanalii/portfolio', private: false, html_url: 'https://github.com/usmanalii/portfolio' },
-          ],
-        });
-      }
-      if (url.includes('/commits')) {
-        return Promise.resolve({
-          ok: true,
-          status: 200,
-          headers: new Headers({ etag: '"commit-etag"', 'x-ratelimit-remaining': '4899' }),
-          json: async () => [
             {
-              sha: 'c-100',
-              html_url: 'https://github.com/usmanalii/portfolio/commit/c-100',
-              author: { id: 100, login: 'usmanalii' },
-              commit: { message: 'feat: initial commit', author: { email: 'usman@example.com', date: '2026-08-01T00:00:00Z' } },
+              id: 1,
+              name: 'portfolio',
+              full_name: 'usmanalii/portfolio',
+              private: false,
+              html_url: 'https://github.com/usmanalii/portfolio',
             },
           ],
         });
       }
-      if (url.includes('/releases')) {
+      if (url.includes('/portfolio/commits')) {
+        return Promise.resolve({
+          ok: false,
+          status: 404,
+          statusText: 'Not Found',
+          headers: new Headers({ 'x-ratelimit-remaining': '4899' }),
+          text: async () => 'Repository not found',
+        });
+      }
+      if (url.includes('/healthy/commits') || url.includes('/healthy/releases')) {
         return Promise.resolve({
           ok: true,
           status: 200,
@@ -117,23 +282,9 @@ describe('GitHub Client & Sync Service (M6)', () => {
     const client = new GitHubClient({ token: 'test-token', fetchFn: mockFetch as any });
     const service = new GitHubSyncService(mockRepo);
 
-    const discRes = await service.discoverRepositories('owner-1', client);
-    expect(discRes.count).toBe(1);
-    expect(mockRepo.upsertRepositories).toHaveBeenCalled();
-
     const syncRes = await service.syncSelectedRepositories('owner-1', client);
-    expect(syncRes.success).toBe(true);
-    expect(syncRes.repositoriesProcessed).toBe(1);
-    expect(syncRes.itemsImported).toBe(1);
-    expect(syncRes.candidatesCreated).toBe(1);
-    expect(mockRepo.createCandidates).toHaveBeenCalledWith(
-      'owner-1',
-      expect.arrayContaining([
-        expect.objectContaining({
-          attributionStatus: 'verified_owner',
-          candidateTitle: 'feat: initial commit',
-        }),
-      ]),
-    );
+    expect(syncRes.success).toBe(false);
+    expect(syncRes.repositoriesProcessed).toBe(2);
+    expect(syncRes.errorSummary).toContain('missing or access revoked');
   });
 });

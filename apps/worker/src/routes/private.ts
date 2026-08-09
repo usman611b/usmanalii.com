@@ -1535,7 +1535,9 @@ privateRoutes.get('/activity', async (c) => {
     WHERE owner_id = ? AND deleted_at IS NULL
   `;
 
-  const { results } = await c.env.DB.prepare(sql).bind(authContext.ownerId, authContext.ownerId, authContext.ownerId).all<Record<string, unknown>>();
+  const { results } = await c.env.DB.prepare(sql)
+    .bind(authContext.ownerId, authContext.ownerId, authContext.ownerId)
+    .all<Record<string, unknown>>();
   const events = (results ?? []).map((row) => ({
     id: String(row.id),
     dateIso: String(row.date_iso || new Date().toISOString()),

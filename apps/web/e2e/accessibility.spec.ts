@@ -249,4 +249,21 @@ test.describe('Playwright + axe-core Live Application E2E Suite (M1 + M2)', () =
     const results = await new AxeBuilder({ page }).analyze();
     expect(results.violations).toEqual([]);
   });
+
+  test('32. Dashboard GitHub Integration passes axe accessibility scan', async ({ page }) => {
+    await page.goto('/dashboard/integrations/github');
+    const results = await new AxeBuilder({ page }).analyze();
+    expect(results.violations).toEqual([]);
+  });
+
+  test('33. Dashboard GitHub Integration remains keyboard operable with reduced motion', async ({
+    page,
+  }) => {
+    await page.emulateMedia({ reducedMotion: 'reduce' });
+    await page.goto('/dashboard/integrations/github');
+    const userIdInput = page.getByLabel('GitHub Numeric User ID *');
+    await userIdInput.focus();
+    await expect(userIdInput).toBeFocused();
+    await expect(page.getByRole('main')).toBeVisible();
+  });
 });

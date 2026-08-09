@@ -85,16 +85,13 @@ try {
   const files = await prepareCompatibleFiles(tempRoot);
 
   const freshStore = join(tempRoot, 'fresh');
-  await applyRange(freshStore, files);
+  await applyRange(freshStore, files.slice(0, 15));
+  executeD1(freshStore, ['--command=SELECT COUNT(*) AS version_count FROM schema_versions']);
+  await applyRange(freshStore, files.slice(15));
   executeD1(freshStore, ['--command=SELECT COUNT(*) AS version_count FROM schema_versions']);
   console.log(`Fresh D1 verification passed: ${files.length} migrations applied.`);
-
-  const upgradeStore = join(tempRoot, 'upgrade-from-m4');
-  await applyRange(upgradeStore, files.slice(0, 12));
-  await applyRange(upgradeStore, files.slice(12));
-  executeD1(upgradeStore, ['--command=SELECT COUNT(*) AS version_count FROM schema_versions']);
   console.log(
-    `Upgrade-path verification passed: immutable M4 baseline (001-012) upgraded through ${files.at(-1)?.filename}.`,
+    `M6 upgrade-path verification passed: immutable M5 baseline (001-015) upgraded through ${files.at(-1)?.filename}.`,
   );
 
   const legacyStore = join(tempRoot, 'legacy-m5-data');

@@ -10,28 +10,45 @@ import type {
   Visibility,
 } from '../entities/index.js';
 
+export interface GitHubCoAuthor {
+  readonly id?: number | null;
+  readonly login?: string | null;
+  readonly email?: string | null;
+}
+
 export interface GitHubCommitAuthorInfo {
   readonly authorId?: number | null;
   readonly authorLogin?: string | null;
   readonly authorEmail?: string | null;
+  readonly authorType?: string | null;
   readonly committerId?: number | null;
   readonly committerLogin?: string | null;
   readonly committerEmail?: string | null;
-  readonly message?: string;
+  readonly committerType?: string | null;
+  readonly message?: string | null;
+  readonly coAuthors?: readonly GitHubCoAuthor[];
 }
 
 /**
- * Parses HTTP `Link` header for pagination URLs.
+ * Parses HTTP `Link` header for pagination URLs with loop protection.
  */
-export function parseGitHubLinkHeader(header: string | null | undefined): { nextUrl: string | null } {
+export function parseGitHubLinkHeader(
+  header: string | null | undefined,
+  visitedUrls?: ReadonlySet<string>,
+): { nextUrl: string | null } {
   if (!header) return { nextUrl: null };
   const matches = header.split(',');
   for (const match of matches) {
     const section = match.split(';');
-    if (section.length === 2) {
-      const url = section[0].replace(/<|>/g, '').trim();
-      const rel = section[1].trim();
+    const sec0 = section[0];
+    const sec1 = section[1];
+    if (sec0 && sec1) {
+      const url = sec0.replace(/<|>/g, '').trim();
+      const rel = sec1.trim();
       if (rel === 'rel="next"') {
+        if (visitedUrls && visitedUrls.has(url)) {
+          return { nextUrl: null }; // Infinite loop detected
+        }
         return { nextUrl: url };
       }
     }
@@ -40,56 +57,98 @@ export function parseGitHubLinkHeader(header: string | null | undefined): { next
 }
 
 /**
+ * Parses Co-authored-by lines from commit message.
+ * Example: `Co-authored-by: Alex Smith <alex@example.com>`
+ */
+export function parseCoAuthorsFromMessage(
+  message: string | null | undefined,
+): readonly GitHubCoAuthor[] {
+  if (!message) return [];
+  const coAuthors: GitHubCoAuthor[] = [];
+  const regex = /^Co-authored-by:\s+([^<]+)<([^>]+)>/gm;
+  let match: RegExpExecArray | null;
+
+  while ((match = regex.exec(message)) !== null) {
+    const emailGroup = match[2];
+    if (emailGroup) {
+      const email = emailGroup.trim().toLowerCase();
+      if (email) {
+        coAuthors.push({ email });
+      }
+    }
+  }
+
+  return coAuthors;
+}
+
+/**
  * Determines attribution status for an imported GitHub commit or pull request.
+ * MANDATORY INVARIANT: Stable GitHub numeric user ID is the strongest attribution signal.
  */
 export function matchCommitAttribution(
   commitInfo: GitHubCommitAuthorInfo,
   ownerIdentity: GitHubOwnerIdentityEntity | null,
 ): AttributionStatus {
-  // 1. Bot check
-  const authorLogin = commitInfo.authorLogin?.toLowerCase() ?? '';
-  const committerLogin = commitInfo.committerLogin?.toLowerCase() ?? '';
-  if (
-    authorLogin.includes('[bot]') ||
-    committerLogin.includes('[bot]') ||
-    authorLogin.endsWith('-bot') ||
-    committerLogin.endsWith('-bot') ||
-    authorLogin === 'web-flow'
-  ) {
-    return 'bot_ignored';
-  }
-
   if (!ownerIdentity) {
     return 'unverified_author';
   }
 
-  // 2. Stable numeric GitHub User ID match (Primary)
+  const authorId = commitInfo.authorId ?? null;
+  const committerId = commitInfo.committerId ?? null;
+  const authorLogin = commitInfo.authorLogin?.toLowerCase() ?? '';
+  const committerLogin = commitInfo.committerLogin?.toLowerCase() ?? '';
+  const authorEmail = commitInfo.authorEmail?.toLowerCase() ?? '';
+  const committerEmail = commitInfo.committerEmail?.toLowerCase() ?? '';
+  const approvedEmails = ownerIdentity.commitEmails.map((e) => e.toLowerCase());
+
+  // Extract co-authors from message or explicit field
+  const parsedCoAuthors = parseCoAuthorsFromMessage(commitInfo.message);
+  const allCoAuthors = [...(commitInfo.coAuthors || []), ...parsedCoAuthors];
+
+  // 1. Primary Signal: Stable numeric GitHub User ID
   if (
-    commitInfo.authorId === ownerIdentity.githubUserId ||
-    commitInfo.committerId === ownerIdentity.githubUserId
+    (authorId !== null && authorId === ownerIdentity.githubUserId) ||
+    (committerId !== null && committerId === ownerIdentity.githubUserId) ||
+    allCoAuthors.some((ca) => ca.id === ownerIdentity.githubUserId)
   ) {
     return 'verified_owner';
   }
 
-  // 3. Login match
+  // 2. Approved Email fallback (including private / no-reply GitHub emails)
+  if (
+    (authorEmail && approvedEmails.includes(authorEmail)) ||
+    (committerEmail && approvedEmails.includes(committerEmail)) ||
+    allCoAuthors.some((ca) => ca.email && approvedEmails.includes(ca.email.toLowerCase()))
+  ) {
+    return 'verified_owner';
+  }
+
+  // 3. Login Match (only if ID/email didn't contradict)
   const ownerLogin = ownerIdentity.githubLogin.toLowerCase();
   if (authorLogin === ownerLogin || committerLogin === ownerLogin) {
     return 'verified_owner';
   }
 
-  // 4. Approved email match
-  const authorEmail = commitInfo.authorEmail?.toLowerCase() ?? '';
-  const committerEmail = commitInfo.committerEmail?.toLowerCase() ?? '';
-  const approvedEmails = ownerIdentity.commitEmails.map((e) => e.toLowerCase());
-
+  // 4. Bot & Automation check
+  // Do NOT classify web-flow as bot if author matches owner!
   if (
-    (authorEmail && approvedEmails.includes(authorEmail)) ||
-    (committerEmail && approvedEmails.includes(committerEmail))
+    commitInfo.authorType === 'Bot' ||
+    commitInfo.committerType === 'Bot' ||
+    authorLogin.endsWith('[bot]') ||
+    committerLogin.endsWith('[bot]') ||
+    authorLogin === 'dependabot' ||
+    authorLogin === 'github-actions' ||
+    authorLogin === 'renovate'
   ) {
-    return 'verified_owner';
+    return 'bot_ignored';
   }
 
-  // 5. Ambiguous check (e.g. shared repo commit with unverified author)
+  // Handle web-flow (GitHub web interface commit) where author was not owner
+  if (committerLogin === 'web-flow' && authorLogin !== ownerLogin) {
+    return 'ambiguous';
+  }
+
+  // 5. Ambiguous check
   return 'ambiguous';
 }
 
@@ -124,16 +183,21 @@ export function computeActivityHeatmap(
 ): ActivityProjection {
   const startMs = new Date(startDateIso).getTime();
   const endMs = new Date(endDateIso).getTime();
+  const nowMs = Date.now();
 
-  // Filter for public view if requested
+  // Filter for public view & bounds (excluding future events and unpublished private items for public view)
   const filteredEvents = events.filter((ev) => {
+    const evMs = new Date(ev.dateIso).getTime();
+    if (isNaN(evMs) || evMs > nowMs) {
+      return false; // Exclude future events
+    }
     if (isPublicView) {
       return ev.visibility === 'public' && ev.isPublished;
     }
     return true;
   });
 
-  const cellsMap = new Map<string, { count: number; types: Set<string> }>();
+  const cellsMap = new Map<string, { count: number; eventIds: Set<string>; types: Set<string> }>();
 
   for (const ev of filteredEvents) {
     const eventTime = new Date(ev.dateIso).getTime();
@@ -154,9 +218,12 @@ export function computeActivityHeatmap(
       dateStr = ev.dateIso.slice(0, 10);
     }
 
-    const current = cellsMap.get(dateStr) ?? { count: 0, types: new Set() };
-    current.count += 1;
-    current.types.add(ev.type);
+    const current = cellsMap.get(dateStr) ?? { count: 0, eventIds: new Set(), types: new Set() };
+    if (!current.eventIds.has(ev.id)) {
+      current.eventIds.add(ev.id);
+      current.count += 1;
+      current.types.add(ev.type);
+    }
     cellsMap.set(dateStr, current);
   }
 
@@ -165,10 +232,13 @@ export function computeActivityHeatmap(
   let activeDaysCount = 0;
 
   // Generate continuous daily range from start to end date
-  let curr = new Date(startDateIso);
-  const end = new Date(endDateIso);
+  const loopStartMs = new Date(startDateIso).setHours(12, 0, 0, 0); // Noon to avoid DST shifts
+  const loopEndMs = new Date(endDateIso).setHours(12, 0, 0, 0);
+  const dayMs = 86400000;
+  const dayCount = Math.round((loopEndMs - loopStartMs) / dayMs) + 1;
 
-  while (curr <= end) {
+  for (let dayIndex = 0; dayIndex < dayCount; dayIndex++) {
+    const dayPoint = new Date(loopStartMs + dayIndex * dayMs);
     let dateKey = '';
     try {
       dateKey = new Intl.DateTimeFormat('en-CA', {
@@ -176,9 +246,9 @@ export function computeActivityHeatmap(
         year: 'numeric',
         month: '2-digit',
         day: '2-digit',
-      }).format(curr);
+      }).format(dayPoint);
     } catch {
-      dateKey = curr.toISOString().slice(0, 10);
+      dateKey = dayPoint.toISOString().slice(0, 10);
     }
 
     const cellData = cellsMap.get(dateKey);
@@ -198,10 +268,8 @@ export function computeActivityHeatmap(
       date: dateKey,
       count: isPublicView ? (count > 0 ? 1 : 0) : count, // Public view masks exact count to 1 or 0
       intensity,
-      eventTypes: Array.from(cellData?.types ?? []),
+      eventTypes: isPublicView ? [] : Array.from(cellData?.types ?? []), // Obscure private event types in public view
     });
-
-    curr.setDate(curr.getDate() + 1);
   }
 
   return {
