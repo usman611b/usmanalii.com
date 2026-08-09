@@ -32,14 +32,31 @@ skillRoutes.post('/', async (c) => {
   const body = (await c.req.json().catch(() => ({}))) as Record<string, unknown>;
 
   if (body.owner_id || body.ownerId) {
-    return c.json({ code: 'VALIDATION_ERROR', message: 'owner_id cannot be supplied in body payload.', requestId: c.get('requestId') }, 400);
+    return c.json(
+      {
+        code: 'VALIDATION_ERROR',
+        message: 'owner_id cannot be supplied in body payload.',
+        requestId: c.get('requestId'),
+      },
+      400,
+    );
   }
 
   const name = String(body.name || '').trim();
-  const slug = String(body.slug || body.name || '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
+  const slug = String(body.slug || body.name || '')
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/(^-|-$)/g, '');
 
   if (!name) {
-    return c.json({ code: 'VALIDATION_ERROR', message: 'Skill name is required.', requestId: c.get('requestId') }, 400);
+    return c.json(
+      {
+        code: 'VALIDATION_ERROR',
+        message: 'Skill name is required.',
+        requestId: c.get('requestId'),
+      },
+      400,
+    );
   }
 
   const repo = new D1SkillRepository(c.env.DB);
@@ -56,11 +73,21 @@ skillRoutes.post('/', async (c) => {
       visibility: (body.visibility as 'private' | 'public') || 'private',
     });
 
-    return c.json({ data: skill, message: 'Skill created successfully.', requestId: c.get('requestId') }, 201);
+    return c.json(
+      { data: skill, message: 'Skill created successfully.', requestId: c.get('requestId') },
+      201,
+    );
   } catch (err: unknown) {
     const error = err as Error;
     if (error?.message?.includes('UNIQUE') || error?.message?.includes('slug')) {
-      return c.json({ code: 'UNIQUE_CONSTRAINT', message: 'A skill with this slug already exists.', requestId: c.get('requestId') }, 400);
+      return c.json(
+        {
+          code: 'UNIQUE_CONSTRAINT',
+          message: 'A skill with this slug already exists.',
+          requestId: c.get('requestId'),
+        },
+        400,
+      );
     }
     throw err;
   }
@@ -75,7 +102,10 @@ skillRoutes.get('/:id', async (c) => {
 
   const skill = await repo.getSkillById(ownerId, id);
   if (!skill) {
-    return c.json({ code: 'RESOURCE_NOT_FOUND', message: 'Skill not found.', requestId: c.get('requestId') }, 404);
+    return c.json(
+      { code: 'RESOURCE_NOT_FOUND', message: 'Skill not found.', requestId: c.get('requestId') },
+      404,
+    );
   }
   return c.json({ data: skill, requestId: c.get('requestId') });
 });

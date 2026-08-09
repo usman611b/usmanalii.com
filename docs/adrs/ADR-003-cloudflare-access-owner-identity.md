@@ -19,7 +19,7 @@ Cloudflare Access protects `/dashboard/*` and private APIs by issuing signed JWT
 2. **JWKS & Cryptographic Verification:**  
    The Worker fetches public RSA keys from `{CF_ACCESS_TEAM_DOMAIN}/cdn-cgi/access/certs`, caches public keys with rotation support, and cryptographically verifies the RS256 signature via WebCrypto (`crypto.subtle.verify`).
 
-3. **Claims Validation:**  
+3. **Claims Validation:**
    - `iss` must match `CF_ACCESS_TEAM_DOMAIN`
    - `aud` must match `CF_ACCESS_AUD_TAG`
    - `exp` must be in the future

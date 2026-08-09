@@ -1,0 +1,90 @@
+---
+import DashboardLayout from '../../../../layouts/DashboardLayout.astro';
+
+export function getStaticPaths() {
+  return [{ params: { id: 'proj-1' } }, { params: { id: 'proj-2' } }];
+}
+
+const { id } = Astro.params;
+---
+
+<DashboardLayout title={`Relationships — ${id}`}>
+  <div class="relationships-container card">
+    <a href={`/dashboard/projects/${id}`} class="back-link">← Back to Overview</a>
+    <h1 class="text-2xl font-bold mt-2">Graph Relationships & Edge Manager</h1>
+
+    <div class="rel-list mt-4 mb-6">
+      <div class="rel-card p-3 border rounded mb-2 bg-surface flex justify-between items-center">
+        <div>
+          <strong>USES SKILL</strong> → <code>skill-typescript</code> (TypeScript)
+          <div class="text-xs text-dim">Relevance: 5/5 | Active</div>
+        </div>
+        <button class="button button-xs button-secondary">Archive Edge</button>
+      </div>
+    </div>
+
+    <form class="new-rel-form border-t pt-4">
+      <h2 class="text-lg font-semibold mb-3">Add Graph Edge</h2>
+      <div class="form-row mb-3">
+        <div class="form-group">
+          <label for="targetType">Target Entity Type</label>
+          <select id="targetType">
+            <option value="skill">Skill</option>
+            <option value="capability">Capability</option>
+            <option value="project">Project</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label for="relationshipType">Relationship Type</label>
+          <select id="relationshipType">
+            <option value="uses_skill">Uses Skill</option>
+            <option value="demonstrates_capability">Demonstrates Capability</option>
+            <option value="depends_on">Depends On Project</option>
+            <option value="extends">Extends Project</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-group mb-3">
+        <label for="targetId">Target Entity ID</label>
+        <input type="text" id="targetId" placeholder="e.g. skill-typescript" required />
+      </div>
+      <div class="form-group mb-3">
+        <label for="relevance">Relevance Scale (1–5)</label>
+        <input type="number" id="relevance" value="5" min="1" max="5" required />
+      </div>
+      <button type="submit" class="button button-primary">Create Edge</button>
+    </form>
+  </div>
+</DashboardLayout>
+
+<style>
+  .relationships-container {
+    padding: var(--space-6);
+    max-width: 800px;
+    margin: 0 auto;
+  }
+  .back-link {
+    color: var(--color-primary);
+    text-decoration: none;
+    font-size: var(--font-size-sm);
+  }
+  .form-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: var(--space-4);
+  }
+  .form-group {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-1);
+  }
+  input,
+  select {
+    background: var(--color-background);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-md);
+    padding: var(--space-2);
+    color: inherit;
+    font: inherit;
+  }
+</style>

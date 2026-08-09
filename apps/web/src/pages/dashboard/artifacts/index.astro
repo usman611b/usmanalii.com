@@ -33,7 +33,9 @@ const mockArtifacts = [
     <div class="flex items-center justify-between">
       <div>
         <h2 class="text-xl font-bold text-white">Artifact Management & R2 Storage</h2>
-        <p class="text-xs text-[#9CAAC1] mt-1">Binary artifacts stored in R2 with D1 metadata. Private by default.</p>
+        <p class="text-xs text-[#9CAAC1] mt-1">
+          Binary artifacts stored in R2 with D1 metadata. Private by default.
+        </p>
       </div>
     </div>
 
@@ -47,7 +49,9 @@ const mockArtifacts = [
       <div class="space-y-2">
         <span class="text-3xl block">📦</span>
         <h3 class="text-sm font-semibold text-white">Upload New Artifact to R2 Storage</h3>
-        <p class="text-xs text-[#9CAAC1]">Max file size: 10MB. Allowed types: PNG, JPEG, WEBP, SVG, PDF, TXT, JSON, MP4, MP3.</p>
+        <p class="text-xs text-[#9CAAC1]">
+          Max file size: 10MB. Allowed types: PNG, JPEG, WEBP, SVG, PDF, TXT, JSON, MP4, MP3.
+        </p>
       </div>
 
       <div class="max-w-md mx-auto space-y-3">
@@ -63,7 +67,10 @@ const mockArtifacts = [
 
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 text-left">
           <div>
-            <label for="artifact-title-input" class="block text-[10px] text-[#9CAAC1] uppercase mb-1">Title</label>
+            <label
+              for="artifact-title-input"
+              class="block text-[10px] text-[#9CAAC1] uppercase mb-1">Title</label
+            >
             <input
               type="text"
               id="artifact-title-input"
@@ -74,8 +81,16 @@ const mockArtifacts = [
             />
           </div>
           <div>
-            <label for="artifact-type-select" class="block text-[10px] text-[#9CAAC1] uppercase mb-1">Artifact Type</label>
-            <select id="artifact-type-select" name="artifactType" aria-label="Artifact Type" class="w-full bg-[#101A31] text-xs text-white border border-white/10 rounded-lg px-2.5 py-1.5">
+            <label
+              for="artifact-type-select"
+              class="block text-[10px] text-[#9CAAC1] uppercase mb-1">Artifact Type</label
+            >
+            <select
+              id="artifact-type-select"
+              name="artifactType"
+              aria-label="Artifact Type"
+              class="w-full bg-[#101A31] text-xs text-white border border-white/10 rounded-lg px-2.5 py-1.5"
+            >
               <option value="diagram">Diagram</option>
               <option value="document">Document</option>
               <option value="code_sample">Code Sample</option>
@@ -86,7 +101,10 @@ const mockArtifacts = [
           </div>
         </div>
 
-        <button type="submit" class="w-full py-2 bg-[#22D3EE] text-[#050509] font-bold text-xs rounded-lg hover:opacity-90 transition-opacity">
+        <button
+          type="submit"
+          class="w-full py-2 bg-[#22D3EE] text-[#050509] font-bold text-xs rounded-lg hover:opacity-90 transition-opacity"
+        >
           Upload Artifact
         </button>
       </div>
@@ -95,7 +113,9 @@ const mockArtifacts = [
     <!-- Artifacts List -->
     <div class="rounded-xl glass-panel overflow-hidden border border-white/10">
       <div class="p-4 bg-[#101A31] border-b border-white/10 flex items-center justify-between">
-        <h3 class="text-xs font-bold text-white uppercase tracking-wider">Stored Artifacts ({mockArtifacts.length})</h3>
+        <h3 class="text-xs font-bold text-white uppercase tracking-wider">
+          Stored Artifacts ({mockArtifacts.length})
+        </h3>
         <span class="text-[11px] text-[#9CAAC1]">Recoverable trash enabled</span>
       </div>
 
@@ -111,30 +131,35 @@ const mockArtifacts = [
           </tr>
         </thead>
         <tbody class="divide-y divide-white/5 text-white">
-          {mockArtifacts.map((art) => (
-            <tr class="hover:bg-white/5 transition-colors">
-              <td class="p-3">
-                <div class="font-medium">{art.title}</div>
-                <div class="text-[11px] font-mono text-[#9CAAC1] mt-0.5">{art.originalName}</div>
-              </td>
-              <td class="p-3 font-mono text-[11px] text-[#9CAAC1]">
-                {art.mediaType}
-              </td>
-              <td class="p-3 font-mono text-[11px] text-[#9CAAC1]">
-                {(art.byteSize / 1024).toFixed(1)} KB
-              </td>
-              <td class="p-3 font-mono text-[11px] capitalize text-[#9CAAC1]">
-                {art.visibility}
-              </td>
-              <td class="p-3 font-mono text-[11px] text-[#9CAAC1]">
-                {art.createdAt}
-              </td>
-              <td class="p-3 text-right space-x-2">
-                <a href={`/api/v1/private/artifacts/${art.id}/download`} class="text-[#22D3EE] hover:underline">Download</a>
-                <button type="button" class="text-rose-400 hover:text-rose-300">Trash</button>
-              </td>
-            </tr>
-          ))}
+          {
+            mockArtifacts.map((art) => (
+              <tr class="hover:bg-white/5 transition-colors">
+                <td class="p-3">
+                  <div class="font-medium">{art.title}</div>
+                  <div class="text-[11px] font-mono text-[#9CAAC1] mt-0.5">{art.originalName}</div>
+                </td>
+                <td class="p-3 font-mono text-[11px] text-[#9CAAC1]">{art.mediaType}</td>
+                <td class="p-3 font-mono text-[11px] text-[#9CAAC1]">
+                  {(art.byteSize / 1024).toFixed(1)} KB
+                </td>
+                <td class="p-3 font-mono text-[11px] capitalize text-[#9CAAC1]">
+                  {art.visibility}
+                </td>
+                <td class="p-3 font-mono text-[11px] text-[#9CAAC1]">{art.createdAt}</td>
+                <td class="p-3 text-right space-x-2">
+                  <a
+                    href={`/api/v1/private/artifacts/${art.id}/download`}
+                    class="text-[#22D3EE] hover:underline"
+                  >
+                    Download
+                  </a>
+                  <button type="button" class="text-rose-400 hover:text-rose-300">
+                    Trash
+                  </button>
+                </td>
+              </tr>
+            ))
+          }
         </tbody>
       </table>
     </div>

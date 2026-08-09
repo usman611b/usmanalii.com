@@ -29,6 +29,8 @@ const CANONICAL_ORDER = [
   '010_reconciliation_queue_m3.sql',
   '011_skills_capabilities_m4.sql',
   '012_m4_final_gate_closure.sql',
+  '013_projects_engineering_m5.sql',
+  '014_m5_content_model_gate1.sql',
 ];
 
 console.log('🔍 Checking migration file order and completeness...\n');

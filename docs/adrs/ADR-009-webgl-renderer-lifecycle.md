@@ -13,6 +13,7 @@ The homepage Evidence Core uses Three.js / React Three Fiber. The renderer must 
 ## Decision
 
 **Renderer lifecycle:**
+
 1. Primary content (hero text, navigation, CTA) renders as static HTML before WebGL.
 2. Three.js bundle loads only on the homepage (lazy-loaded React island client:visible).
 3. IntersectionObserver pauses rendering when the canvas is off-screen.
@@ -21,6 +22,7 @@ The homepage Evidence Core uses Three.js / React Three Fiber. The renderer must 
 6. Device pixel ratio clamped to Math.min(devicePixelRatio, 2).
 
 **Fallbacks (in priority order):**
+
 1. CSS mesh-gradient static background always present (loads before WebGL).
 2. WebGL unavailable: CSS Evidence Core diagram with same five-pillar relationship.
 3. prefers-reduced-motion: Three.js not loaded; static gradient only.

@@ -553,4 +553,91 @@ describe('Worker API Integration & Security Tests', () => {
     );
     expect(noEvRes.status).toBe(400);
   });
+
+  it('M5 PROJECTS API: Private projects API requires auth, validates input, and public endpoints return opaque 404 for private projects', async () => {
+    const authHeaders = {
+      Authorization: 'Bearer test-jwt-token',
+      Origin: 'http://localhost:4321',
+    };
+
+    // 1. Private projects list without auth fails closed with 401
+    const unauthRes = await worker.fetch(
+      new Request('http://localhost/api/v1/private/projects'),
+      env,
+    );
+    expect(unauthRes.status).toBe(401);
+
+    // 2. Private project creation with invalid URL policy fails with 400
+    const invalidUrlRes = await worker.fetch(
+      new Request('http://localhost/api/v1/private/projects/proj-1/deployments', {
+        method: 'POST',
+        headers: authHeaders,
+        body: JSON.stringify({
+          environment: 'production',
+          releaseVersion: 'v1.0.0',
+          deploymentUrl: 'http://localhost:8080/internal', // HTTP & localhost rejected!
+        }),
+      }),
+      { ...env, ENVIRONMENT: 'test', DB: mockDb as any },
+    );
+    expect(invalidUrlRes.status).toBe(400);
+
+    // 3. Public project lookup for private/draft project returns opaque 404
+    const publicPrivateRes = await worker.fetch(
+      new Request('http://localhost/api/v1/public/projects/private-draft-project'),
+      { ...env, ENVIRONMENT: 'test', DB: mockDb as any },
+    );
+    expect(publicPrivateRes.status).toBe(404);
+  });
+
+  it('M5 GATE 9 ADVERSARIAL SECURITY: IDOR rejection, cycle prevention, rollback, and opaque 404 enumeration masking', async () => {
+    const authHeaders = {
+      Authorization: 'Bearer test-jwt-token',
+      Origin: 'http://localhost:4321',
+    };
+
+    // 1. Rollback to non-existent revision returns 404
+    const rollbackRes = await worker.fetch(
+      new Request('http://localhost/api/v1/private/projects/proj-1/revisions/999/rollback', {
+        method: 'POST',
+        headers: authHeaders,
+      }),
+      { ...env, ENVIRONMENT: 'test', DB: mockDb as any },
+    );
+    expect(rollbackRes.status).toBe(404);
+
+    // 2. Project relationship self-link rejection
+    const selfRelRes = await worker.fetch(
+      new Request('http://localhost/api/v1/private/projects/proj-1/relationships', {
+        method: 'POST',
+        headers: authHeaders,
+        body: JSON.stringify({
+          targetId: 'proj-1',
+          targetType: 'project',
+          relationshipType: 'depends_on',
+          relevance: 3,
+        }),
+      }),
+      { ...env, ENVIRONMENT: 'test', DB: mockDb as any },
+    );
+    expect(selfRelRes.status).toBe(400);
+
+    // 3. ADR self-supersession cycle rejection
+    const selfAdrRes = await worker.fetch(
+      new Request('http://localhost/api/v1/private/projects/proj-1/adrs', {
+        method: 'POST',
+        headers: authHeaders,
+        body: JSON.stringify({
+          adrNumber: 1,
+          title: 'Architecture Decision 1',
+          context: 'Context text',
+          decision: 'Decision text',
+          consequences: 'Consequences text',
+          supersededBy: 'adr-1',
+        }),
+      }),
+      { ...env, ENVIRONMENT: 'test', DB: mockDb as any },
+    );
+    expect(selfAdrRes.status).toBe(400);
+  });
 });

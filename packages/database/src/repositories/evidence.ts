@@ -134,32 +134,36 @@ export class D1EvidenceRepository {
     const now = new Date().toISOString();
     const visibility = input.visibility || 'private';
 
-    const stmt = this.db.prepare(`
+    const stmt = this.db
+      .prepare(
+        `
       INSERT INTO evidence_items (
         id, owner_id, evidence_type, source_type, provider, external_id,
         canonical_locator, title, description, captured_at, occurred_at,
         authorship_note, provenance_snapshot, verification_state, visibility,
         embargo_until, created_at, updated_at, version_no
       ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'unverified', ?, ?, ?, ?, 1)
-    `).bind(
-      input.id,
-      ownerId,
-      input.evidenceType,
-      input.sourceType,
-      input.provider || null,
-      input.externalId || null,
-      input.canonicalLocator || null,
-      input.title,
-      input.description || null,
-      now,
-      input.occurredAt || now,
-      input.authorshipNote || null,
-      input.provenanceSnapshot || null,
-      visibility,
-      input.embargoUntil || null,
-      now,
-      now,
-    );
+    `,
+      )
+      .bind(
+        input.id,
+        ownerId,
+        input.evidenceType,
+        input.sourceType,
+        input.provider || null,
+        input.externalId || null,
+        input.canonicalLocator || null,
+        input.title,
+        input.description || null,
+        now,
+        input.occurredAt || now,
+        input.authorshipNote || null,
+        input.provenanceSnapshot || null,
+        visibility,
+        input.embargoUntil || null,
+        now,
+        now,
+      );
 
     await stmt.run();
 
@@ -176,7 +180,10 @@ export class D1EvidenceRepository {
     id: string,
     expectedVersionNo: number,
     input: UpdateEvidenceInput,
-  ): Promise<{ success: true; item: EvidenceItemEntity } | { success: false; reason: 'concurrency_conflict' | 'not_found' }> {
+  ): Promise<
+    | { success: true; item: EvidenceItemEntity }
+    | { success: false; reason: 'concurrency_conflict' | 'not_found' }
+  > {
     const existing = await this.findById(ownerId, id);
     if (!existing) {
       return { success: false, reason: 'not_found' };
@@ -190,10 +197,14 @@ export class D1EvidenceRepository {
     const newTitle = input.title ?? existing.title;
     const newDesc = input.description !== undefined ? input.description : existing.description;
     const newVis = input.visibility ?? existing.visibility;
-    const newEmbargo = input.embargoUntil !== undefined ? input.embargoUntil : existing.embargoUntil;
-    const newLocator = input.canonicalLocator !== undefined ? input.canonicalLocator : existing.canonicalLocator;
+    const newEmbargo =
+      input.embargoUntil !== undefined ? input.embargoUntil : existing.embargoUntil;
+    const newLocator =
+      input.canonicalLocator !== undefined ? input.canonicalLocator : existing.canonicalLocator;
 
-    const updateStmt = this.db.prepare(`
+    const updateStmt = this.db
+      .prepare(
+        `
       UPDATE evidence_items SET
         title = ?,
         description = ?,
@@ -203,18 +214,20 @@ export class D1EvidenceRepository {
         updated_at = ?,
         version_no = ?
       WHERE id = ? AND owner_id = ? AND version_no = ?
-    `).bind(
-      newTitle,
-      newDesc,
-      newVis,
-      newEmbargo,
-      newLocator,
-      now,
-      newVersionNo,
-      id,
-      ownerId,
-      expectedVersionNo,
-    );
+    `,
+      )
+      .bind(
+        newTitle,
+        newDesc,
+        newVis,
+        newEmbargo,
+        newLocator,
+        now,
+        newVersionNo,
+        id,
+        ownerId,
+        expectedVersionNo,
+      );
 
     const res = await updateStmt.run();
     if (!res.meta.changes || res.meta.changes === 0) {
@@ -244,7 +257,9 @@ export class D1EvidenceRepository {
     const now = new Date().toISOString();
     const eventId = crypto.randomUUID();
 
-    const updateItemStmt = this.db.prepare(`
+    const updateItemStmt = this.db
+      .prepare(
+        `
       UPDATE evidence_items SET
         verification_state = ?,
         verification_method = ?,
@@ -252,29 +267,36 @@ export class D1EvidenceRepository {
         verified_at = ?,
         updated_at = ?
       WHERE id = ? AND owner_id = ?
-    `).bind(newState, verificationMethod, verifierIdentity, now, now, evidenceItemId, ownerId);
+    `,
+      )
+      .bind(newState, verificationMethod, verifierIdentity, now, now, evidenceItemId, ownerId);
 
-    const insertEventStmt = this.db.prepare(`
+    const insertEventStmt = this.db
+      .prepare(
+        `
       INSERT INTO evidence_verification_events (
         id, evidence_item_id, owner_id, previous_state, new_state,
         verification_method, verifier_identity, rationale, created_at
       ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-    `).bind(
-      eventId,
-      evidenceItemId,
-      ownerId,
-      existing.verificationState,
-      newState,
-      verificationMethod,
-      verifierIdentity,
-      rationale || null,
-      now,
-    );
+    `,
+      )
+      .bind(
+        eventId,
+        evidenceItemId,
+        ownerId,
+        existing.verificationState,
+        newState,
+        verificationMethod,
+        verifierIdentity,
+        rationale || null,
+        now,
+      );
 
     await this.db.batch([updateItemStmt, insertEventStmt]);
 
     const updatedItem = await this.findById(ownerId, evidenceItemId);
-    if (!updatedItem) throw new Error(`Evidence item lost after verification update: ${evidenceItemId}`);
+    if (!updatedItem)
+      throw new Error(`Evidence item lost after verification update: ${evidenceItemId}`);
 
     const eventEntity: EvidenceVerificationEventEntity = {
       id: eventId as EntityId,
@@ -292,12 +314,19 @@ export class D1EvidenceRepository {
   }
 
   /** Get append-only verification history for an evidence item */
-  async getVerificationHistory(ownerId: string, evidenceItemId: string): Promise<EvidenceVerificationEventEntity[]> {
-    const stmt = this.db.prepare(`
+  async getVerificationHistory(
+    ownerId: string,
+    evidenceItemId: string,
+  ): Promise<EvidenceVerificationEventEntity[]> {
+    const stmt = this.db
+      .prepare(
+        `
       SELECT * FROM evidence_verification_events
       WHERE owner_id = ? AND evidence_item_id = ?
       ORDER BY created_at DESC
-    `).bind(ownerId, evidenceItemId);
+    `,
+      )
+      .bind(ownerId, evidenceItemId);
 
     const { results } = await stmt.all<Record<string, unknown>>();
     return (results || []).map((row) => ({
@@ -316,9 +345,13 @@ export class D1EvidenceRepository {
   /** Archive evidence item */
   async archive(ownerId: string, id: string): Promise<EvidenceItemEntity> {
     const now = new Date().toISOString();
-    const stmt = this.db.prepare(`
+    const stmt = this.db
+      .prepare(
+        `
       UPDATE evidence_items SET archived_at = ?, updated_at = ? WHERE id = ? AND owner_id = ?
-    `).bind(now, now, id, ownerId);
+    `,
+      )
+      .bind(now, now, id, ownerId);
     await stmt.run();
     const res = await this.findById(ownerId, id);
     if (!res) throw new Error(`Evidence item not found for archive: ${id}`);
@@ -328,9 +361,13 @@ export class D1EvidenceRepository {
   /** Restore archived evidence item */
   async restore(ownerId: string, id: string): Promise<EvidenceItemEntity> {
     const now = new Date().toISOString();
-    const stmt = this.db.prepare(`
+    const stmt = this.db
+      .prepare(
+        `
       UPDATE evidence_items SET archived_at = NULL, updated_at = ? WHERE id = ? AND owner_id = ?
-    `).bind(now, id, ownerId);
+    `,
+      )
+      .bind(now, id, ownerId);
     await stmt.run();
     const res = await this.findById(ownerId, id);
     if (!res) throw new Error(`Evidence item not found for restore: ${id}`);
@@ -338,7 +375,11 @@ export class D1EvidenceRepository {
   }
 
   /** Create evidence link (typed edge) with single-target CHECK constraint */
-  async createLink(ownerId: string, evidenceItemId: string, input: CreateEvidenceLinkInput): Promise<EvidenceLinkEntity> {
+  async createLink(
+    ownerId: string,
+    evidenceItemId: string,
+    input: CreateEvidenceLinkInput,
+  ): Promise<EvidenceLinkEntity> {
     const now = new Date().toISOString();
 
     const targetCols: Record<string, string | null> = {
@@ -370,42 +411,49 @@ export class D1EvidenceRepository {
       targetCols[colName] = input.targetId;
     }
 
-    const stmt = this.db.prepare(`
+    const stmt = this.db
+      .prepare(
+        `
       INSERT INTO evidence_links (
         id, evidence_item_id, capability_id, claim_id, project_id,
         content_item_id, artifact_id, adr_id, experiment_id, debugging_lesson_id, deployment_id,
         support_type, relevance, ordering, rationale, provenance, approval_state,
         approved_by, approved_at, created_at, updated_at
       ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'approved', ?, ?, ?, ?)
-    `).bind(
-      input.id,
-      evidenceItemId,
-      targetCols.capability_id,
-      targetCols.claim_id,
-      targetCols.project_id,
-      targetCols.content_item_id,
-      targetCols.artifact_id,
-      targetCols.adr_id,
-      targetCols.experiment_id,
-      targetCols.debugging_lesson_id,
-      targetCols.deployment_id,
-      input.supportType,
-      input.relevance || 3,
-      input.ordering || 0,
-      input.rationale,
-      input.provenance || null,
-      ownerId,
-      now,
-      now,
-      now,
-    );
+    `,
+      )
+      .bind(
+        input.id,
+        evidenceItemId,
+        targetCols.capability_id,
+        targetCols.claim_id,
+        targetCols.project_id,
+        targetCols.content_item_id,
+        targetCols.artifact_id,
+        targetCols.adr_id,
+        targetCols.experiment_id,
+        targetCols.debugging_lesson_id,
+        targetCols.deployment_id,
+        input.supportType,
+        input.relevance || 3,
+        input.ordering || 0,
+        input.rationale,
+        input.provenance || null,
+        ownerId,
+        now,
+        now,
+        now,
+      );
 
     await stmt.run();
 
     return {
       id: input.id as EntityId,
       evidenceItemId: evidenceItemId as EntityId,
-      target: { targetType: input.targetType as EvidenceLinkTarget['targetType'], targetId: input.targetId as EntityId } as EvidenceLinkTarget,
+      target: {
+        targetType: input.targetType as EvidenceLinkTarget['targetType'],
+        targetId: input.targetId as EntityId,
+      } as EvidenceLinkTarget,
       supportType: input.supportType,
       relevance: input.relevance || 3,
       ordering: input.ordering || 0,
@@ -421,32 +469,60 @@ export class D1EvidenceRepository {
 
   /** Delete evidence link */
   async deleteLink(_ownerId: string, evidenceItemId: string, linkId: string): Promise<boolean> {
-    const stmt = this.db.prepare(`
+    const stmt = this.db
+      .prepare(
+        `
       DELETE FROM evidence_links WHERE id = ? AND evidence_item_id = ?
-    `).bind(linkId, evidenceItemId);
+    `,
+      )
+      .bind(linkId, evidenceItemId);
     const res = await stmt.run();
     return Boolean(res.meta.changes && res.meta.changes > 0);
   }
 
   /** Get all links attached to an evidence item */
-  async getLinksForEvidence(_ownerId: string, evidenceItemId: string): Promise<EvidenceLinkEntity[]> {
-    const stmt = this.db.prepare(`
+  async getLinksForEvidence(
+    _ownerId: string,
+    evidenceItemId: string,
+  ): Promise<EvidenceLinkEntity[]> {
+    const stmt = this.db
+      .prepare(
+        `
       SELECT * FROM evidence_links WHERE evidence_item_id = ? ORDER BY ordering ASC, created_at ASC
-    `).bind(evidenceItemId);
+    `,
+      )
+      .bind(evidenceItemId);
     const { results } = await stmt.all<Record<string, unknown>>();
 
     return (results || []).map((row) => {
       let targetType: EvidenceLinkTarget['targetType'] = 'capability';
       let targetId: EntityId = row.capability_id as EntityId;
 
-      if (row.claim_id) { targetType = 'claim'; targetId = row.claim_id as EntityId; }
-      else if (row.project_id) { targetType = 'project'; targetId = row.project_id as EntityId; }
-      else if (row.content_item_id) { targetType = 'content_item'; targetId = row.content_item_id as EntityId; }
-      else if (row.artifact_id) { targetType = 'artifact'; targetId = row.artifact_id as EntityId; }
-      else if (row.adr_id) { targetType = 'adr'; targetId = row.adr_id as EntityId; }
-      else if (row.experiment_id) { targetType = 'experiment'; targetId = row.experiment_id as EntityId; }
-      else if (row.debugging_lesson_id) { targetType = 'debugging_lesson'; targetId = row.debugging_lesson_id as EntityId; }
-      else if (row.deployment_id) { targetType = 'deployment'; targetId = row.deployment_id as EntityId; }
+      if (row.claim_id) {
+        targetType = 'claim';
+        targetId = row.claim_id as EntityId;
+      } else if (row.project_id) {
+        targetType = 'project';
+        targetId = row.project_id as EntityId;
+      } else if (row.content_item_id) {
+        targetType = 'content_item';
+        targetId = row.content_item_id as EntityId;
+      } else if (row.artifact_id) {
+        targetType = 'artifact';
+        targetId = row.artifact_id as EntityId;
+      } else if (row.adr_id) {
+        targetType = 'adr';
+        targetId = row.adr_id as EntityId;
+      } else if (row.experiment_id) {
+        targetType = 'experiment';
+        targetId = row.experiment_id as EntityId;
+      } else if (row.debugging_lesson_id) {
+        targetType = 'debugging_lesson';
+        targetId = row.debugging_lesson_id as EntityId;
+      } else if (row.deployment_id) {
+        targetType = 'deployment';
+        targetId = row.deployment_id as EntityId;
+      }
 
       return {
         id: row.id as EntityId,
@@ -469,14 +545,18 @@ export class D1EvidenceRepository {
   /** Query public eligible evidence items */
   async getPublicEvidence(): Promise<EvidenceItemEntity[]> {
     const now = new Date().toISOString();
-    const stmt = this.db.prepare(`
+    const stmt = this.db
+      .prepare(
+        `
       SELECT * FROM evidence_items
       WHERE visibility = 'public'
         AND archived_at IS NULL
         AND verification_state NOT IN ('disputed', 'revoked', 'archived')
         AND (embargo_until IS NULL OR embargo_until <= ?)
       ORDER BY captured_at DESC
-    `).bind(now);
+    `,
+      )
+      .bind(now);
 
     const { results } = await stmt.all<Record<string, unknown>>();
     return (results || []).map((row) => this.mapRowToEvidenceEntity(row));
@@ -485,14 +565,18 @@ export class D1EvidenceRepository {
   /** Query public eligible evidence by ID (returns null if private/uneligible) */
   async getPublicEvidenceById(id: string): Promise<EvidenceItemEntity | null> {
     const now = new Date().toISOString();
-    const stmt = this.db.prepare(`
+    const stmt = this.db
+      .prepare(
+        `
       SELECT * FROM evidence_items
       WHERE id = ?
         AND visibility = 'public'
         AND archived_at IS NULL
         AND verification_state NOT IN ('disputed', 'revoked', 'archived')
         AND (embargo_until IS NULL OR embargo_until <= ?)
-    `).bind(id, now);
+    `,
+      )
+      .bind(id, now);
 
     const row = await stmt.first<Record<string, unknown>>();
     return row ? this.mapRowToEvidenceEntity(row) : null;
@@ -551,7 +635,9 @@ export class D1ArtifactRepository {
 
   /** Find artifact by ID and owner */
   async findById(ownerId: string, id: string): Promise<ArtifactEntity | null> {
-    const stmt = this.db.prepare('SELECT * FROM artifacts WHERE owner_id = ? AND id = ?').bind(ownerId, id);
+    const stmt = this.db
+      .prepare('SELECT * FROM artifacts WHERE owner_id = ? AND id = ?')
+      .bind(ownerId, id);
     const row = await stmt.first<Record<string, unknown>>();
     return row ? this.mapRowToArtifactEntity(row) : null;
   }
@@ -561,28 +647,32 @@ export class D1ArtifactRepository {
     const now = new Date().toISOString();
     const visibility = input.visibility || 'private';
 
-    const stmt = this.db.prepare(`
+    const stmt = this.db
+      .prepare(
+        `
       INSERT INTO artifacts (
         id, owner_id, title, description, artifact_type, media_type,
         byte_size, checksum, r2_key, original_name, uploaded_by, visibility,
         created_at, updated_at
       ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-    `).bind(
-      input.id,
-      ownerId,
-      input.title,
-      input.description || null,
-      input.artifactType,
-      input.mediaType || null,
-      input.byteSize || null,
-      input.checksum || null,
-      input.r2Key,
-      input.originalName || null,
-      input.uploadedBy || ownerId,
-      visibility,
-      now,
-      now,
-    );
+    `,
+      )
+      .bind(
+        input.id,
+        ownerId,
+        input.title,
+        input.description || null,
+        input.artifactType,
+        input.mediaType || null,
+        input.byteSize || null,
+        input.checksum || null,
+        input.r2Key,
+        input.originalName || null,
+        input.uploadedBy || ownerId,
+        visibility,
+        now,
+        now,
+      );
 
     await stmt.run();
 
@@ -594,12 +684,18 @@ export class D1ArtifactRepository {
   /** Soft-delete artifact (recoverable lifecycle before permanent deletion) */
   async softDelete(ownerId: string, id: string): Promise<ArtifactEntity> {
     const now = new Date().toISOString();
-    const stmt = this.db.prepare(`
+    const stmt = this.db
+      .prepare(
+        `
       UPDATE artifacts SET deleted_at = ?, updated_at = ? WHERE id = ? AND owner_id = ?
-    `).bind(now, now, id, ownerId);
+    `,
+      )
+      .bind(now, now, id, ownerId);
     await stmt.run();
 
-    const stmtRead = this.db.prepare('SELECT * FROM artifacts WHERE owner_id = ? AND id = ?').bind(ownerId, id);
+    const stmtRead = this.db
+      .prepare('SELECT * FROM artifacts WHERE owner_id = ? AND id = ?')
+      .bind(ownerId, id);
     const row = await stmtRead.first<Record<string, unknown>>();
     if (!row) throw new Error(`Artifact not found for soft delete: ${id}`);
     return this.mapRowToArtifactEntity(row);
@@ -608,9 +704,13 @@ export class D1ArtifactRepository {
   /** Restore soft-deleted artifact */
   async restore(ownerId: string, id: string): Promise<ArtifactEntity> {
     const now = new Date().toISOString();
-    const stmt = this.db.prepare(`
+    const stmt = this.db
+      .prepare(
+        `
       UPDATE artifacts SET deleted_at = NULL, updated_at = ? WHERE id = ? AND owner_id = ?
-    `).bind(now, id, ownerId);
+    `,
+      )
+      .bind(now, id, ownerId);
     await stmt.run();
 
     const res = await this.findById(ownerId, id);
@@ -620,13 +720,17 @@ export class D1ArtifactRepository {
 
   /** Query public eligible artifact by ID (returns null if private, uneligible, or parent is uneligible) */
   async getPublicArtifactById(id: string): Promise<ArtifactEntity | null> {
-    const stmt = this.db.prepare(`
+    const stmt = this.db
+      .prepare(
+        `
       SELECT * FROM artifacts
       WHERE id = ?
         AND visibility = 'public'
         AND deleted_at IS NULL
         AND archived_at IS NULL
-    `).bind(id);
+    `,
+      )
+      .bind(id);
 
     const row = await stmt.first<Record<string, unknown>>();
     if (!row) return null;
@@ -634,13 +738,17 @@ export class D1ArtifactRepository {
     const artifact = this.mapRowToArtifactEntity(row);
 
     // 1. Check linked evidence eligibility
-    const evLinksStmt = this.db.prepare(`
+    const evLinksStmt = this.db
+      .prepare(
+        `
       SELECT el.*, ei.visibility as ev_visibility, ei.verification_state as ev_verification_state,
              ei.deleted_at as ev_deleted_at, ei.archived_at as ev_archived_at, ei.embargo_until as ev_embargo_until
       FROM evidence_links el
       JOIN evidence_items ei ON el.evidence_item_id = ei.id
       WHERE el.artifact_id = ?
-    `).bind(id);
+    `,
+      )
+      .bind(id);
 
     const { results: evLinks } = await evLinksStmt.all<Record<string, unknown>>();
     if (evLinks && evLinks.length > 0) {
@@ -649,18 +757,23 @@ export class D1ArtifactRepository {
         if (link.approval_state === 'rejected') continue;
         if (link.ev_visibility !== 'public') return null;
         if (link.ev_deleted_at !== null || link.ev_archived_at !== null) return null;
-        if (['disputed', 'revoked', 'archived'].includes(link.ev_verification_state as string)) return null;
+        if (['disputed', 'revoked', 'archived'].includes(link.ev_verification_state as string))
+          return null;
         if (link.ev_embargo_until && new Date(link.ev_embargo_until as string) > now) return null;
       }
     }
 
     // 2. Check parent content item eligibility (if linked to content item)
-    const contentLinksStmt = this.db.prepare(`
+    const contentLinksStmt = this.db
+      .prepare(
+        `
       SELECT ci.visibility, ci.state, ci.deleted_at, ci.scheduled_for, ci.embargo_until
       FROM evidence_links el
       JOIN content_items ci ON el.content_item_id = ci.id
       WHERE el.artifact_id = ?
-    `).bind(id);
+    `,
+      )
+      .bind(id);
 
     const { results: contentLinks } = await contentLinksStmt.all<Record<string, unknown>>();
     if (contentLinks && contentLinks.length > 0) {
@@ -680,31 +793,50 @@ export class D1ArtifactRepository {
   /** Enqueue durable cleanup task when immediate R2 delete fails */
   async enqueueReconciliationItem(ownerId: string, r2Key: string, reason: string): Promise<void> {
     const id = crypto.randomUUID();
-    const stmt = this.db.prepare(`
+    const stmt = this.db
+      .prepare(
+        `
       INSERT INTO artifact_reconciliation_queue (id, owner_id, r2_key, reason, status)
       VALUES (?, ?, ?, ?, 'pending')
-    `).bind(id, ownerId, r2Key, reason);
+    `,
+      )
+      .bind(id, ownerId, r2Key, reason);
     await stmt.run().catch(() => null);
   }
 
   /** Get pending durable reconciliation queue items */
-  async getPendingReconciliationQueue(ownerId: string): Promise<Array<{ id: string; r2Key: string; reason: string; createdAt: string }>> {
-    const stmt = this.db.prepare(`
+  async getPendingReconciliationQueue(
+    ownerId: string,
+  ): Promise<Array<{ id: string; r2Key: string; reason: string; createdAt: string }>> {
+    const stmt = this.db
+      .prepare(
+        `
       SELECT id, r2_key as r2Key, reason, created_at as createdAt
       FROM artifact_reconciliation_queue
       WHERE owner_id = ? AND status = 'pending'
       ORDER BY created_at ASC
-    `).bind(ownerId);
+    `,
+      )
+      .bind(ownerId);
     const { results } = await stmt.all<Record<string, unknown>>();
-    return (results || []) as Array<{ id: string; r2Key: string; reason: string; createdAt: string }>;
+    return (results || []) as Array<{
+      id: string;
+      r2Key: string;
+      reason: string;
+      createdAt: string;
+    }>;
   }
 
   /** Mark durable reconciliation item as resolved */
   async markReconciliationResolved(id: string): Promise<void> {
     const now = new Date().toISOString();
-    const stmt = this.db.prepare(`
+    const stmt = this.db
+      .prepare(
+        `
       UPDATE artifact_reconciliation_queue SET status = 'resolved', retried_at = ? WHERE id = ?
-    `).bind(now, id);
+    `,
+      )
+      .bind(now, id);
     await stmt.run().catch(() => null);
   }
 

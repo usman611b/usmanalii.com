@@ -7,6 +7,12 @@
     "lib": ["ESNext"],
     "types": ["@cloudflare/workers-types"]
   },
+  "references": [
+    { "path": "../authorization" },
+    { "path": "../content" },
+    { "path": "../contracts" },
+    { "path": "../domain" }
+  ],
   "include": ["src/**/*.ts"],
   "exclude": ["node_modules", "dist"]
 }

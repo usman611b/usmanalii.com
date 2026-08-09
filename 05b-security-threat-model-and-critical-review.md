@@ -85,24 +85,24 @@ MDX, code blocks, SVG, HTML, embeds and imported repository content can introduc
 
 ## 6. High-risk threat register
 
-| Threat | Risk | Required mitigation |
-|---|---|---|
-| IDOR on entity APIs | Critical | Owner-context repositories, negative tests, opaque errors |
-| Stolen Access session | Critical | MFA, short sessions, device hygiene, critical-action re-authentication, session revocation |
-| Private R2 object leak | Critical | Private buckets/prefixes, randomized keys, authorized delivery, short expiry |
-| XSS through content | Critical | Sanitization, component allowlist, CSP, safe preview isolation |
-| Secret leakage | Critical | Worker secrets/bindings, redacted logs, scanning, rotation; never client variables |
-| Malicious deployment | Critical | Protected branch, reviewed CI, pinned actions, least-privilege deploy token |
-| Webhook forgery/replay | High | Signature verification on raw body, event-ID idempotency, timestamp/replay policy |
-| Queue replay/poison message | High | Versioned envelope, idempotency, attempt limits, dead letter, authorization context reconstruction |
-| CSRF on owner mutation | High | Origin validation, SameSite cookies, CSRF token where applicable, non-GET mutations |
-| SSRF through URL capture | High | URL parser, protocol allowlist, DNS/IP checks, redirect limits, response limits, blocked private ranges |
-| Upload malware/polyglot | High | Type allowlist, magic-byte verification, size limits, quarantine, no execution, safe derivatives |
-| Cache privacy mix-up | High | Never cache private responses publicly; explicit Cache-Control/Vary; separate public DTOs |
-| Backup compromise | High | Client-side/off-provider encryption, restricted keys, restore audit, retention policy |
-| Audit tampering | High | Append-oriented events, restricted writes, export/checksum, no UI hard-delete |
-| AI prompt injection (V2+) | High | Retrieved text is data, separated instructions, no autonomous tools, citations, output validation |
-| Cross-tenant access (V4) | Critical | Separate V4 threat model and isolation proof before productization |
+| Threat                      | Risk     | Required mitigation                                                                                     |
+| --------------------------- | -------- | ------------------------------------------------------------------------------------------------------- |
+| IDOR on entity APIs         | Critical | Owner-context repositories, negative tests, opaque errors                                               |
+| Stolen Access session       | Critical | MFA, short sessions, device hygiene, critical-action re-authentication, session revocation              |
+| Private R2 object leak      | Critical | Private buckets/prefixes, randomized keys, authorized delivery, short expiry                            |
+| XSS through content         | Critical | Sanitization, component allowlist, CSP, safe preview isolation                                          |
+| Secret leakage              | Critical | Worker secrets/bindings, redacted logs, scanning, rotation; never client variables                      |
+| Malicious deployment        | Critical | Protected branch, reviewed CI, pinned actions, least-privilege deploy token                             |
+| Webhook forgery/replay      | High     | Signature verification on raw body, event-ID idempotency, timestamp/replay policy                       |
+| Queue replay/poison message | High     | Versioned envelope, idempotency, attempt limits, dead letter, authorization context reconstruction      |
+| CSRF on owner mutation      | High     | Origin validation, SameSite cookies, CSRF token where applicable, non-GET mutations                     |
+| SSRF through URL capture    | High     | URL parser, protocol allowlist, DNS/IP checks, redirect limits, response limits, blocked private ranges |
+| Upload malware/polyglot     | High     | Type allowlist, magic-byte verification, size limits, quarantine, no execution, safe derivatives        |
+| Cache privacy mix-up        | High     | Never cache private responses publicly; explicit Cache-Control/Vary; separate public DTOs               |
+| Backup compromise           | High     | Client-side/off-provider encryption, restricted keys, restore audit, retention policy                   |
+| Audit tampering             | High     | Append-oriented events, restricted writes, export/checksum, no UI hard-delete                           |
+| AI prompt injection (V2+)   | High     | Retrieved text is data, separated instructions, no autonomous tools, citations, output validation       |
+| Cross-tenant access (V4)    | Critical | Separate V4 threat model and isolation proof before productization                                      |
 
 ## 7. Authentication and session controls
 
@@ -294,6 +294,7 @@ Immediate sequence:
 ## 24. R2/D1 Consistency & Safe Artifact Delivery Model (M3 Verification Baseline)
 
 ### A. R2/D1 Failure Consistency & Orphan Cleanup
+
 1. **Server-Only Unpredictable Keys**: Binary storage keys generated exclusively on server (`artifacts/${ownerId}/${uuid}.${ext}`). User paths stripped via `sanitizeFilename`.
 2. **Atomic Rollback & Failure Isolation**:
    - If R2 `put()` fails -> request aborts with 500 error; no D1 metadata created.
@@ -302,6 +303,7 @@ Immediate sequence:
 3. **Reconciliation Sweeps**: Endpoint `/api/v1/private/artifacts/reconcile` sweeps orphaned objects and missing D1 bindings without public storage key exposure.
 
 ### B. Safe Artifact Delivery Headers
+
 - **Content-Type**: Allowlisted media type (`text/html` forced to `text/plain`).
 - **Content-Security-Policy**: Restrictive `default-src 'none'`.
 - **X-Content-Type-Options**: `nosniff`.

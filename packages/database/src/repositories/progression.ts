@@ -1,5 +1,11 @@
 import type { D1Database } from '@cloudflare/workers-types';
-import type { ProgressionEventEntity, EntityId, ISODateTime, ProgressionStage, ProgressionActor } from '@usmanalii/domain';
+import type {
+  ProgressionEventEntity,
+  EntityId,
+  ISODateTime,
+  ProgressionStage,
+  ProgressionActor,
+} from '@usmanalii/domain';
 
 export interface CreateProgressionEventParams {
   id: EntityId;
@@ -17,29 +23,36 @@ export interface CreateProgressionEventParams {
 export class D1ProgressionRepository {
   constructor(private readonly db: D1Database) {}
 
-  async createProgressionEvent(params: CreateProgressionEventParams): Promise<ProgressionEventEntity> {
+  async createProgressionEvent(
+    params: CreateProgressionEventParams,
+  ): Promise<ProgressionEventEntity> {
     const now = new Date().toISOString() as ISODateTime;
     const evidenceJson = JSON.stringify(params.supportingEvidenceIds || []);
 
-    await this.db.prepare(`
+    await this.db
+      .prepare(
+        `
       INSERT INTO progression_events (
         id, owner_id, skill_id, capability_id, previous_stage, new_stage,
         supporting_evidence_ids, reason, actor_classification, approval_state,
         supersedes_event_id, created_at
       ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'accepted', ?, ?)
-    `).bind(
-      params.id,
-      params.ownerId,
-      params.skillId || null,
-      params.capabilityId || null,
-      params.previousStage || null,
-      params.newStage,
-      evidenceJson,
-      params.reason,
-      params.actorClassification || 'owner',
-      params.supersedesEventId || null,
-      now,
-    ).run();
+    `,
+      )
+      .bind(
+        params.id,
+        params.ownerId,
+        params.skillId || null,
+        params.capabilityId || null,
+        params.previousStage || null,
+        params.newStage,
+        evidenceJson,
+        params.reason,
+        params.actorClassification || 'owner',
+        params.supersedesEventId || null,
+        now,
+      )
+      .run();
 
     return {
       id: params.id,
@@ -75,7 +88,10 @@ export class D1ProgressionRepository {
     }
 
     sql += ` ORDER BY created_at DESC LIMIT 1`;
-    const row = await this.db.prepare(sql).bind(...bindings).first();
+    const row = await this.db
+      .prepare(sql)
+      .bind(...bindings)
+      .first();
     if (!row) return null;
     return row.new_stage as ProgressionStage;
   }
@@ -96,7 +112,10 @@ export class D1ProgressionRepository {
     }
 
     sql += ` ORDER BY created_at ASC`;
-    const { results } = await this.db.prepare(sql).bind(...bindings).all();
+    const { results } = await this.db
+      .prepare(sql)
+      .bind(...bindings)
+      .all();
 
     return (results || []).map((r) => {
       let evidenceIds: EntityId[] = [];

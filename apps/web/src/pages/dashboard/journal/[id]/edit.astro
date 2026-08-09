@@ -2,10 +2,7 @@
 import DashboardLayout from '../../../../layouts/DashboardLayout.astro';
 
 export function getStaticPaths() {
-  return [
-    { params: { id: 'edit-1' } },
-    { params: { id: 'edit-2' } },
-  ];
+  return [{ params: { id: 'edit-1' } }, { params: { id: 'edit-2' } }];
 }
 
 const { id } = Astro.params;
@@ -14,11 +11,21 @@ const { id } = Astro.params;
 <DashboardLayout title={`Edit Entry ${id} — Private Dashboard`} activeSection="journal">
   <div class="space-y-6">
     <!-- Header Control Bar -->
-    <div class="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4 border-b border-white/10 pb-4">
+    <div
+      class="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4 border-b border-white/10 pb-4"
+    >
       <div>
         <div class="flex items-center gap-2">
-          <span id="save-status-badge" class="px-2 py-0.5 text-[10px] font-mono rounded bg-emerald-500/20 text-emerald-400 font-semibold">● SYNCED</span>
-          <span id="state-badge" class="px-2 py-0.5 text-[10px] font-mono rounded bg-amber-500/20 text-amber-300 font-semibold">DRAFT</span>
+          <span
+            id="save-status-badge"
+            class="px-2 py-0.5 text-[10px] font-mono rounded bg-emerald-500/20 text-emerald-400 font-semibold"
+            >● SYNCED</span
+          >
+          <span
+            id="state-badge"
+            class="px-2 py-0.5 text-[10px] font-mono rounded bg-amber-500/20 text-amber-300 font-semibold"
+            >DRAFT</span
+          >
           <span class="text-xs text-[#9CAAC1]">Version 1</span>
         </div>
         <input
@@ -70,7 +77,9 @@ const { id } = Astro.params;
             id="entry-summary-input"
             rows="2"
             class="w-full px-3 py-1.5 bg-[#0B101F] border border-white/10 rounded-lg text-xs text-white placeholder-[#9CAAC1]"
-          >Established the 14-package pnpm monorepo, strict TypeScript boundaries, WebCrypto RS256 JWT validation, and D1 migrations.</textarea>
+            >Established the 14-package pnpm monorepo, strict TypeScript boundaries, WebCrypto RS256
+            JWT validation, and D1 migrations.</textarea
+          >
         </div>
 
         <!-- Blocks Container -->
@@ -78,7 +87,8 @@ const { id } = Astro.params;
           <div class="p-4 rounded-xl glass-panel border border-white/10 space-y-2">
             <div class="flex items-center justify-between text-xs text-[#9CAAC1]">
               <span class="font-mono">Block 1 · Heading (Level 1)</span>
-              <button type="button" class="text-rose-400 hover:underline text-[10px]">Remove</button>
+              <button type="button" class="text-rose-400 hover:underline text-[10px]">Remove</button
+              >
             </div>
             <input
               type="text"
@@ -90,40 +100,73 @@ const { id } = Astro.params;
           <div class="p-4 rounded-xl glass-panel border border-white/10 space-y-2">
             <div class="flex items-center justify-between text-xs text-[#9CAAC1]">
               <span class="font-mono">Block 2 · Paragraph</span>
-              <button type="button" class="text-rose-400 hover:underline text-[10px]">Remove</button>
+              <button type="button" class="text-rose-400 hover:underline text-[10px]">Remove</button
+              >
             </div>
             <textarea
               rows="3"
               class="w-full px-3 py-1.5 bg-[#0B101F] border border-white/10 rounded-lg text-xs text-white"
-            >We established a 14-package monorepo architecture using pnpm and Turbo. All internal dependencies are linked cleanly using workspace:* references.</textarea>
+              >We established a 14-package monorepo architecture using pnpm and Turbo. All internal
+              dependencies are linked cleanly using workspace:* references.</textarea
+            >
           </div>
 
           <div class="p-4 rounded-xl glass-panel border border-white/10 space-y-2">
             <div class="flex items-center justify-between text-xs text-[#9CAAC1]">
               <span class="font-mono">Block 3 · Code Block (TypeScript)</span>
-              <button type="button" class="text-rose-400 hover:underline text-[10px]">Remove</button>
+              <button type="button" class="text-rose-400 hover:underline text-[10px]">Remove</button
+              >
             </div>
             <textarea
               rows="4"
               class="w-full px-3 py-1.5 bg-[#0B101F] border border-white/10 rounded-lg text-xs text-[#22D3EE] font-mono"
-            >export const onRequest: MiddlewareHandler = async (context, next) =&gt; &#123;
-  const response = await next();
-  response.headers.set('X-Content-Type-Options', 'nosniff');
-  return response;
-&#125;;</textarea>
+              >export const onRequest: MiddlewareHandler = async (context, next) =&gt; &#123; const
+              response = await next(); response.headers.set('X-Content-Type-Options', 'nosniff');
+              return response; &#125;;</textarea
+            >
           </div>
         </div>
 
         <!-- Add Block Controls -->
-        <div class="p-4 rounded-xl glass-panel border border-dashed border-white/20 flex flex-wrap items-center gap-2">
+        <div
+          class="p-4 rounded-xl glass-panel border border-dashed border-white/20 flex flex-wrap items-center gap-2"
+        >
           <span class="text-xs text-[#9CAAC1] mr-2">+ Add Block:</span>
-          <button type="button" class="px-2.5 py-1 text-xs bg-white/10 text-white rounded hover:bg-white/20">+ Heading</button>
-          <button type="button" class="px-2.5 py-1 text-xs bg-white/10 text-white rounded hover:bg-white/20">+ Paragraph</button>
-          <button type="button" class="px-2.5 py-1 text-xs bg-white/10 text-white rounded hover:bg-white/20">+ Code</button>
-          <button type="button" class="px-2.5 py-1 text-xs bg-white/10 text-white rounded hover:bg-white/20">+ Callout</button>
-          <button type="button" class="px-2.5 py-1 text-xs bg-white/10 text-white rounded hover:bg-white/20">+ Quote</button>
-          <button type="button" class="px-2.5 py-1 text-xs bg-white/10 text-white rounded hover:bg-white/20">+ Image</button>
-          <button type="button" class="px-2.5 py-1 text-xs bg-white/10 text-white rounded hover:bg-white/20">+ Relationship Tag</button>
+          <button
+            type="button"
+            class="px-2.5 py-1 text-xs bg-white/10 text-white rounded hover:bg-white/20"
+            >+ Heading</button
+          >
+          <button
+            type="button"
+            class="px-2.5 py-1 text-xs bg-white/10 text-white rounded hover:bg-white/20"
+            >+ Paragraph</button
+          >
+          <button
+            type="button"
+            class="px-2.5 py-1 text-xs bg-white/10 text-white rounded hover:bg-white/20"
+            >+ Code</button
+          >
+          <button
+            type="button"
+            class="px-2.5 py-1 text-xs bg-white/10 text-white rounded hover:bg-white/20"
+            >+ Callout</button
+          >
+          <button
+            type="button"
+            class="px-2.5 py-1 text-xs bg-white/10 text-white rounded hover:bg-white/20"
+            >+ Quote</button
+          >
+          <button
+            type="button"
+            class="px-2.5 py-1 text-xs bg-white/10 text-white rounded hover:bg-white/20"
+            >+ Image</button
+          >
+          <button
+            type="button"
+            class="px-2.5 py-1 text-xs bg-white/10 text-white rounded hover:bg-white/20"
+            >+ Relationship Tag</button
+          >
         </div>
       </div>
 
@@ -131,25 +174,33 @@ const { id } = Astro.params;
       <div class="space-y-4">
         <!-- Publication Validation Panel -->
         <div class="p-4 rounded-xl glass-panel space-y-3">
-          <h3 class="text-xs font-bold text-white uppercase tracking-wider">Publication Validation</h3>
+          <h3 class="text-xs font-bold text-white uppercase tracking-wider">
+            Publication Validation
+          </h3>
           <div class="space-y-1.5 text-xs">
             <div class="flex items-center gap-2 text-emerald-400">
-              <span>✓</span> <span>Required Metadata</span>
+              <span>✓</span>
+              <span>Required Metadata</span>
             </div>
             <div class="flex items-center gap-2 text-emerald-400">
-              <span>✓</span> <span>Slug Validity</span>
+              <span>✓</span>
+              <span>Slug Validity</span>
             </div>
             <div class="flex items-center gap-2 text-emerald-400">
-              <span>✓</span> <span>Effective Visibility</span>
+              <span>✓</span>
+              <span>Effective Visibility</span>
             </div>
             <div class="flex items-center gap-2 text-emerald-400">
-              <span>✓</span> <span>No Private Dependency Conflicts</span>
+              <span>✓</span>
+              <span>No Private Dependency Conflicts</span>
             </div>
             <div class="flex items-center gap-2 text-emerald-400">
-              <span>✓</span> <span>Safe Content Allowed</span>
+              <span>✓</span>
+              <span>Safe Content Allowed</span>
             </div>
             <div class="flex items-center gap-2 text-emerald-400">
-              <span>✓</span> <span>Image Alt Text</span>
+              <span>✓</span>
+              <span>Image Alt Text</span>
             </div>
           </div>
         </div>
@@ -158,11 +209,20 @@ const { id } = Astro.params;
         <div class="p-4 rounded-xl glass-panel space-y-3">
           <h3 class="text-xs font-bold text-white uppercase tracking-wider">Linked Entities</h3>
           <div class="flex flex-wrap gap-1.5">
-            <span class="px-2 py-0.5 text-[10px] font-mono rounded bg-[#22D3EE]/20 text-[#22D3EE]">@skill:TypeScript</span>
-            <span class="px-2 py-0.5 text-[10px] font-mono rounded bg-[#22D3EE]/20 text-[#22D3EE]">@skill:Cloudflare Workers</span>
-            <span class="px-2 py-0.5 text-[10px] font-mono rounded bg-[#A78BFA]/20 text-[#A78BFA]">@capability:RS256 JWT</span>
+            <span class="px-2 py-0.5 text-[10px] font-mono rounded bg-[#22D3EE]/20 text-[#22D3EE]"
+              >@skill:TypeScript</span
+            >
+            <span class="px-2 py-0.5 text-[10px] font-mono rounded bg-[#22D3EE]/20 text-[#22D3EE]"
+              >@skill:Cloudflare Workers</span
+            >
+            <span class="px-2 py-0.5 text-[10px] font-mono rounded bg-[#A78BFA]/20 text-[#A78BFA]"
+              >@capability:RS256 JWT</span
+            >
           </div>
-          <button type="button" class="w-full py-1 text-xs bg-white/5 hover:bg-white/10 text-[#9CAAC1] rounded border border-white/10">
+          <button
+            type="button"
+            class="w-full py-1 text-xs bg-white/5 hover:bg-white/10 text-[#9CAAC1] rounded border border-white/10"
+          >
             + Link Skill / Evidence
           </button>
         </div>
@@ -185,7 +245,11 @@ const { id } = Astro.params;
                 <span>21:40</span>
               </div>
               <p class="text-[11px] text-[#9CAAC1]">Initial draft creation.</p>
-              <button type="button" class="mt-1 text-[10px] text-[#22D3EE] hover:underline font-semibold">Rollback to Rev #1</button>
+              <button
+                type="button"
+                class="mt-1 text-[10px] text-[#22D3EE] hover:underline font-semibold"
+                >Rollback to Rev #1</button
+              >
             </div>
           </div>
         </div>
@@ -202,12 +266,14 @@ const { id } = Astro.params;
     if (titleInput && saveBadge) {
       titleInput.addEventListener('input', () => {
         saveBadge.textContent = '● AUTOSAVING...';
-        saveBadge.className = 'px-2 py-0.5 text-[10px] font-mono rounded bg-amber-500/20 text-amber-300 font-semibold';
+        saveBadge.className =
+          'px-2 py-0.5 text-[10px] font-mono rounded bg-amber-500/20 text-amber-300 font-semibold';
         clearTimeout(timeoutId);
         timeoutId = setTimeout(() => {
           localStorage.setItem('draft-entry-autosave', titleInput.value);
           saveBadge.textContent = '● SYNCED';
-          saveBadge.className = 'px-2 py-0.5 text-[10px] font-mono rounded bg-emerald-500/20 text-emerald-400 font-semibold';
+          saveBadge.className =
+            'px-2 py-0.5 text-[10px] font-mono rounded bg-emerald-500/20 text-emerald-400 font-semibold';
         }, 1000);
       });
     }

@@ -294,4 +294,3 @@ Approving this document freezes the logical entities, evidence semantics, author
 - **Single-Target Evidence Edge Invariant**: Enforced via D1 `CHECK ((capability_id IS NOT NULL) + (claim_id IS NOT NULL) + (project_id IS NOT NULL) + (content_item_id IS NOT NULL) + (artifact_id IS NOT NULL) + (adr_id IS NOT NULL) + (experiment_id IS NOT NULL) + (debugging_lesson_id IS NOT NULL) + (deployment_id IS NOT NULL) = 1)`.
 - **Link Relevance Rating Range**: Bounded `CHECK (relevance BETWEEN 1 AND 5)`.
 - **Query Optimization Indexes**: Added `idx_evidence_items_public_lookup`, `idx_evidence_links_lookup`, and `idx_artifacts_public_lookup`.
-

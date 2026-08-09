@@ -15,13 +15,13 @@ const {
 } = Astro.props;
 ---
 
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en" class="dark">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-    
+
     <!-- Primary Meta Tags -->
     <title>{title}</title>
     <meta name="title" content={title} />
@@ -35,11 +35,13 @@ const {
     <!-- Google Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
     <slot name="head" />
   </head>
   <body class="bg-[#050509] text-[#F7FBFF] flex flex-col min-h-screen">
-    
     <!-- Accessibility Skip Link -->
     <a
       href="#main-content"
@@ -58,7 +60,9 @@ const {
 
     <!-- Footer -->
     <footer class="border-t border-white/10 bg-[#080D1A] py-12 mt-20 text-xs text-[#9CAAC1]">
-      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row items-center justify-between gap-4">
+      <div
+        class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row items-center justify-between gap-4"
+      >
         <div>
           <p class="font-medium text-white">usmanalii.com — Personal Career OS</p>
           <p class="mt-1">Evidence-backed professional identity & learning journey.</p>

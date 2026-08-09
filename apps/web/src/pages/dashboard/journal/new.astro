@@ -7,39 +7,75 @@ import DashboardLayout from '../../../layouts/DashboardLayout.astro';
     <div class="flex items-center justify-between">
       <div>
         <h2 class="text-xl font-bold text-white">Create New Content Entry</h2>
-        <p class="text-xs text-[#9CAAC1] mt-1">Select a template to initialize a canonical structured draft.</p>
+        <p class="text-xs text-[#9CAAC1] mt-1">
+          Select a template to initialize a canonical structured draft.
+        </p>
       </div>
-      <a href="/dashboard/journal" class="text-xs text-[#9CAAC1] hover:text-white transition-colors">← Back to List</a>
+      <a href="/dashboard/journal" class="text-xs text-[#9CAAC1] hover:text-white transition-colors"
+        >← Back to List</a
+      >
     </div>
 
     <!-- Template Options Grid -->
     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-      <div class="p-6 rounded-2xl glass-panel border border-[#22D3EE]/30 hover:border-[#22D3EE] transition-all space-y-3">
+      <div
+        class="p-6 rounded-2xl glass-panel border border-[#22D3EE]/30 hover:border-[#22D3EE] transition-all space-y-3"
+      >
         <span class="text-xs text-[#22D3EE] font-mono">Template 01</span>
         <h3 class="text-base font-bold text-white">Journal Entry</h3>
-        <p class="text-xs text-[#9CAAC1]">Dated log of daily engineering work, architectural experiments, and decision progress.</p>
-        <button type="button" class="w-full py-2 bg-[#22D3EE] text-[#050509] font-bold text-xs rounded-xl hover:opacity-90 transition-opacity">Use Template</button>
+        <p class="text-xs text-[#9CAAC1]">
+          Dated log of daily engineering work, architectural experiments, and decision progress.
+        </p>
+        <button
+          type="button"
+          class="w-full py-2 bg-[#22D3EE] text-[#050509] font-bold text-xs rounded-xl hover:opacity-90 transition-opacity"
+          >Use Template</button
+        >
       </div>
 
-      <div class="p-6 rounded-2xl glass-panel border border-white/10 hover:border-[#A78BFA] transition-all space-y-3">
+      <div
+        class="p-6 rounded-2xl glass-panel border border-white/10 hover:border-[#A78BFA] transition-all space-y-3"
+      >
         <span class="text-xs text-[#A78BFA] font-mono">Template 02</span>
         <h3 class="text-base font-bold text-white">Deep Dive</h3>
-        <p class="text-xs text-[#9CAAC1]">In-depth architectural analysis, systems rationale, benchmarks, and threat models.</p>
-        <button type="button" class="w-full py-2 bg-white/10 text-white font-bold text-xs rounded-xl hover:bg-white/20 transition-colors">Use Template</button>
+        <p class="text-xs text-[#9CAAC1]">
+          In-depth architectural analysis, systems rationale, benchmarks, and threat models.
+        </p>
+        <button
+          type="button"
+          class="w-full py-2 bg-white/10 text-white font-bold text-xs rounded-xl hover:bg-white/20 transition-colors"
+          >Use Template</button
+        >
       </div>
 
-      <div class="p-6 rounded-2xl glass-panel border border-white/10 hover:border-amber-400 transition-all space-y-3">
+      <div
+        class="p-6 rounded-2xl glass-panel border border-white/10 hover:border-amber-400 transition-all space-y-3"
+      >
         <span class="text-xs text-amber-400 font-mono">Template 03</span>
         <h3 class="text-base font-bold text-white">Retrospective</h3>
-        <p class="text-xs text-[#9CAAC1]">Post-delivery reflection on outcomes, lessons learned, bugs fixed, and debt resolved.</p>
-        <button type="button" class="w-full py-2 bg-white/10 text-white font-bold text-xs rounded-xl hover:bg-white/20 transition-colors">Use Template</button>
+        <p class="text-xs text-[#9CAAC1]">
+          Post-delivery reflection on outcomes, lessons learned, bugs fixed, and debt resolved.
+        </p>
+        <button
+          type="button"
+          class="w-full py-2 bg-white/10 text-white font-bold text-xs rounded-xl hover:bg-white/20 transition-colors"
+          >Use Template</button
+        >
       </div>
 
-      <div class="p-6 rounded-2xl glass-panel border border-white/10 hover:border-emerald-400 transition-all space-y-3">
+      <div
+        class="p-6 rounded-2xl glass-panel border border-white/10 hover:border-emerald-400 transition-all space-y-3"
+      >
         <span class="text-xs text-emerald-400 font-mono">Template 04</span>
         <h3 class="text-base font-bold text-white">Quick Note</h3>
-        <p class="text-xs text-[#9CAAC1]">Short technical note, code snippet reference, or quick reference snippet.</p>
-        <button type="button" class="w-full py-2 bg-white/10 text-white font-bold text-xs rounded-xl hover:bg-white/20 transition-colors">Use Template</button>
+        <p class="text-xs text-[#9CAAC1]">
+          Short technical note, code snippet reference, or quick reference snippet.
+        </p>
+        <button
+          type="button"
+          class="w-full py-2 bg-white/10 text-white font-bold text-xs rounded-xl hover:bg-white/20 transition-colors"
+          >Use Template</button
+        >
       </div>
     </div>
   </div>

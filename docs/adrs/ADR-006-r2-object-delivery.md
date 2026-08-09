@@ -15,6 +15,7 @@ R2 buckets can be configured as public (direct URL access) or private (Worker-me
 **All R2 buckets are private by default.** No R2 bucket has public access enabled.
 
 Object delivery model:
+
 - **Private originals**: Delivered only through authenticated Worker streaming response
 - **Public derivatives**: Optimized/resized images created from originals; served via short-lived signed URL (max 15 minutes) or Worker stream
 - **Temporary uploads**: Quarantine prefix; accessed only during processing

@@ -4,7 +4,13 @@
  * All validation is pure TypeScript — no runtime dependencies outside this package.
  */
 
-import type { EntityId, ISODate, ISODateTime, Visibility, PublicationState } from '../entities/index.js';
+import type {
+  EntityId,
+  ISODate,
+  ISODateTime,
+  Visibility,
+  PublicationState,
+} from '../entities/index.js';
 
 // ---------------------------------------------------------------------------
 // Visibility rules — Section 7 of Database Model
@@ -38,18 +44,14 @@ export function isPubliclyDiscoverable(
  * Resolves the effective visibility as the most restrictive among
  * a record and its parent chain.
  */
-export function resolveEffectiveVisibility(
-  ...visibilities: readonly Visibility[]
-): Visibility {
+export function resolveEffectiveVisibility(...visibilities: readonly Visibility[]): Visibility {
   const order: Record<Visibility, number> = {
     private: 0,
     restricted: 1,
     unlisted: 2,
     public: 3,
   };
-  return visibilities.reduce((most, current) =>
-    order[current] < order[most] ? current : most,
-  );
+  return visibilities.reduce((most, current) => (order[current] < order[most] ? current : most));
 }
 
 // ---------------------------------------------------------------------------
@@ -69,9 +71,7 @@ export interface ClaimIntegrityContext {
   readonly backgroundExceptionCoversCredentialsOrQuantifiedOutcome: boolean;
 }
 
-export type ClaimIntegrityResult =
-  | { valid: true }
-  | { valid: false; reasons: readonly string[] };
+export type ClaimIntegrityResult = { valid: true } | { valid: false; reasons: readonly string[] };
 
 /**
  * Validates claim integrity before approval or publication.
@@ -138,7 +138,10 @@ export function validateEvidenceLinkHasSingleTarget(targetFields: {
 }): { valid: true } | { valid: false; reason: string } {
   const filledTargets = Object.values(targetFields).filter((v) => v !== null).length;
   if (filledTargets === 0) {
-    return { valid: false, reason: 'Evidence link must reference exactly one target (none provided).' };
+    return {
+      valid: false,
+      reason: 'Evidence link must reference exactly one target (none provided).',
+    };
   }
   if (filledTargets > 1) {
     return {
@@ -158,9 +161,7 @@ export function validateEvidenceLinkHasSingleTarget(targetFields: {
  * Type guard ensuring no numeric proficiency is used.
  * This is a compile-time and runtime double-check.
  */
-export function assertNoNumericProficiency(
-  obj: Record<string, unknown>,
-): void {
+export function assertNoNumericProficiency(obj: Record<string, unknown>): void {
   const forbidden = [
     'proficiency',
     'proficiency_level',

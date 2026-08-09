@@ -23,17 +23,17 @@ Story completion requires code, tests, accessibility, error states, observabilit
 
 ## 3. Milestone sequence
 
-| Milestone | Outcome |
-|---|---|
-| M0 — Foundation decisions | ADRs, repository and environments are ready |
-| M1 — Secure platform | Public shell and protected dashboard run on Cloudflare |
-| M2 — Canonical publishing | Owner can create, preview, revise and publish journal content |
-| M3 — Evidence system | Evidence, provenance, artifacts and support edges work |
-| M4 — Skills and claims | Capabilities and claims are evidence-backed |
-| M5 — Engineering projects | Full project records and public case studies work |
-| M6 — Discovery | Activity, search and relationship navigation work |
-| M7 — Identity surfaces | Home, recruiter and deep-dive experiences are complete |
-| M8 — Operations and launch | Export, backup, security and production release pass |
+| Milestone                  | Outcome                                                       |
+| -------------------------- | ------------------------------------------------------------- |
+| M0 — Foundation decisions  | ADRs, repository and environments are ready                   |
+| M1 — Secure platform       | Public shell and protected dashboard run on Cloudflare        |
+| M2 — Canonical publishing  | Owner can create, preview, revise and publish journal content |
+| M3 — Evidence system       | Evidence, provenance, artifacts and support edges work        |
+| M4 — Skills and claims     | Capabilities and claims are evidence-backed                   |
+| M5 — Engineering projects  | Full project records and public case studies work             |
+| M6 — Discovery             | Activity, search and relationship navigation work             |
+| M7 — Identity surfaces     | Home, recruiter and deep-dive experiences are complete        |
+| M8 — Operations and launch | Export, backup, security and production release pass          |
 
 ## 4. Epic E00 — Architecture decisions and repository
 

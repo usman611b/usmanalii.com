@@ -11,25 +11,25 @@ Build a durable, portable and near-zero-cost single-owner Career OS. Public traf
 
 ## 2. Selected stack
 
-| Layer | Selection |
-|---|---|
-| Public application | Astro, TypeScript, static-first rendering |
-| Interactive UI | React islands |
-| Styling | Tailwind CSS plus CSS custom-property tokens |
-| Motion | Motion for React and native View Transitions |
-| 3D | Three.js with React Three Fiber, lazy-loaded |
-| API | Cloudflare Worker with Hono-style typed routing |
-| Database | Cloudflare D1 using SQLite semantics |
-| Files | Cloudflare R2 |
-| Authentication | Cloudflare Access for the owner dashboard |
-| Bot protection | Cloudflare Turnstile |
-| Background work | Cloudflare Queues and Cron Triggers |
-| Hosting/CDN/DNS/TLS | Cloudflare Pages/Workers |
-| Source and CI | GitHub and GitHub Actions/Cloudflare builds |
-| Validation | Zod and shared TypeScript domain types |
-| Testing | Vitest, React Testing Library, Playwright and axe-core |
-| Analytics | Cloudflare Web Analytics with privacy-safe custom events |
-| AI | Optional provider adapter/local model from V2; absent from V1 critical path |
+| Layer               | Selection                                                                   |
+| ------------------- | --------------------------------------------------------------------------- |
+| Public application  | Astro, TypeScript, static-first rendering                                   |
+| Interactive UI      | React islands                                                               |
+| Styling             | Tailwind CSS plus CSS custom-property tokens                                |
+| Motion              | Motion for React and native View Transitions                                |
+| 3D                  | Three.js with React Three Fiber, lazy-loaded                                |
+| API                 | Cloudflare Worker with Hono-style typed routing                             |
+| Database            | Cloudflare D1 using SQLite semantics                                        |
+| Files               | Cloudflare R2                                                               |
+| Authentication      | Cloudflare Access for the owner dashboard                                   |
+| Bot protection      | Cloudflare Turnstile                                                        |
+| Background work     | Cloudflare Queues and Cron Triggers                                         |
+| Hosting/CDN/DNS/TLS | Cloudflare Pages/Workers                                                    |
+| Source and CI       | GitHub and GitHub Actions/Cloudflare builds                                 |
+| Validation          | Zod and shared TypeScript domain types                                      |
+| Testing             | Vitest, React Testing Library, Playwright and axe-core                      |
+| Analytics           | Cloudflare Web Analytics with privacy-safe custom events                    |
+| AI                  | Optional provider adapter/local model from V2; absent from V1 critical path |
 
 ## 3. System context
 
@@ -314,12 +314,12 @@ Alerts cover repeated publish failures, authorization anomalies, queue backlog, 
 
 ## 20. Environments and deployment
 
-| Environment | Data | Infrastructure |
-|---|---|---|
-| Local | Synthetic fixtures | Astro dev + Wrangler local D1/R2 |
-| Preview | Synthetic/scrubbed only | Branch preview and staging bindings |
-| Staging | Representative non-sensitive data | Protected domain, D1 and R2 |
-| Production | Canonical owner data | usmanalii.com, production Worker/D1/R2 |
+| Environment | Data                              | Infrastructure                         |
+| ----------- | --------------------------------- | -------------------------------------- |
+| Local       | Synthetic fixtures                | Astro dev + Wrangler local D1/R2       |
+| Preview     | Synthetic/scrubbed only           | Branch preview and staging bindings    |
+| Staging     | Representative non-sensitive data | Protected domain, D1 and R2            |
+| Production  | Canonical owner data              | usmanalii.com, production Worker/D1/R2 |
 
 CI gates: lint, typecheck, unit tests, migration reproduction, authorization tests, build, accessibility smoke tests and dependency/security checks. Production deployment requires staging verification and backup readiness.
 

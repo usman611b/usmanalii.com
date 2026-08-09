@@ -13,6 +13,7 @@ The Worker API needs a typed HTTP routing framework. The Technical Architecture 
 ## Decision
 
 Use **Hono v4** for typed routing with the following conventions:
+
 - API prefix: /api/v1/
 - Zod-validated request and response schemas via @hono/zod-validator
 - Stable machine error codes (see contracts package ErrorCodeSchema)

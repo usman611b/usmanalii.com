@@ -18,7 +18,9 @@ describe('Adversarial XSS & Security Boundary Tests (Gate 4 & 5)', () => {
   it('1. escapeHtml escapes raw HTML tags and characters', () => {
     const raw = '<script>alert("xss")</script> & "quote" \'single\'';
     const escaped = escapeHtml(raw);
-    expect(escaped).toBe('&lt;script&gt;alert(&quot;xss&quot;)&lt;/script&gt; &amp; &quot;quote&quot; &#39;single&#39;');
+    expect(escaped).toBe(
+      '&lt;script&gt;alert(&quot;xss&quot;)&lt;/script&gt; &amp; &quot;quote&quot; &#39;single&#39;',
+    );
     expect(escaped).not.toContain('<script>');
   });
 

@@ -18,8 +18,10 @@ export * from './repositories/graph.js';
 export * from './repositories/progression.js';
 export * from './repositories/suggestions.js';
 export * from './repositories/reconciliation.js';
+export * from './repositories/projects.js';
+export * from './repositories/engineering.js';
+export * from './repositories/project-relationships.js';
 export type { MigrationRunner } from './migrations/runner.js';
 
 // Migration utilities
 export { runMigrations, getMigrationStatus } from './migrations/runner.js';
-

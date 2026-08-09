@@ -36,14 +36,30 @@ suggestionRoutes.post('/', async (c) => {
   const evidenceReferences = Array.isArray(body.evidenceReferences) ? body.evidenceReferences : [];
 
   if (!title || !description) {
-    return c.json({ code: 'VALIDATION_ERROR', message: 'Title and description are required.', requestId: c.get('requestId') }, 400);
+    return c.json(
+      {
+        code: 'VALIDATION_ERROR',
+        message: 'Title and description are required.',
+        requestId: c.get('requestId'),
+      },
+      400,
+    );
   }
 
   if (evidenceReferences.length === 0) {
-    return c.json({ code: 'VALIDATION_ERROR', message: 'Suggestions require at least one valid evidence reference ID.', requestId: c.get('requestId') }, 400);
+    return c.json(
+      {
+        code: 'VALIDATION_ERROR',
+        message: 'Suggestions require at least one valid evidence reference ID.',
+        requestId: c.get('requestId'),
+      },
+      400,
+    );
   }
 
-  const fingerprint = String(body.fingerprint || `${suggestionType}:${title}`).toLowerCase().trim();
+  const fingerprint = String(body.fingerprint || `${suggestionType}:${title}`)
+    .toLowerCase()
+    .trim();
   const repo = new D1SuggestionRepository(c.env.DB);
   const id = crypto.randomUUID() as EntityId;
 
@@ -55,16 +71,31 @@ suggestionRoutes.post('/', async (c) => {
     description,
     payloadJson: JSON.stringify(body.payload || {}),
     evidenceReferences: evidenceReferences as EntityId[],
-    createdByClassification: (body.createdByClassification as SuggestionOrigin) || 'deterministic_rule',
+    createdByClassification:
+      (body.createdByClassification as SuggestionOrigin) || 'deterministic_rule',
     modelMetadataJson: '{}',
     fingerprint,
   });
 
   if (!created) {
-    return c.json({ code: 'SUGGESTION_DEDUPLICATED', message: 'An identical suggestion was previously rejected.', requestId: c.get('requestId') }, 200);
+    return c.json(
+      {
+        code: 'SUGGESTION_DEDUPLICATED',
+        message: 'An identical suggestion was previously rejected.',
+        requestId: c.get('requestId'),
+      },
+      200,
+    );
   }
 
-  return c.json({ data: created, message: 'Suggestion created for owner review.', requestId: c.get('requestId') }, 201);
+  return c.json(
+    {
+      data: created,
+      message: 'Suggestion created for owner review.',
+      requestId: c.get('requestId'),
+    },
+    201,
+  );
 });
 
 /** POST /api/v1/private/suggestions/:id/reject — Reject suggestion */
@@ -78,7 +109,11 @@ suggestionRoutes.post('/:id/reject', async (c) => {
   const repo = new D1SuggestionRepository(c.env.DB);
   const rejected = await repo.rejectSuggestion(ownerId, id, reason);
 
-  return c.json({ data: rejected, message: 'Suggestion rejected and fingerprint recorded.', requestId: c.get('requestId') });
+  return c.json({
+    data: rejected,
+    message: 'Suggestion rejected and fingerprint recorded.',
+    requestId: c.get('requestId'),
+  });
 });
 
 /** POST /api/v1/private/suggestions/:id/accept — Accept suggestion */
@@ -98,5 +133,9 @@ suggestionRoutes.post('/:id/accept', async (c) => {
     [],
   );
 
-  return c.json({ data: accepted, message: 'Suggestion accepted by owner.', requestId: c.get('requestId') });
+  return c.json({
+    data: accepted,
+    message: 'Suggestion accepted by owner.',
+    requestId: c.get('requestId'),
+  });
 });

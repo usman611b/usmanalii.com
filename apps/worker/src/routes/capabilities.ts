@@ -32,7 +32,14 @@ capabilityRoutes.post('/', async (c) => {
   const body = (await c.req.json().catch(() => ({}))) as Record<string, unknown>;
 
   if (body.owner_id || body.ownerId) {
-    return c.json({ code: 'VALIDATION_ERROR', message: 'owner_id cannot be supplied in body payload.', requestId: c.get('requestId') }, 400);
+    return c.json(
+      {
+        code: 'VALIDATION_ERROR',
+        message: 'owner_id cannot be supplied in body payload.',
+        requestId: c.get('requestId'),
+      },
+      400,
+    );
   }
 
   const title = String(body.title || '').trim();
@@ -42,10 +49,16 @@ capabilityRoutes.post('/', async (c) => {
   // Validate capability wording (structural length, non-empty, no percentages, no raw XSS)
   const validation = validateCapabilityWording(title, outcomeStatement);
   if (!validation.valid) {
-    return c.json({ code: 'VALIDATION_ERROR', message: validation.reason, requestId: c.get('requestId') }, 400);
+    return c.json(
+      { code: 'VALIDATION_ERROR', message: validation.reason, requestId: c.get('requestId') },
+      400,
+    );
   }
 
-  const slug = String(body.slug || title).toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
+  const slug = String(body.slug || title)
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/(^-|-$)/g, '');
   const repo = new D1CapabilityRepository(c.env.DB);
   const id = crypto.randomUUID() as EntityId;
 
@@ -61,11 +74,25 @@ capabilityRoutes.post('/', async (c) => {
       state: (body.state as 'draft' | 'published') || 'draft',
     });
 
-    return c.json({ data: capability, message: 'Capability created successfully.', requestId: c.get('requestId') }, 201);
+    return c.json(
+      {
+        data: capability,
+        message: 'Capability created successfully.',
+        requestId: c.get('requestId'),
+      },
+      201,
+    );
   } catch (err: unknown) {
     const error = err as Error;
     if (error?.message?.includes('UNIQUE') || error?.message?.includes('slug')) {
-      return c.json({ code: 'UNIQUE_CONSTRAINT', message: 'A capability with this slug already exists.', requestId: c.get('requestId') }, 400);
+      return c.json(
+        {
+          code: 'UNIQUE_CONSTRAINT',
+          message: 'A capability with this slug already exists.',
+          requestId: c.get('requestId'),
+        },
+        400,
+      );
     }
     throw err;
   }
@@ -80,7 +107,14 @@ capabilityRoutes.get('/:id', async (c) => {
 
   const capability = await repo.getCapabilityById(ownerId, id);
   if (!capability) {
-    return c.json({ code: 'RESOURCE_NOT_FOUND', message: 'Capability not found.', requestId: c.get('requestId') }, 404);
+    return c.json(
+      {
+        code: 'RESOURCE_NOT_FOUND',
+        message: 'Capability not found.',
+        requestId: c.get('requestId'),
+      },
+      404,
+    );
   }
   return c.json({ data: capability, requestId: c.get('requestId') });
 });

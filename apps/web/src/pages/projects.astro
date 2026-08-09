@@ -1,24 +1,105 @@
 ---
 import BaseLayout from '../layouts/BaseLayout.astro';
+
+const mockProjects = [
+  {
+    id: 'proj-1',
+    title: 'Secure Multi-Tenant Monorepo Platform',
+    slug: 'secure-multi-tenant-monorepo',
+    shortSummary:
+      'Evidence-backed monorepo platform with Cloudflare Workers, D1 DB, R2, and Astro 5.',
+    lifecycleState: 'active',
+    isFeatured: true,
+    skills: ['TypeScript', 'Cloudflare Workers', 'Astro 5', 'D1 Database'],
+  },
+  {
+    id: 'proj-2',
+    title: 'Distributed Cache Invalidation Engine',
+    slug: 'distributed-cache-engine',
+    shortSummary:
+      'High-performance cache invalidation pipeline on edge workers with automated purging.',
+    lifecycleState: 'completed',
+    isFeatured: false,
+    skills: ['Cloudflare Workers', 'R2 Storage', 'TypeScript'],
+  },
+];
 ---
 
-<BaseLayout title="Projects — usmanalii.com" description="Engineering case studies and project records" currentPath="/projects">
+<BaseLayout
+  title="Projects — usmanalii.com"
+  description="Evidence-backed engineering case studies and project records"
+  currentPath="/projects"
+>
   <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
     <div class="space-y-4">
-      <h1 class="text-3xl font-bold text-white tracking-tight">Projects & Engineering Case Studies</h1>
+      <div
+        class="inline-flex items-center space-x-2 px-3 py-1 rounded-full bg-[#112338] border border-[#1E3A5F]"
+      >
+        <span class="w-2 h-2 rounded-full bg-[#22D3EE]"></span>
+        <span class="text-xs font-mono text-[#22D3EE]">Engineering Record Pillar</span>
+      </div>
+      <h1 class="text-3xl font-bold text-white tracking-tight">
+        Projects & Engineering Case Studies
+      </h1>
       <p class="text-sm text-[#9CAAC1] max-w-2xl">
-        Complete case studies with architecture decisions, experiments, ADRs, debugging lessons, and outcomes.
+        Evidence-backed case studies detailing problem context, goals, architecture decisions,
+        experiments, debugging lessons, deployments, and outcomes.
       </p>
     </div>
 
-    <div class="mt-12 space-y-6">
-      <div class="p-6 rounded-2xl glass-panel">
-        <span class="text-xs text-[#B6F43A] font-mono font-semibold">Active Project</span>
-        <h2 class="text-xl font-bold text-white mt-1">usmanalii.com — Personal Career OS</h2>
-        <p class="text-xs text-[#9CAAC1] mt-2 leading-relaxed">
-          Lifetime-free architecture built on Astro 5, Cloudflare Workers, D1 database, R2 storage, and Tailwind CSS.
-        </p>
+    <!-- Filter & Search Controls -->
+    <div
+      class="mt-8 p-4 rounded-xl glass-panel flex flex-col md:flex-row items-center justify-between gap-4"
+    >
+      <div class="flex items-center space-x-2 w-full md:w-auto">
+        <label for="status-filter" class="text-xs text-[#9CAAC1]">Status:</label>
+        <select
+          id="status-filter"
+          class="bg-[#0B1528] border border-[#1E3A5F] text-xs text-white rounded-lg px-3 py-1.5 focus:outline-none focus:border-[#22D3EE]"
+        >
+          <option value="all">All Projects</option>
+          <option value="active">Active</option>
+          <option value="completed">Completed</option>
+        </select>
       </div>
+      <div class="text-xs text-[#9CAAC1]">
+        Showing <span class="text-white font-semibold">{mockProjects.length}</span> evidence-backed case
+        studies
+      </div>
+    </div>
+
+    <div class="mt-8 grid grid-cols-1 md:grid-cols-2 gap-6">
+      {
+        mockProjects.map((proj) => (
+          <a href={`/projects/${proj.slug}`} class="block group">
+            <div class="p-6 rounded-2xl glass-panel border border-[#1E3A5F] group-hover:border-[#22D3EE] transition-all h-full flex flex-col justify-between">
+              <div class="space-y-3">
+                <div class="flex items-center justify-between">
+                  <span class="text-[10px] font-mono uppercase tracking-wider px-2 py-0.5 rounded bg-[#112338] text-[#22D3EE] border border-[#1E3A5F]">
+                    {proj.lifecycleState}
+                  </span>
+                  {proj.isFeatured && (
+                    <span class="text-[10px] font-mono text-[#B6F43A] bg-[#1C2C14] px-2 py-0.5 rounded border border-[#2E4A1C]">
+                      Featured
+                    </span>
+                  )}
+                </div>
+                <h2 class="text-xl font-bold text-white group-hover:text-[#22D3EE] transition-colors">
+                  {proj.title}
+                </h2>
+                <p class="text-xs text-[#9CAAC1] leading-relaxed">{proj.shortSummary}</p>
+              </div>
+              <div class="mt-6 pt-4 border-t border-[#1E3A5F]/50 flex flex-wrap gap-1.5">
+                {proj.skills.map((skill) => (
+                  <span class="text-[10px] font-mono text-[#9CAAC1] bg-[#0B1528] px-2 py-0.5 rounded border border-[#1E3A5F]">
+                    {skill}
+                  </span>
+                ))}
+              </div>
+            </div>
+          </a>
+        ))
+      }
     </div>
   </div>
 </BaseLayout>

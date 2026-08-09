@@ -75,9 +75,7 @@ export type JwtValidationResult =
 // Authorization check result
 // ---------------------------------------------------------------------------
 
-export type AuthorizationResult =
-  | { authorized: true }
-  | { authorized: false; reason: string };
+export type AuthorizationResult = { authorized: true } | { authorized: false; reason: string };
 
 // ---------------------------------------------------------------------------
 // JWKS Key Structures & Cryptographic Verification
@@ -127,9 +125,10 @@ export function parseJwtParts(jwtToken: string): {
   if (!headerB64 || !payloadB64 || !signatureB64) return null;
 
   try {
-    const headerJson = JSON.parse(
-      new TextDecoder().decode(base64UrlDecode(headerB64)),
-    ) as { kid?: string; alg?: string };
+    const headerJson = JSON.parse(new TextDecoder().decode(base64UrlDecode(headerB64))) as {
+      kid?: string;
+      alg?: string;
+    };
     const claimsJson = JSON.parse(
       new TextDecoder().decode(base64UrlDecode(payloadB64)),
     ) as CloudflareAccessJwtClaims;
@@ -165,12 +164,7 @@ export async function verifyJwtSignature(
     );
     const signedDataBuffer = signedData.buffer as ArrayBuffer;
     const signatureBuffer = signature.buffer as ArrayBuffer;
-    return await crypto.subtle.verify(
-      'RSASSA-PKCS1-v1_5',
-      key,
-      signatureBuffer,
-      signedDataBuffer,
-    );
+    return await crypto.subtle.verify('RSASSA-PKCS1-v1_5', key, signatureBuffer, signedDataBuffer);
   } catch {
     return false;
   }
@@ -292,13 +286,7 @@ export async function verifyAccessJwtCryptographically(
   }
 
   // 3. Validate claims (issuer, audience, expiry, nbf, owner identity)
-  return validateAccessJwtClaims(
-    claims,
-    expectedIssuer,
-    expectedAudience,
-    expectedOwnerEmail,
-    now,
-  );
+  return validateAccessJwtClaims(claims, expectedIssuer, expectedAudience, expectedOwnerEmail, now);
 }
 
 /**
@@ -391,9 +379,7 @@ export function checkAuthorization(
   return { authorized: true };
 }
 
-export function requireOwnerContext(
-  context: AuthorizationContext | null,
-): AuthorizationResult {
+export function requireOwnerContext(context: AuthorizationContext | null): AuthorizationResult {
   if (context === null) {
     return { authorized: false, reason: 'Authentication required.' };
   }

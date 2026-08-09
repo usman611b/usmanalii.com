@@ -58,21 +58,21 @@ Desktop uses persistent primary navigation. Mobile uses a full-screen accessible
 
 ### Colors
 
-| Token | Value | Purpose |
-|---|---:|---|
-| Obsidian | `#050509` | Page foundation |
-| Midnight | `#080D1A` | Reading and navigation surfaces |
-| Elevated navy | `#0D1528` | Cards and panels |
-| Surface high | `#101A31` | Interactive elevation |
-| Foreground | `#F7FBFF` | Primary text |
-| Muted | `#9CAAC1` | Secondary text |
-| Cyber cyan | `#22D3EE` | Evidence and verification |
-| Electric violet | `#8B5CF6` | Intelligence and identity |
-| Hot magenta | `#EC4899` | Experiments and exploration |
-| Acid lime | `#B6F43A` | Delivery and progress |
-| Signal blue | `#3B82F6` | Navigation and information |
-| Warning amber | `#F59E0B` | Stale or incomplete evidence |
-| Error red | `#F43F5E` | Broken, rejected or destructive state |
+| Token           |     Value | Purpose                               |
+| --------------- | --------: | ------------------------------------- |
+| Obsidian        | `#050509` | Page foundation                       |
+| Midnight        | `#080D1A` | Reading and navigation surfaces       |
+| Elevated navy   | `#0D1528` | Cards and panels                      |
+| Surface high    | `#101A31` | Interactive elevation                 |
+| Foreground      | `#F7FBFF` | Primary text                          |
+| Muted           | `#9CAAC1` | Secondary text                        |
+| Cyber cyan      | `#22D3EE` | Evidence and verification             |
+| Electric violet | `#8B5CF6` | Intelligence and identity             |
+| Hot magenta     | `#EC4899` | Experiments and exploration           |
+| Acid lime       | `#B6F43A` | Delivery and progress                 |
+| Signal blue     | `#3B82F6` | Navigation and information            |
+| Warning amber   | `#F59E0B` | Stale or incomplete evidence          |
+| Error red       | `#F43F5E` | Broken, rejected or destructive state |
 
 Large gradients use cyan → violet → magenta. Evidence gradients use cyan → blue → violet. Delivery gradients use cyan → lime. Body text never uses gradient fill.
 

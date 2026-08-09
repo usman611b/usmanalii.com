@@ -23,7 +23,11 @@ export function evaluateEvidenceStrength(
   const eligible = items.filter((item) => {
     if (item.visibility !== 'public') return false;
     if (item.archivedAt !== null) return false;
-    if (item.verificationState === 'disputed' || item.verificationState === 'revoked' || item.verificationState === 'archived') {
+    if (
+      item.verificationState === 'disputed' ||
+      item.verificationState === 'revoked' ||
+      item.verificationState === 'archived'
+    ) {
       return false;
     }
     if (item.embargoUntil !== null && new Date(item.embargoUntil) > now) return false;
@@ -43,7 +47,9 @@ export function evaluateEvidenceStrength(
   let score = 0;
 
   // Factor 1: Source Verification
-  const sourceVerifiedCount = eligible.filter((i) => i.verificationState === 'source_verified').length;
+  const sourceVerifiedCount = eligible.filter(
+    (i) => i.verificationState === 'source_verified',
+  ).length;
   if (sourceVerifiedCount > 0) {
     score += 2;
     factors.push(`${sourceVerifiedCount} source-verified evidence item(s)`);

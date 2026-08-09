@@ -59,12 +59,15 @@ evidenceRoutes.post('/', async (c) => {
   const body = await c.req.json().catch(() => null);
   const parseResult = CreateEvidenceRequestSchema.safeParse(body);
   if (!parseResult.success) {
-    return c.json({
-      code: 'VALIDATION_ERROR',
-      message: 'Invalid evidence creation parameters.',
-      errors: parseResult.error.flatten(),
-      requestId: c.get('requestId'),
-    }, 400);
+    return c.json(
+      {
+        code: 'VALIDATION_ERROR',
+        message: 'Invalid evidence creation parameters.',
+        errors: parseResult.error.flatten(),
+        requestId: c.get('requestId'),
+      },
+      400,
+    );
   }
 
   const id = crypto.randomUUID();
@@ -95,7 +98,14 @@ evidenceRoutes.get('/:id', async (c) => {
 
   const item = await repo.findById(ownerId, id);
   if (!item) {
-    return c.json({ code: 'RESOURCE_NOT_FOUND', message: 'Evidence item not found.', requestId: c.get('requestId') }, 404);
+    return c.json(
+      {
+        code: 'RESOURCE_NOT_FOUND',
+        message: 'Evidence item not found.',
+        requestId: c.get('requestId'),
+      },
+      404,
+    );
   }
 
   const verificationHistory = await repo.getVerificationHistory(ownerId, id);
@@ -121,12 +131,15 @@ evidenceRoutes.put('/:id', async (c) => {
   const body = await c.req.json().catch(() => null);
   const parseResult = UpdateEvidenceRequestSchema.safeParse(body);
   if (!parseResult.success) {
-    return c.json({
-      code: 'VALIDATION_ERROR',
-      message: 'Invalid evidence update parameters.',
-      errors: parseResult.error.flatten(),
-      requestId: c.get('requestId'),
-    }, 400);
+    return c.json(
+      {
+        code: 'VALIDATION_ERROR',
+        message: 'Invalid evidence update parameters.',
+        errors: parseResult.error.flatten(),
+        requestId: c.get('requestId'),
+      },
+      400,
+    );
   }
 
   const { versionNo, title, description, visibility, embargoUntil } = parseResult.data;
@@ -140,13 +153,24 @@ evidenceRoutes.put('/:id', async (c) => {
 
   if (!updateRes.success) {
     if (updateRes.reason === 'concurrency_conflict') {
-      return c.json({
-        code: 'CONFLICT',
-        message: 'Optimistic concurrency conflict: Evidence item has been modified by another session.',
-        requestId: c.get('requestId'),
-      }, 409);
+      return c.json(
+        {
+          code: 'CONFLICT',
+          message:
+            'Optimistic concurrency conflict: Evidence item has been modified by another session.',
+          requestId: c.get('requestId'),
+        },
+        409,
+      );
     }
-    return c.json({ code: 'RESOURCE_NOT_FOUND', message: 'Evidence item not found.', requestId: c.get('requestId') }, 404);
+    return c.json(
+      {
+        code: 'RESOURCE_NOT_FOUND',
+        message: 'Evidence item not found.',
+        requestId: c.get('requestId'),
+      },
+      404,
+    );
   }
 
   return c.json({ data: updateRes.item, requestId: c.get('requestId') });
@@ -162,12 +186,15 @@ evidenceRoutes.post('/:id/verify', async (c) => {
   const body = await c.req.json().catch(() => null);
   const parseResult = RecordVerificationEventSchema.safeParse(body);
   if (!parseResult.success) {
-    return c.json({
-      code: 'VALIDATION_ERROR',
-      message: 'Invalid verification event parameters.',
-      errors: parseResult.error.flatten(),
-      requestId: c.get('requestId'),
-    }, 400);
+    return c.json(
+      {
+        code: 'VALIDATION_ERROR',
+        message: 'Invalid verification event parameters.',
+        errors: parseResult.error.flatten(),
+        requestId: c.get('requestId'),
+      },
+      400,
+    );
   }
 
   const { newState, verificationMethod, rationale } = parseResult.data;
@@ -183,7 +210,14 @@ evidenceRoutes.post('/:id/verify', async (c) => {
     );
     return c.json({ data: res, requestId: c.get('requestId') });
   } catch {
-    return c.json({ code: 'RESOURCE_NOT_FOUND', message: 'Evidence item not found.', requestId: c.get('requestId') }, 404);
+    return c.json(
+      {
+        code: 'RESOURCE_NOT_FOUND',
+        message: 'Evidence item not found.',
+        requestId: c.get('requestId'),
+      },
+      404,
+    );
   }
 });
 
@@ -198,7 +232,14 @@ evidenceRoutes.post('/:id/archive', async (c) => {
     const archived = await repo.archive(ownerId, id);
     return c.json({ data: archived, requestId: c.get('requestId') });
   } catch {
-    return c.json({ code: 'RESOURCE_NOT_FOUND', message: 'Evidence item not found.', requestId: c.get('requestId') }, 404);
+    return c.json(
+      {
+        code: 'RESOURCE_NOT_FOUND',
+        message: 'Evidence item not found.',
+        requestId: c.get('requestId'),
+      },
+      404,
+    );
   }
 });
 
@@ -212,7 +253,14 @@ evidenceRoutes.post('/:id/restore', async (c) => {
     const restored = await repo.restore(ownerId, id);
     return c.json({ data: restored, requestId: c.get('requestId') });
   } catch {
-    return c.json({ code: 'RESOURCE_NOT_FOUND', message: 'Evidence item not found.', requestId: c.get('requestId') }, 404);
+    return c.json(
+      {
+        code: 'RESOURCE_NOT_FOUND',
+        message: 'Evidence item not found.',
+        requestId: c.get('requestId'),
+      },
+      404,
+    );
   }
 });
 
@@ -226,12 +274,15 @@ evidenceRoutes.post('/:id/links', async (c) => {
   const body = await c.req.json().catch(() => null);
   const parseResult = CreateEvidenceLinkRequestSchema.safeParse(body);
   if (!parseResult.success) {
-    return c.json({
-      code: 'VALIDATION_ERROR',
-      message: 'Invalid evidence link parameters.',
-      errors: parseResult.error.flatten(),
-      requestId: c.get('requestId'),
-    }, 400);
+    return c.json(
+      {
+        code: 'VALIDATION_ERROR',
+        message: 'Invalid evidence link parameters.',
+        errors: parseResult.error.flatten(),
+        requestId: c.get('requestId'),
+      },
+      400,
+    );
   }
 
   const targetValidation = validateEvidenceLinkTarget({
@@ -240,11 +291,14 @@ evidenceRoutes.post('/:id/links', async (c) => {
   } as import('@usmanalii/domain').EvidenceLinkTarget);
 
   if (!targetValidation.valid) {
-    return c.json({
-      code: 'EVIDENCE_LINK_INVALID_TARGET',
-      message: targetValidation.reason,
-      requestId: c.get('requestId'),
-    }, 400);
+    return c.json(
+      {
+        code: 'EVIDENCE_LINK_INVALID_TARGET',
+        message: targetValidation.reason,
+        requestId: c.get('requestId'),
+      },
+      400,
+    );
   }
 
   const linkId = crypto.randomUUID();
@@ -266,7 +320,14 @@ evidenceRoutes.delete('/:id/links/:linkId', async (c) => {
 
   const deleted = await repo.deleteLink(ownerId, id, linkId);
   if (!deleted) {
-    return c.json({ code: 'RESOURCE_NOT_FOUND', message: 'Evidence link not found.', requestId: c.get('requestId') }, 404);
+    return c.json(
+      {
+        code: 'RESOURCE_NOT_FOUND',
+        message: 'Evidence link not found.',
+        requestId: c.get('requestId'),
+      },
+      404,
+    );
   }
   return c.json({ message: 'Evidence link deleted.', requestId: c.get('requestId') });
 });

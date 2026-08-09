@@ -53,14 +53,12 @@ export interface AuthVariables {
  * Authentication middleware — validates JWT and populates `authContext` variable.
  * Does NOT block request — allows downstream middleware/routes to decide if auth is required.
  */
-export function authenticate(
-  overrides?: {
-    teamDomain?: string;
-    audTag?: string;
-    ownerEmail?: string;
-    jwksCache?: JwksKeyCache;
-  },
-): MiddlewareHandler<{ Bindings: WorkerEnv; Variables: AuthVariables }> {
+export function authenticate(overrides?: {
+  teamDomain?: string;
+  audTag?: string;
+  ownerEmail?: string;
+  jwksCache?: JwksKeyCache;
+}): MiddlewareHandler<{ Bindings: WorkerEnv; Variables: AuthVariables }> {
   return async (c, next) => {
     const requestId = c.get('requestId') || crypto.randomUUID();
     c.set('requestId', requestId);
@@ -82,7 +80,8 @@ export function authenticate(
       const now = new Date();
       c.set('authContext', {
         authenticatedSubject: ownerEmail,
-        ownerId: '00000000-0000-0000-0000-000000000001' as unknown as import('@usmanalii/domain').EntityId,
+        ownerId:
+          '00000000-0000-0000-0000-000000000001' as unknown as import('@usmanalii/domain').EntityId,
         isOwner: true,
         requestId,
         validatedAt: now,

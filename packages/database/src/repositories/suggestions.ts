@@ -1,5 +1,12 @@
 import type { D1Database } from '@cloudflare/workers-types';
-import type { SuggestionEntity, EntityId, ISODateTime, SuggestionState, SuggestionType, SuggestionOrigin } from '@usmanalii/domain';
+import type {
+  SuggestionEntity,
+  EntityId,
+  ISODateTime,
+  SuggestionState,
+  SuggestionType,
+  SuggestionOrigin,
+} from '@usmanalii/domain';
 
 export interface CreateSuggestionParams {
   id: EntityId;
@@ -19,13 +26,20 @@ export class D1SuggestionRepository {
 
   async createSuggestion(params: CreateSuggestionParams): Promise<SuggestionEntity | null> {
     if (!params.evidenceReferences || params.evidenceReferences.length === 0) {
-      throw new Error('INVALID_SUGGESTION: Suggestions require at least 1 eligible evidence reference.');
+      throw new Error(
+        'INVALID_SUGGESTION: Suggestions require at least 1 eligible evidence reference.',
+      );
     }
 
     // Check if identical suggestion was previously rejected
-    const existingRejected = await this.db.prepare(`
+    const existingRejected = await this.db
+      .prepare(
+        `
       SELECT id FROM suggestions WHERE owner_id = ? AND fingerprint = ? AND suggestion_state = 'rejected'
-    `).bind(params.ownerId, params.fingerprint).first();
+    `,
+      )
+      .bind(params.ownerId, params.fingerprint)
+      .first();
 
     if (existingRejected) {
       // Deduplicated — skip inserting repeated rejected suggestion
@@ -35,54 +49,78 @@ export class D1SuggestionRepository {
     const now = new Date().toISOString() as ISODateTime;
     const evJson = JSON.stringify(params.evidenceReferences);
 
-    await this.db.prepare(`
+    await this.db
+      .prepare(
+        `
       INSERT INTO suggestions (
         id, owner_id, suggestion_type, title, description, payload_json,
         evidence_references, created_by_classification, model_metadata_json,
         suggestion_state, rejection_reason, fingerprint, created_at, updated_at
       ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending', NULL, ?, ?, ?)
-    `).bind(
-      params.id,
-      params.ownerId,
-      params.suggestionType,
-      params.title,
-      params.description,
-      params.payloadJson,
-      evJson,
-      params.createdByClassification,
-      params.modelMetadataJson || '{}',
-      params.fingerprint,
-      now,
-      now,
-    ).run();
+    `,
+      )
+      .bind(
+        params.id,
+        params.ownerId,
+        params.suggestionType,
+        params.title,
+        params.description,
+        params.payloadJson,
+        evJson,
+        params.createdByClassification,
+        params.modelMetadataJson || '{}',
+        params.fingerprint,
+        now,
+        now,
+      )
+      .run();
 
     return this.getSuggestionById(params.ownerId, params.id);
   }
 
   async getSuggestionById(ownerId: EntityId, id: EntityId): Promise<SuggestionEntity | null> {
-    const row = await this.db.prepare(`
+    const row = await this.db
+      .prepare(
+        `
       SELECT * FROM suggestions WHERE id = ? AND owner_id = ?
-    `).bind(id, ownerId).first();
+    `,
+      )
+      .bind(id, ownerId)
+      .first();
 
     if (!row) return null;
     return this.mapRowToSuggestion(row);
   }
 
   async listPendingSuggestions(ownerId: EntityId): Promise<readonly SuggestionEntity[]> {
-    const { results } = await this.db.prepare(`
+    const { results } = await this.db
+      .prepare(
+        `
       SELECT * FROM suggestions WHERE owner_id = ? AND suggestion_state = 'pending' ORDER BY created_at DESC
-    `).bind(ownerId).all();
+    `,
+      )
+      .bind(ownerId)
+      .all();
 
     return (results || []).map((r) => this.mapRowToSuggestion(r));
   }
 
-  async rejectSuggestion(ownerId: EntityId, id: EntityId, reason: string): Promise<SuggestionEntity> {
+  async rejectSuggestion(
+    ownerId: EntityId,
+    id: EntityId,
+    reason: string,
+  ): Promise<SuggestionEntity> {
     const now = new Date().toISOString() as ISODateTime;
-    const res = await this.db.prepare(`
+    const res = await this.db
+      .prepare(
+        `
       UPDATE suggestions
       SET suggestion_state = 'rejected', rejection_reason = ?, updated_at = ?
       WHERE id = ? AND owner_id = ? AND suggestion_state = 'pending'
-    `).bind(reason, now, id, ownerId).run();
+    `,
+      )
+      .bind(reason, now, id, ownerId)
+      .run();
 
     if (res.meta.changes === 0) {
       throw new Error('Suggestion not found or not in pending state');
@@ -100,14 +138,21 @@ export class D1SuggestionRepository {
     createEntityStatements: readonly unknown[],
   ): Promise<SuggestionEntity> {
     const now = new Date().toISOString() as ISODateTime;
-    const updateStmt = this.db.prepare(`
+    const updateStmt = this.db
+      .prepare(
+        `
       UPDATE suggestions
       SET suggestion_state = ?, updated_at = ?
       WHERE id = ? AND owner_id = ? AND suggestion_state = 'pending'
-    `).bind(editedState, now, id, ownerId);
+    `,
+      )
+      .bind(editedState, now, id, ownerId);
 
     // Execute update + entity creation statements atomically
-    await this.db.batch([updateStmt, ...(createEntityStatements as unknown as Parameters<D1Database['batch']>[0])]);
+    await this.db.batch([
+      updateStmt,
+      ...(createEntityStatements as unknown as Parameters<D1Database['batch']>[0]),
+    ]);
 
     const updated = await this.getSuggestionById(ownerId, id);
     if (!updated) throw new Error('Suggestion acceptance failed');

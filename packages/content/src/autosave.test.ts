@@ -1,5 +1,9 @@
 import { describe, it, expect } from 'vitest';
-import { ContentAutosaveManager, MemoryStorageAdapter, type ContentDraftState } from './autosave.js';
+import {
+  ContentAutosaveManager,
+  MemoryStorageAdapter,
+  type ContentDraftState,
+} from './autosave.js';
 
 describe('Requirement 3: Editor Autosave & Concurrency Failure/Recovery Tests', () => {
   const sampleDraft: ContentDraftState = {

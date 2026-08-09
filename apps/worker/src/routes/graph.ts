@@ -16,7 +16,11 @@ graphRoutes.get('/relationships', async (c) => {
   const repo = new D1GraphRepository(c.env.DB);
 
   const relationships = await repo.getSkillRelationshipsByOwner(ownerId);
-  return c.json({ data: relationships, count: relationships.length, requestId: c.get('requestId') });
+  return c.json({
+    data: relationships,
+    count: relationships.length,
+    requestId: c.get('requestId'),
+  });
 });
 
 /** POST /api/v1/private/graph/relationships — Create skill-to-skill edge with cycle check */
@@ -26,7 +30,14 @@ graphRoutes.post('/relationships', async (c) => {
   const body = (await c.req.json().catch(() => ({}))) as Record<string, unknown>;
 
   if (body.owner_id || body.ownerId) {
-    return c.json({ code: 'VALIDATION_ERROR', message: 'owner_id cannot be supplied in body payload.', requestId: c.get('requestId') }, 400);
+    return c.json(
+      {
+        code: 'VALIDATION_ERROR',
+        message: 'owner_id cannot be supplied in body payload.',
+        requestId: c.get('requestId'),
+      },
+      400,
+    );
   }
 
   const sourceSkillId = String(body.sourceSkillId || '');
@@ -43,7 +54,10 @@ graphRoutes.post('/relationships', async (c) => {
     targetSkillId,
     relationshipType,
     relevance,
-    existingEdges: existingEdges.map((e) => ({ sourceId: e.sourceSkillId, targetId: e.targetSkillId })),
+    existingEdges: existingEdges.map((e) => ({
+      sourceId: e.sourceSkillId,
+      targetId: e.targetSkillId,
+    })),
   });
 
   if (!validation.valid) {
@@ -63,11 +77,21 @@ graphRoutes.post('/relationships', async (c) => {
       ownerNote: body.ownerNote ? String(body.ownerNote) : null,
     });
 
-    return c.json({ data: edge, message: 'Skill relationship created.', requestId: c.get('requestId') }, 201);
+    return c.json(
+      { data: edge, message: 'Skill relationship created.', requestId: c.get('requestId') },
+      201,
+    );
   } catch (err: unknown) {
     const error = err as Error;
     if (error?.message?.includes('UNIQUE')) {
-      return c.json({ code: 'DUPLICATE_EDGE', message: 'An active edge already exists for these skills.', requestId: c.get('requestId') }, 400);
+      return c.json(
+        {
+          code: 'DUPLICATE_EDGE',
+          message: 'An active edge already exists for these skills.',
+          requestId: c.get('requestId'),
+        },
+        400,
+      );
     }
     throw err;
   }
@@ -85,7 +109,15 @@ graphRoutes.post('/evidence-links', async (c) => {
   const relationshipType = String(body.relationshipType || 'demonstrates');
 
   if (!evidenceId || (!skillId && !capabilityId) || (skillId && capabilityId)) {
-    return c.json({ code: 'VALIDATION_ERROR', message: 'Evidence link must reference exactly one evidence ID and exactly ONE skill ID or capability ID.', requestId: c.get('requestId') }, 400);
+    return c.json(
+      {
+        code: 'VALIDATION_ERROR',
+        message:
+          'Evidence link must reference exactly one evidence ID and exactly ONE skill ID or capability ID.',
+        requestId: c.get('requestId'),
+      },
+      400,
+    );
   }
 
   const repo = new D1GraphRepository(c.env.DB);
@@ -100,7 +132,10 @@ graphRoutes.post('/evidence-links', async (c) => {
       relationshipType,
       ownerNote: body.ownerNote ? String(body.ownerNote) : null,
     });
-    return c.json({ data: link, message: 'Evidence linked to skill.', requestId: c.get('requestId') }, 201);
+    return c.json(
+      { data: link, message: 'Evidence linked to skill.', requestId: c.get('requestId') },
+      201,
+    );
   } else {
     const link = await repo.linkEvidenceToCapability({
       id,
@@ -110,6 +145,9 @@ graphRoutes.post('/evidence-links', async (c) => {
       relationshipType,
       ownerNote: body.ownerNote ? String(body.ownerNote) : null,
     });
-    return c.json({ data: link, message: 'Evidence linked to capability.', requestId: c.get('requestId') }, 201);
+    return c.json(
+      { data: link, message: 'Evidence linked to capability.', requestId: c.get('requestId') },
+      201,
+    );
   }
 });

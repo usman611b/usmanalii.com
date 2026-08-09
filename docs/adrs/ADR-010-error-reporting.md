@@ -15,12 +15,14 @@ Error reporting requires balancing operational visibility with the privacy requi
 **V1: No third-party error reporting SDK.** Use structured logs to Cloudflare Logpush only.
 
 Rationale:
+
 - Third-party error SDKs (Sentry, etc.) add an external data-sharing surface that requires a privacy review.
 - Cloudflare Logpush can be configured with field allowlists.
 - V1 has no team to triage external error dashboards.
 - Owner monitors through Cloudflare dashboard.
 
 **Logging rules:**
+
 - All log entries conform to SafeLogEntry from packages/observability.
 - Fields: timestamp, level, environment, requestId, route (no private params), useCase, entityType, entityId (UUID only), durationMs, statusCode, errorCode, message.
 - NEVER log: evidence bodies, content drafts, job descriptions, tokens, signed URLs, private filenames, AI prompts, full request payloads.

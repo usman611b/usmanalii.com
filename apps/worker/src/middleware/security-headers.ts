@@ -42,10 +42,7 @@ export function securityHeaders(): MiddlewareHandler<{ Bindings: WorkerEnv }> {
     // HSTS for production and staging
     const env = c.env.ENVIRONMENT;
     if (env === 'production' || env === 'staging') {
-      c.header(
-        'Strict-Transport-Security',
-        'max-age=31536000; includeSubDomains; preload',
-      );
+      c.header('Strict-Transport-Security', 'max-age=31536000; includeSubDomains; preload');
     }
   };
 }

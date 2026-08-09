@@ -19,11 +19,17 @@ import type {
 /**
  * Computes deterministic SHA-256 content hash of string or object payload.
  */
-export async function computeContentHash(payload: string | Uint8Array | Record<string, unknown>): Promise<string> {
-  const dataBuffer = payload instanceof Uint8Array
-    ? payload
-    : new TextEncoder().encode(typeof payload === 'string' ? payload : JSON.stringify(payload));
-  const hashBuffer = await crypto.subtle.digest('SHA-256', dataBuffer);
+export async function computeContentHash(
+  payload: string | Uint8Array | Record<string, unknown>,
+): Promise<string> {
+  const dataBuffer =
+    payload instanceof Uint8Array
+      ? payload
+      : new TextEncoder().encode(typeof payload === 'string' ? payload : JSON.stringify(payload));
+  const hashBuffer = await crypto.subtle.digest(
+    'SHA-256',
+    dataBuffer as unknown as BufferSource,
+  );
   const hashArray = Array.from(new Uint8Array(hashBuffer));
   return hashArray.map((b) => b.toString(16).padStart(2, '0')).join('');
 }
@@ -43,11 +49,17 @@ export function validateVerificationStateTransition(
   if (current === next) return { valid: true };
 
   if (current === 'archived') {
-    return { valid: false, reason: 'Archived evidence is immutable and cannot transition states without unarchiving.' };
+    return {
+      valid: false,
+      reason: 'Archived evidence is immutable and cannot transition states without unarchiving.',
+    };
   }
 
   if (current === 'revoked' && next !== 'archived' && next !== 'unverified') {
-    return { valid: false, reason: 'Revoked evidence cannot transition directly to verified states.' };
+    return {
+      valid: false,
+      reason: 'Revoked evidence cannot transition directly to verified states.',
+    };
   }
 
   const allowedStates: EvidenceVerificationState[] = [
@@ -85,7 +97,10 @@ export function mergeWithOwnerOverrideProtection(
 
   const merged: Record<string, unknown> = { ...incoming };
 
-  if (existing.verificationState === 'owner_verified' || existing.authorshipNote?.includes('owner_modified')) {
+  if (
+    existing.verificationState === 'owner_verified' ||
+    existing.authorshipNote?.includes('owner_modified')
+  ) {
     merged.title = existing.title;
     merged.description = existing.description;
   }
@@ -97,7 +112,9 @@ export function mergeWithOwnerOverrideProtection(
  * Single-target edge validator.
  * INVARIANT: Every evidence_link edge MUST reference exactly ONE target entity.
  */
-export function validateEvidenceLinkTarget(target: EvidenceLinkTarget): { valid: true } | { valid: false; reason: string } {
+export function validateEvidenceLinkTarget(
+  target: EvidenceLinkTarget,
+): { valid: true } | { valid: false; reason: string } {
   if (!target || typeof target !== 'object' || !target.targetType || !target.targetId) {
     return { valid: false, reason: 'Evidence link must specify a valid targetType and targetId.' };
   }
@@ -126,7 +143,10 @@ export function validateEvidenceLinkTarget(target: EvidenceLinkTarget): { valid:
  * Evaluates whether a timestamp (e.g. embargoUntil or scheduledFor) has passed relative to `now`.
  * Boundary rule: timestamp <= now is public; timestamp > now is private.
  */
-export function isBoundaryTimestampPublic(timestampIso: string | null, now: Date = new Date()): boolean {
+export function isBoundaryTimestampPublic(
+  timestampIso: string | null,
+  now: Date = new Date(),
+): boolean {
   if (!timestampIso) return true;
   return new Date(timestampIso).getTime() <= now.getTime();
 }
@@ -139,11 +159,18 @@ export function isBoundaryTimestampPublic(timestampIso: string | null, now: Date
  *  - archivedAt === null
  *  - embargoUntil === null || embargoUntil <= now
  */
-export function filterPublicEvidence(items: EvidenceItemEntity[], now: Date = new Date()): EvidenceItemEntity[] {
+export function filterPublicEvidence(
+  items: EvidenceItemEntity[],
+  now: Date = new Date(),
+): EvidenceItemEntity[] {
   return items.filter((item) => {
     if (item.visibility !== 'public') return false;
     if (item.archivedAt !== null) return false;
-    if (item.verificationState === 'disputed' || item.verificationState === 'revoked' || item.verificationState === 'archived') {
+    if (
+      item.verificationState === 'disputed' ||
+      item.verificationState === 'revoked' ||
+      item.verificationState === 'archived'
+    ) {
       return false;
     }
     if (!isBoundaryTimestampPublic(item.embargoUntil, now)) return false;

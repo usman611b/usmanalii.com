@@ -24,6 +24,7 @@ Every public request hits a Cloudflare Worker that queries D1 with a short-lived
 **Option A — Static rebuild at publish time.**
 
 Rationale:
+
 - "Public pages remain available when D1 is temporarily unavailable, using the last successful static build." (Architecture §24 acceptance criterion #1)
 - Static delivery minimizes Worker invocations and cost (Architecture §22).
 - Astro's static generation is the primary rendering mode.

@@ -581,3 +581,257 @@ export interface ContentRevisionEntity {
   readonly createdAt: ISODateTime;
   readonly createdBy: string;
 }
+
+// ---------------------------------------------------------------------------
+// Project & Engineering Record — Milestone M5
+// ---------------------------------------------------------------------------
+
+export type ProjectLifecycleState =
+  'idea' | 'planning' | 'active' | 'paused' | 'completed' | 'maintained' | 'archived' | 'cancelled';
+
+export interface ProjectEntity {
+  readonly id: EntityId;
+  readonly ownerId: EntityId;
+  readonly title: string;
+  readonly slug: string;
+  readonly shortSummary: string | null;
+  readonly detailedContext: string | null;
+  readonly problemStatement: string | null;
+  readonly goals: readonly string[];
+  readonly nonGoals: readonly string[];
+  readonly constraints: readonly string[];
+  readonly role: string | null;
+  readonly contributionStatement: string | null;
+  readonly collaborationContext: string | null;
+  readonly startDate: string | null;
+  readonly endDate: string | null;
+  readonly ongoingStatus: boolean;
+  readonly lifecycleState: ProjectLifecycleState;
+  readonly publicationState: PublicationState;
+  readonly visibility: Visibility;
+  readonly scheduledFor: ISODateTime | null;
+  readonly embargoUntil: ISODateTime | null;
+  readonly isFeatured: boolean;
+  readonly recruiterSummary: string | null;
+  readonly deepDiveContent: string | null;
+  readonly repositoryReferences: readonly string[];
+  readonly liveDemoReferences: readonly string[];
+  readonly heroArtifactId: EntityId | null;
+  readonly caseStudyBody: string | null;
+  readonly caseStudyFormat?: string | null;
+  readonly caseStudySchemaVersion?: number | null;
+  readonly editorialWarnings?: readonly string[];
+  readonly sensitiveOriginalText?: string | null;
+  readonly provenance: string | null;
+  readonly createdAt: ISODateTime;
+  readonly updatedAt: ISODateTime;
+  readonly archivedAt: ISODateTime | null;
+  readonly deletedAt: ISODateTime | null;
+  readonly versionNo: number;
+}
+
+export type ProjectContributionType =
+  | 'designed'
+  | 'implemented'
+  | 'tested'
+  | 'debugged'
+  | 'documented'
+  | 'deployed'
+  | 'maintained'
+  | 'reviewed'
+  | 'led'
+  | 'collaborated'
+  | 'researched';
+
+export interface ProjectContributionEntity {
+  readonly id: EntityId;
+  readonly projectId: EntityId;
+  readonly ownerId: EntityId;
+  readonly contributionType: ProjectContributionType;
+  readonly description: string;
+  readonly scope: string | null;
+  readonly startDate: string | null;
+  readonly endDate: string | null;
+  readonly collaborationContext: string | null;
+  readonly supportingEvidenceIds: readonly EntityId[];
+  readonly verificationState: EvidenceVerificationState;
+  readonly visibility: Visibility;
+  readonly ownerApproval: boolean;
+  readonly provenance: string | null;
+  readonly createdAt: ISODateTime;
+  readonly updatedAt: ISODateTime;
+  readonly deletedAt: ISODateTime | null;
+}
+
+export type ExperimentStatus = 'planned' | 'in_progress' | 'concluded' | 'abandoned';
+
+export interface ExperimentEntity {
+  readonly id: EntityId;
+  readonly projectId: EntityId;
+  readonly ownerId: EntityId;
+  readonly title: string;
+  readonly slug: string;
+  readonly hypothesis: string;
+  readonly motivation: string | null;
+  readonly methodology: string;
+  readonly variables: readonly string[];
+  readonly inputs: string | null;
+  readonly results: string | null;
+  readonly conclusion: string | null;
+  readonly limitations: string | null;
+  readonly status: ExperimentStatus;
+  readonly dates: string | null;
+  readonly supportingEvidenceIds: readonly EntityId[];
+  readonly artifactIds: readonly EntityId[];
+  readonly visibility: Visibility;
+  readonly state: PublicationState;
+  readonly provenance: string | null;
+  readonly createdAt: ISODateTime;
+  readonly updatedAt: ISODateTime;
+  readonly archivedAt: ISODateTime | null;
+  readonly deletedAt: ISODateTime | null;
+  readonly versionNo: number;
+}
+
+export type ProjectAdrStatus = 'proposed' | 'accepted' | 'rejected' | 'superseded' | 'deprecated';
+
+export interface ProjectAdrEntity {
+  readonly id: EntityId;
+  readonly projectId: EntityId;
+  readonly ownerId: EntityId;
+  readonly adrNumber: number;
+  readonly title: string;
+  readonly slug: string;
+  readonly status: ProjectAdrStatus;
+  readonly context: string;
+  readonly alternativesConsidered: readonly string[];
+  readonly decision: string;
+  readonly rationale: string | null;
+  readonly consequences: string;
+  readonly tradeOffs: string | null;
+  readonly relatedAdrIds: readonly EntityId[];
+  readonly supersededBy: EntityId | null;
+  readonly decisionDate: string | null;
+  readonly supportingEvidenceIds: readonly EntityId[];
+  readonly visibility: Visibility;
+  readonly state: PublicationState;
+  readonly provenance: string | null;
+  readonly createdAt: ISODateTime;
+  readonly updatedAt: ISODateTime;
+  readonly archivedAt: ISODateTime | null;
+  readonly deletedAt: ISODateTime | null;
+  readonly versionNo: number;
+}
+
+export interface DebuggingLessonEntity {
+  readonly id: EntityId;
+  readonly projectId: EntityId;
+  readonly ownerId: EntityId;
+  readonly title: string;
+  readonly slug: string;
+  readonly symptom: string;
+  readonly impact: string | null;
+  readonly environment: string | null;
+  readonly investigation: string | null;
+  readonly rootCause: string;
+  readonly resolution: string;
+  readonly prevention: string;
+  readonly lessonsLearned: string | null;
+  readonly relevantDates: string | null;
+  readonly tags: readonly string[];
+  readonly supportingEvidenceIds: readonly EntityId[];
+  readonly artifactIds: readonly EntityId[];
+  readonly visibility: Visibility;
+  readonly state: PublicationState;
+  readonly provenance: string | null;
+  readonly createdAt: ISODateTime;
+  readonly updatedAt: ISODateTime;
+  readonly archivedAt: ISODateTime | null;
+  readonly deletedAt: ISODateTime | null;
+  readonly versionNo: number;
+}
+
+export type DeploymentEnvironment = 'preview' | 'staging' | 'production';
+
+export type DeploymentStatus = 'pending' | 'success' | 'failed' | 'rolled_back';
+
+export interface DeploymentEntity {
+  readonly id: EntityId;
+  readonly projectId: EntityId;
+  readonly ownerId: EntityId;
+  readonly environment: DeploymentEnvironment;
+  readonly releaseVersion: string;
+  readonly gitSha: string | null;
+  readonly deploymentUrl: string | null;
+  readonly status: DeploymentStatus;
+  readonly startedAt: ISODateTime | null;
+  readonly deployedAt: ISODateTime;
+  readonly rollbackInfo: string | null;
+  readonly outcome: string | null;
+  readonly supportingEvidenceIds: readonly EntityId[];
+  readonly artifactIds: readonly EntityId[];
+  readonly visibility: Visibility;
+  readonly publicationState: PublicationState;
+  readonly provenance: string | null;
+  readonly createdAt: ISODateTime;
+  readonly updatedAt: ISODateTime;
+  readonly deletedAt: ISODateTime | null;
+}
+
+export type ProjectVersionStatus =
+  'planned' | 'in_progress' | 'released' | 'deprecated' | 'archived';
+
+export interface ProjectVersionEntity {
+  readonly id: EntityId;
+  readonly projectId: EntityId;
+  readonly ownerId: EntityId;
+  readonly name: string;
+  readonly versionIdentifier: string;
+  readonly description: string | null;
+  readonly status: ProjectVersionStatus;
+  readonly startedDate: string | null;
+  readonly completedDate: string | null;
+  readonly changelog: string | null;
+  readonly outcome: string | null;
+  readonly supportingEvidenceIds: readonly EntityId[];
+  readonly artifactIds: readonly EntityId[];
+  readonly previousVersionId: EntityId | null;
+  readonly visibility: Visibility;
+  readonly state: PublicationState;
+  readonly createdAt: ISODateTime;
+  readonly updatedAt: ISODateTime;
+  readonly deletedAt: ISODateTime | null;
+}
+
+export interface ProjectRelationshipEntity {
+  readonly id: EntityId;
+  readonly ownerId: EntityId;
+  readonly sourceId: EntityId;
+  readonly sourceType: string;
+  readonly targetId: EntityId;
+  readonly targetType: string;
+  readonly relationshipType: string;
+  readonly relevance: number;
+  readonly displayOrder: number;
+  readonly provenance: string | null;
+  readonly createdByClassification: CreatedByClassification;
+  readonly approvalState: ApprovalState;
+  readonly ownerNote: string | null;
+  readonly createdAt: ISODateTime;
+  readonly archivedAt: ISODateTime | null;
+}
+
+export interface ProjectRevisionEntity {
+  readonly id: EntityId;
+  readonly projectId: EntityId;
+  readonly ownerId: EntityId;
+  readonly revisionNo: number;
+  readonly caseStudySnapshot: string;
+  readonly bodyFormat?: string | null;
+  readonly bodySchemaVersion?: number | null;
+  readonly markdownExport?: string | null;
+  readonly redactionMetadata?: readonly string[];
+  readonly revisionNote: string | null;
+  readonly createdAt: ISODateTime;
+  readonly createdBy: string;
+}

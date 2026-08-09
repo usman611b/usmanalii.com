@@ -1,0 +1,88 @@
+---
+import DashboardLayout from '../../../../layouts/DashboardLayout.astro';
+
+export function getStaticPaths() {
+  return [{ params: { id: 'proj-1' } }, { params: { id: 'proj-2' } }];
+}
+
+const { id } = Astro.params;
+---
+
+<DashboardLayout title={`Deployments — ${id}`}>
+  <div class="deployments-container card">
+    <a href={`/dashboard/projects/${id}`} class="back-link">← Back to Overview</a>
+    <h1 class="text-2xl font-bold mt-2">Deployments & Environment URL Validation</h1>
+
+    <div class="deployments-list mt-4 mb-6">
+      <div class="dep-card p-4 border rounded mb-3 bg-surface">
+        <div class="flex justify-between items-center mb-1">
+          <span class="badge badge-info">PRODUCTION</span>
+          <span class="badge badge-success">SUCCESS</span>
+        </div>
+        <p class="text-sm mt-1">
+          <strong>Version:</strong> v1.0.0 | <strong>Git SHA:</strong>
+          <code>c8250c7</code>
+        </p>
+        <p class="text-sm mt-1">
+          <strong>Deployment URL:</strong>
+          <a href="https://usmanalii.com" target="_blank" rel="noopener">https://usmanalii.com</a>
+        </p>
+      </div>
+    </div>
+
+    <form class="new-dep-form border-t pt-4">
+      <h2 class="text-lg font-semibold mb-3">Register Deployment Record</h2>
+      <div class="form-row mb-3">
+        <div class="form-group">
+          <label for="environment">Environment</label>
+          <select id="environment">
+            <option value="preview">Preview</option>
+            <option value="staging">Staging</option>
+            <option value="production" selected>Production</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label for="releaseVersion">Release Version</label>
+          <input type="text" id="releaseVersion" placeholder="v1.0.0" required />
+        </div>
+      </div>
+      <div class="form-group mb-3">
+        <label for="deploymentUrl">Deployment URL (Requires HTTPS & Public Domain)</label>
+        <input type="url" id="deploymentUrl" placeholder="https://example.com" />
+      </div>
+      <button type="submit" class="button button-primary">Save Deployment</button>
+    </form>
+  </div>
+</DashboardLayout>
+
+<style>
+  .deployments-container {
+    padding: var(--space-6);
+    max-width: 800px;
+    margin: 0 auto;
+  }
+  .back-link {
+    color: var(--color-primary);
+    text-decoration: none;
+    font-size: var(--font-size-sm);
+  }
+  .form-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: var(--space-4);
+  }
+  .form-group {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-1);
+  }
+  input,
+  select {
+    background: var(--color-background);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-md);
+    padding: var(--space-2);
+    color: inherit;
+    font: inherit;
+  }
+</style>

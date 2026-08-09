@@ -7,14 +7,16 @@ const publicSkills = [
     name: 'TypeScript',
     slug: 'typescript',
     category: 'programming_language',
-    description: 'Statically typed superset of JavaScript used across Cloudflare Workers APIs and Astro SSG frontend.',
+    description:
+      'Statically typed superset of JavaScript used across Cloudflare Workers APIs and Astro SSG frontend.',
     evidenceCount: 14,
   },
   {
     name: 'API Security & OAuth/Access',
     slug: 'api-security',
     category: 'security',
-    description: 'Cryptographic Access JWT verification, CSRF origin enforcement, and zero-trust IDOR boundary design.',
+    description:
+      'Cryptographic Access JWT verification, CSRF origin enforcement, and zero-trust IDOR boundary design.',
     evidenceCount: 9,
   },
 ];
@@ -22,28 +24,40 @@ const publicSkills = [
 
 <BaseLayout title="Skills Taxonomy — usmanalii.com" currentPath="/skills">
   <div class="py-16 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto space-y-8">
-    <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-b border-white/10 pb-6">
+    <div
+      class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-b border-white/10 pb-6"
+    >
       <div>
         <h1 class="text-3xl font-bold text-white tracking-tight">Public Skills Directory</h1>
-        <p class="text-xs text-[#9CAAC1] mt-1">Taxonomy nodes organizing verifiable work evidence. Zero fake percentage scores.</p>
+        <p class="text-xs text-[#9CAAC1] mt-1">
+          Taxonomy nodes organizing verifiable work evidence. Zero fake percentage scores.
+        </p>
       </div>
       <ModeSwitcher client:load />
     </div>
 
     <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-      {publicSkills.map((skill) => (
-        <a
-          href={`/skills/${skill.slug}`}
-          class="p-6 rounded-2xl glass-panel border border-white/10 hover:border-[#22D3EE] transition-all group block space-y-3"
-        >
-          <div class="flex items-center justify-between">
-            <span class="text-xs font-semibold uppercase tracking-wider text-[#22D3EE]">{skill.category.replace('_', ' ')}</span>
-            <span class="text-xs text-[#9CAAC1] font-mono">{skill.evidenceCount} Evidence Items</span>
-          </div>
-          <h2 class="text-xl font-bold text-white group-hover:text-[#22D3EE] transition-colors">{skill.name}</h2>
-          <p class="text-xs text-[#9CAAC1] leading-relaxed">{skill.description}</p>
-        </a>
-      ))}
+      {
+        publicSkills.map((skill) => (
+          <a
+            href={`/skills/${skill.slug}`}
+            class="p-6 rounded-2xl glass-panel border border-white/10 hover:border-[#22D3EE] transition-all group block space-y-3"
+          >
+            <div class="flex items-center justify-between">
+              <span class="text-xs font-semibold uppercase tracking-wider text-[#22D3EE]">
+                {skill.category.replace('_', ' ')}
+              </span>
+              <span class="text-xs text-[#9CAAC1] font-mono">
+                {skill.evidenceCount} Evidence Items
+              </span>
+            </div>
+            <h2 class="text-xl font-bold text-white group-hover:text-[#22D3EE] transition-colors">
+              {skill.name}
+            </h2>
+            <p class="text-xs text-[#9CAAC1] leading-relaxed">{skill.description}</p>
+          </a>
+        ))
+      }
     </div>
   </div>
 </BaseLayout>

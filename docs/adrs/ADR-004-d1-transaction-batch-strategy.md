@@ -13,11 +13,13 @@ D1 (Cloudflare's SQLite) does not support traditional multi-statement transactio
 ## Decision
 
 Use **D1 db.batch()** for multi-statement atomic operations:
+
 - Approval operations (update entity + create audit event)
 - Publication operations (update state + create revision + write public projection + create audit event)
 - Evidence edge creation (create link + update version_no + create audit event)
 
 For complex publish sequences that cannot be expressed as a single batch:
+
 1. Write canonical state first with state = 'publishing_in_progress'
 2. Execute side effects (projection generation via queue)
 3. Update to state = 'published' in final batch

@@ -957,4 +957,137 @@ describe('Requirement 1 & 2: Database Integrity & Public Scheduling/Embargo Logi
     expect(projection.nodes.find((n) => n.id === 's-1')).toBeDefined();
     expect(projection.nodes.find((n) => n.id === 'c-1')).toBeDefined();
   });
+
+  it('14. Milestone M5: D1ProjectRepository, D1EngineeringRecordRepository, and D1ProjectRelationshipRepository CRUD & sanitization', async () => {
+    const { D1ProjectRepository } = await import('./repositories/projects.js');
+    const { D1EngineeringRecordRepository, sanitizeEngineeringText } =
+      await import('./repositories/engineering.js');
+    const { D1ProjectRelationshipRepository } =
+      await import('./repositories/project-relationships.js');
+
+    const storage = new Map<string, any>();
+
+    const mockDb: any = {
+      prepare(sql: string) {
+        const stmtObj: any = {
+          params: [],
+          bind(...p: any[]) {
+            stmtObj.params = p;
+            return stmtObj;
+          },
+          async first() {
+            if (sql.includes('FROM projects WHERE owner_id = ? AND id = ?')) {
+              return storage.get(`project:${stmtObj.params[1]}`) || null;
+            }
+            return null;
+          },
+          async all() {
+            if (sql.includes('FROM project_contributions')) {
+              return {
+                results: Array.from(storage.values()).filter(
+                  (v) => v.project_id === stmtObj.params[1],
+                ),
+              };
+            }
+            if (sql.includes('FROM project_relationships')) {
+              return {
+                results: Array.from(storage.values()).filter(
+                  (v) => v.source_id === stmtObj.params[1],
+                ),
+              };
+            }
+            return { results: [] };
+          },
+          async run() {
+            if (sql.includes('INSERT INTO projects')) {
+              storage.set(`project:${stmtObj.params[0]}`, {
+                id: stmtObj.params[0],
+                owner_id: stmtObj.params[1],
+                title: stmtObj.params[2],
+                slug: stmtObj.params[3],
+                description: stmtObj.params[4],
+                status: stmtObj.params[5],
+                visibility: stmtObj.params[6],
+                state: stmtObj.params[7],
+                created_at: stmtObj.params[28],
+                updated_at: stmtObj.params[29],
+                version_no: 1,
+              });
+            }
+            if (sql.includes('INSERT INTO project_contributions')) {
+              storage.set(`contrib:${stmtObj.params[0]}`, {
+                id: stmtObj.params[0],
+                project_id: stmtObj.params[1],
+                owner_id: stmtObj.params[2],
+                contribution_type: stmtObj.params[3],
+                description: stmtObj.params[4],
+                verification_state: stmtObj.params[10],
+                visibility: stmtObj.params[11],
+                created_at: stmtObj.params[14],
+                updated_at: stmtObj.params[15],
+              });
+            }
+            if (sql.includes('INSERT INTO project_relationships')) {
+              storage.set(`rel:${stmtObj.params[0]}`, {
+                id: stmtObj.params[0],
+                owner_id: stmtObj.params[1],
+                source_id: stmtObj.params[2],
+                source_type: stmtObj.params[3],
+                target_id: stmtObj.params[4],
+                target_type: stmtObj.params[5],
+                relationship_type: stmtObj.params[6],
+                relevance: stmtObj.params[7],
+                created_at: stmtObj.params[13],
+              });
+            }
+            return { meta: { changes: 1 } };
+          },
+        };
+        return stmtObj;
+      },
+    };
+
+    // Test text sanitization
+    const sanitized = sanitizeEngineeringText(
+      'Secret token: Bearer eyJhbGciOiJIUzI1Ni... at 10.0.0.1',
+    );
+    expect(sanitized).toContain('[REDACTED_BEARER_TOKEN]');
+    expect(sanitized).toContain('[REDACTED_INTERNAL_IP]');
+
+    // Test Project Repo
+    const projRepo = new D1ProjectRepository(mockDb);
+    const project = await projRepo.createProject({
+      id: 'proj-1',
+      ownerId: 'owner-1',
+      title: 'Secure Monorepo',
+      slug: 'secure-monorepo',
+      shortSummary: 'Evidence-backed monorepo case study',
+    });
+    expect(project.title).toBe('Secure Monorepo');
+
+    // Test Engineering Repo
+    const engRepo = new D1EngineeringRecordRepository(mockDb);
+    const contrib = await engRepo.createContribution({
+      id: 'contrib-1',
+      projectId: 'proj-1',
+      ownerId: 'owner-1',
+      contributionType: 'implemented',
+      description: 'Implemented D1 database repositories and security middleware',
+    });
+    expect(contrib.contributionType).toBe('implemented');
+
+    // Test Relationship Repo
+    const relRepo = new D1ProjectRelationshipRepository(mockDb);
+    const rel = await relRepo.createRelationship({
+      id: 'rel-1',
+      ownerId: 'owner-1',
+      sourceId: 'proj-1',
+      sourceType: 'project',
+      targetId: 'skill-typescript',
+      targetType: 'skill',
+      relationshipType: 'uses_skill',
+      relevance: 5,
+    });
+    expect(rel.relationshipType).toBe('uses_skill');
+  });
 });

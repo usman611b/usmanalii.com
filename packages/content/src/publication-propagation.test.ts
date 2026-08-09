@@ -91,7 +91,9 @@ describe('Requirement 4: Publish / Unpublish Propagation Tests', () => {
   it('4. Sitemap XML: includes published entry loc and excludes draft/unlisted/archived', () => {
     const sitemapXml = generateSitemapXml(allItems);
 
-    expect(sitemapXml).toContain('<loc>https://usmanalii.com/journey/published-engineering-log</loc>');
+    expect(sitemapXml).toContain(
+      '<loc>https://usmanalii.com/journey/published-engineering-log</loc>',
+    );
     expect(sitemapXml).not.toContain('draft-engineering-log');
     expect(sitemapXml).not.toContain('unlisted-engineering-log');
     expect(sitemapXml).not.toContain('archived-engineering-log');

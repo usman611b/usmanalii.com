@@ -18,15 +18,9 @@ import { z } from 'zod';
 // Shared primitives
 // ---------------------------------------------------------------------------
 
-export const EntityIdSchema = z
-  .string()
-  .uuid('Entity ID must be a valid UUID')
-  .brand('EntityId');
+export const EntityIdSchema = z.string().uuid('Entity ID must be a valid UUID').brand('EntityId');
 
-export const ISODateTimeSchema = z
-  .string()
-  .datetime({ offset: true })
-  .brand('ISODateTime');
+export const ISODateTimeSchema = z.string().datetime({ offset: true }).brand('ISODateTime');
 
 export const ISODateSchema = z
   .string()
@@ -39,7 +33,13 @@ export const ISODateSchema = z
 
 export const VisibilitySchema = z.enum(['private', 'restricted', 'unlisted', 'public']);
 export const PublicationStateSchema = z.enum([
-  'draft', 'review', 'approved', 'scheduled', 'published', 'unlisted', 'archived',
+  'draft',
+  'review',
+  'approved',
+  'scheduled',
+  'published',
+  'unlisted',
+  'archived',
 ]);
 
 // ---------------------------------------------------------------------------

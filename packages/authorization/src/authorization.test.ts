@@ -20,7 +20,9 @@ const EXPECTED_ISSUER = 'https://team.cloudflareaccess.com';
 const EXPECTED_AUDIENCE = 'test-audience-tag';
 const OWNER_EMAIL = 'owner@usmanalii.com';
 
-function makeValidClaims(overrides: Partial<CloudflareAccessJwtClaims> = {}): CloudflareAccessJwtClaims {
+function makeValidClaims(
+  overrides: Partial<CloudflareAccessJwtClaims> = {},
+): CloudflareAccessJwtClaims {
   const now = Math.floor(Date.now() / 1000);
   return {
     sub: 'user-sub-123',
@@ -96,7 +98,8 @@ describe('JwksKeyCache & Key Rotation', () => {
 describe('parseJwtParts', () => {
   it('parses well-formed 3-part JWT strings', () => {
     const headerB64 = 'eyJraWQiOiJ0ZXN0LWtleS1pZC0xIiwiYWxnIjoiUlMyNTYifQ';
-    const payloadB64 = 'eyJzdWIiOiIxMjMiLCJlbWFpbCI6Im93bmVyQHVzbWFuYWxpaS5jb20iLCJpc3MiOiJodHRwczovL3RlYW0uY2xvdWRmbGFyZWFjY2Vzcy5jb20iLCJhdWQiOiJ0ZXN0LWF1ZGllbmNlLXRhZyIsImlhdCI6MTAwMCwiZXhwIjo5OTk5OTk5OTk5fQ';
+    const payloadB64 =
+      'eyJzdWIiOiIxMjMiLCJlbWFpbCI6Im93bmVyQHVzbWFuYWxpaS5jb20iLCJpc3MiOiJodHRwczovL3RlYW0uY2xvdWRmbGFyZWFjY2Vzcy5jb20iLCJhdWQiOiJ0ZXN0LWF1ZGllbmNlLXRhZyIsImlhdCI6MTAwMCwiZXhwIjo5OTk5OTk5OTk5fQ';
     const sigB64 = 'c2lnbmF0dXJl';
     const jwt = `${headerB64}.${payloadB64}.${sigB64}`;
 
@@ -220,7 +223,8 @@ describe('verifyAccessJwtCryptographically — Exhaustive Failure Gates', () => 
 
   it('NEGATIVE: rejects invalid RS256 signature', async () => {
     const headerB64 = 'eyJraWQiOiJ0ZXN0LWtleS1pZC0xIiwiYWxnIjoiUlMyNTYifQ';
-    const payloadB64 = 'eyJzdWIiOiIxMjMiLCJlbWFpbCI6Im93bmVyQHVzbWFuYWxpaS5jb20iLCJpc3MiOiJodHRwczovL3RlYW0uY2xvdWRmbGFyZWFjY2Vzcy5jb20iLCJhdWQiOiJ0ZXN0LWF1ZGllbmNlLXRhZyIsImlhdCI6MTAwMCwiZXhwIjo5OTk5OTk5OTk5fQ';
+    const payloadB64 =
+      'eyJzdWIiOiIxMjMiLCJlbWFpbCI6Im93bmVyQHVzbWFuYWxpaS5jb20iLCJpc3MiOiJodHRwczovL3RlYW0uY2xvdWRmbGFyZWFjY2Vzcy5jb20iLCJhdWQiOiJ0ZXN0LWF1ZGllbmNlLXRhZyIsImlhdCI6MTAwMCwiZXhwIjo5OTk5OTk5OTk5fQ';
     const invalidSigB64 = 'ZmFrZXNpZ25hdHVyZQ';
     const jwt = `${headerB64}.${payloadB64}.${invalidSigB64}`;
 

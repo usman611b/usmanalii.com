@@ -63,10 +63,22 @@ export function validateFileSignature(buffer: Uint8Array, mediaType: string): bo
     return buffer.length >= 3 && buffer[0] === 0xff && buffer[1] === 0xd8 && buffer[2] === 0xff;
   }
   if (mediaType === 'image/png') {
-    return buffer.length >= 4 && buffer[0] === 0x89 && buffer[1] === 0x50 && buffer[2] === 0x4e && buffer[3] === 0x47;
+    return (
+      buffer.length >= 4 &&
+      buffer[0] === 0x89 &&
+      buffer[1] === 0x50 &&
+      buffer[2] === 0x4e &&
+      buffer[3] === 0x47
+    );
   }
   if (mediaType === 'application/pdf') {
-    return buffer.length >= 4 && buffer[0] === 0x25 && buffer[1] === 0x50 && buffer[2] === 0x44 && buffer[3] === 0x46; // %PDF
+    return (
+      buffer.length >= 4 &&
+      buffer[0] === 0x25 &&
+      buffer[1] === 0x50 &&
+      buffer[2] === 0x44 &&
+      buffer[3] === 0x46
+    ); // %PDF
   }
   if (mediaType === 'image/gif') {
     return buffer.length >= 3 && buffer[0] === 0x47 && buffer[1] === 0x49 && buffer[2] === 0x46;
@@ -75,11 +87,31 @@ export function validateFileSignature(buffer: Uint8Array, mediaType: string): bo
 }
 
 /** Executable payload scanner — rejects HTML, JS, scripts, event handlers, and polyglots */
-export function isExecutablePayload(buffer: Uint8Array, mediaType: string, filename: string): { executable: boolean; reason?: string } {
+export function isExecutablePayload(
+  buffer: Uint8Array,
+  mediaType: string,
+  filename: string,
+): { executable: boolean; reason?: string } {
   const ext = filename.toLowerCase().split('.').pop() || '';
-  const forbiddenExts = ['html', 'htm', 'js', 'mjs', 'cjs', 'php', 'exe', 'bat', 'cmd', 'sh', 'ps1', 'svg'];
+  const forbiddenExts = [
+    'html',
+    'htm',
+    'js',
+    'mjs',
+    'cjs',
+    'php',
+    'exe',
+    'bat',
+    'cmd',
+    'sh',
+    'ps1',
+    'svg',
+  ];
   if (forbiddenExts.includes(ext)) {
-    return { executable: true, reason: `File extension ".${ext}" is prohibited for executable safety.` };
+    return {
+      executable: true,
+      reason: `File extension ".${ext}" is prohibited for executable safety.`,
+    };
   }
 
   const forbiddenMediaTypes = [
@@ -91,7 +123,10 @@ export function isExecutablePayload(buffer: Uint8Array, mediaType: string, filen
     'text/ecmascript',
   ];
   if (forbiddenMediaTypes.includes(mediaType)) {
-    return { executable: true, reason: `MIME type "${mediaType}" is prohibited for executable safety.` };
+    return {
+      executable: true,
+      reason: `MIME type "${mediaType}" is prohibited for executable safety.`,
+    };
   }
 
   if (buffer.byteLength === 0) {
@@ -109,7 +144,10 @@ export function isExecutablePayload(buffer: Uint8Array, mediaType: string, filen
     textContent.includes('<foreignobject') ||
     textContent.includes('<iframe')
   ) {
-    return { executable: true, reason: 'Executable scripts or event handlers detected in binary content.' };
+    return {
+      executable: true,
+      reason: 'Executable scripts or event handlers detected in binary content.',
+    };
   }
 
   return { executable: false };
@@ -130,27 +168,44 @@ artifactRoutes.post('/upload', async (c) => {
 
   const body = (await c.req.parseBody().catch(() => ({}))) as Record<string, unknown>;
   const file = body['file'];
-  const title = (body['title'] as string) || (file instanceof File ? file.name : 'Untitled Artifact');
+  const title =
+    (body['title'] as string) || (file instanceof File ? file.name : 'Untitled Artifact');
   const artifactType = (body['artifactType'] as string) || 'document';
   const description = (body['description'] as string) || null;
   const visibility = ((body['visibility'] as string) || 'private') as Visibility;
 
   if (!file || !(file instanceof File)) {
-    return c.json({ code: 'VALIDATION_ERROR', message: 'No file provided in form field "file".', requestId }, 400);
+    return c.json(
+      { code: 'VALIDATION_ERROR', message: 'No file provided in form field "file".', requestId },
+      400,
+    );
   }
 
   // 1. File size limit validation
   if (file.size === 0) {
-    return c.json({ code: 'VALIDATION_ERROR', message: 'Empty files (0 bytes) are not allowed.', requestId }, 400);
+    return c.json(
+      { code: 'VALIDATION_ERROR', message: 'Empty files (0 bytes) are not allowed.', requestId },
+      400,
+    );
   }
   if (file.size > MAX_FILE_SIZE_BYTES) {
-    return c.json({ code: 'VALIDATION_ERROR', message: 'File size exceeds maximum allowed 10MB limit.', requestId }, 400);
+    return c.json(
+      {
+        code: 'VALIDATION_ERROR',
+        message: 'File size exceeds maximum allowed 10MB limit.',
+        requestId,
+      },
+      400,
+    );
   }
 
   // 2. MIME type allowlist validation
   const mediaType = file.type.toLowerCase() || 'application/octet-stream';
   if (!ALLOWED_MIME_TYPES.includes(mediaType)) {
-    return c.json({ code: 'VALIDATION_ERROR', message: `MIME type "${mediaType}" is not allowed.`, requestId }, 400);
+    return c.json(
+      { code: 'VALIDATION_ERROR', message: `MIME type "${mediaType}" is not allowed.`, requestId },
+      400,
+    );
   }
 
   const rawBuffer = new Uint8Array(await file.arrayBuffer());
@@ -158,12 +213,26 @@ artifactRoutes.post('/upload', async (c) => {
   // 3. Executable payload scan
   const execCheck = isExecutablePayload(rawBuffer, mediaType, file.name);
   if (execCheck.executable) {
-    return c.json({ code: 'VALIDATION_ERROR', message: execCheck.reason || 'Executable payloads are rejected.', requestId }, 400);
+    return c.json(
+      {
+        code: 'VALIDATION_ERROR',
+        message: execCheck.reason || 'Executable payloads are rejected.',
+        requestId,
+      },
+      400,
+    );
   }
 
   // 4. File signature validation
   if (!validateFileSignature(rawBuffer, mediaType)) {
-    return c.json({ code: 'VALIDATION_ERROR', message: 'File header signature does not match claimed MIME type.', requestId }, 400);
+    return c.json(
+      {
+        code: 'VALIDATION_ERROR',
+        message: 'File header signature does not match claimed MIME type.',
+        requestId,
+      },
+      400,
+    );
   }
 
   const processBuffer: Uint8Array = rawBuffer;
@@ -187,7 +256,14 @@ artifactRoutes.post('/upload', async (c) => {
       });
       r2Uploaded = true;
     } catch {
-      return c.json({ code: 'STORAGE_FAILURE', message: 'Failed to upload binary object to storage.', requestId }, 500);
+      return c.json(
+        {
+          code: 'STORAGE_FAILURE',
+          message: 'Failed to upload binary object to storage.',
+          requestId,
+        },
+        500,
+      );
     }
   }
 
@@ -217,7 +293,10 @@ artifactRoutes.post('/upload', async (c) => {
         await repo.enqueueReconciliationItem(ownerId, r2Key, 'd1_rollback_failed');
       }
     }
-    return c.json({ code: 'DATABASE_FAILURE', message: 'Failed to persist artifact metadata.', requestId }, 500);
+    return c.json(
+      { code: 'DATABASE_FAILURE', message: 'Failed to persist artifact metadata.', requestId },
+      500,
+    );
   }
 });
 
@@ -232,7 +311,9 @@ artifactRoutes.get('/', async (c) => {
 });
 
 /** POST & GET /reconcile — Hardened reconciliation endpoint (owner-authenticated, CSRF-protected, dryRun support, safety age threshold) */
-const handleReconcile = async (c: import('hono').Context<{ Bindings: WorkerEnv; Variables: AuthVariables }>) => {
+const handleReconcile = async (
+  c: import('hono').Context<{ Bindings: WorkerEnv; Variables: AuthVariables }>,
+) => {
   const authContext = c.get('authContext');
   const ownerId = authContext?.ownerId || '00000000-0000-0000-0000-000000000001';
   const requestId = c.get('requestId');
@@ -244,7 +325,10 @@ const handleReconcile = async (c: import('hono').Context<{ Bindings: WorkerEnv; 
 
   const dryRun = url.searchParams.get('dryRun') === 'true' || body.dryRun === true;
   const limit = parseInt(url.searchParams.get('limit') || body.limit || '50', 10);
-  const safetyAgeMinutes = parseInt(url.searchParams.get('safetyAgeMinutes') || body.safetyAgeMinutes || '15', 10);
+  const safetyAgeMinutes = parseInt(
+    url.searchParams.get('safetyAgeMinutes') || body.safetyAgeMinutes || '15',
+    10,
+  );
 
   const safetyCutoffTime = new Date(Date.now() - safetyAgeMinutes * 60 * 1000);
 
@@ -289,7 +373,9 @@ const handleReconcile = async (c: import('hono').Context<{ Bindings: WorkerEnv; 
   const cleanedTotal = orphanedKeys.length + queueKeysToClean.length;
 
   return c.json({
-    message: dryRun ? 'Storage reconciliation dry-run report completed.' : 'Storage reconciliation sweep completed successfully.',
+    message: dryRun
+      ? 'Storage reconciliation dry-run report completed.'
+      : 'Storage reconciliation sweep completed successfully.',
     dryRun,
     orphanedObjectsCount: orphanedKeys.length,
     pendingQueueCount: queueKeysToClean.length,
@@ -313,7 +399,10 @@ artifactRoutes.get('/:id/download', async (c) => {
 
   const artifact = await repo.findById(ownerId, id);
   if (!artifact) {
-    return c.json({ code: 'RESOURCE_NOT_FOUND', message: 'Artifact not found.', requestId: c.get('requestId') }, 404);
+    return c.json(
+      { code: 'RESOURCE_NOT_FOUND', message: 'Artifact not found.', requestId: c.get('requestId') },
+      404,
+    );
   }
 
   const dispositionHeader = formatContentDisposition(artifact.originalName || 'artifact');
@@ -347,7 +436,11 @@ artifactRoutes.delete('/:id', async (c) => {
   const repo = new D1ArtifactRepository(c.env.DB);
 
   const deleted = await repo.softDelete(ownerId, id);
-  return c.json({ data: deleted, message: 'Artifact moved to recoverable trash.', requestId: c.get('requestId') });
+  return c.json({
+    data: deleted,
+    message: 'Artifact moved to recoverable trash.',
+    requestId: c.get('requestId'),
+  });
 });
 
 /** POST /:id/restore — Restore soft-deleted artifact */

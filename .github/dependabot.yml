@@ -6,7 +6,7 @@ updates:
     schedule:
       interval: weekly
       day: monday
-      time: "09:00"
+      time: '09:00'
     labels:
       - dependencies
     # Limit to security updates in production
@@ -19,11 +19,11 @@ updates:
           - patch
       security-critical:
         patterns:
-          - "zod"
-          - "hono"
-          - "astro"
-          - "@cloudflare/*"
-          - "wrangler"
+          - 'zod'
+          - 'hono'
+          - 'astro'
+          - '@cloudflare/*'
+          - 'wrangler'
 
   # GitHub Actions — pin to SHA for supply-chain security
   - package-ecosystem: github-actions

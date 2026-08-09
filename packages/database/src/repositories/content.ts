@@ -1,5 +1,13 @@
 import type { D1Database } from '@cloudflare/workers-types';
-import type { ContentItemEntity, ContentRevisionEntity, ContentType, PublicationState, Visibility, EntityId, ISODateTime } from '@usmanalii/domain';
+import type {
+  ContentItemEntity,
+  ContentRevisionEntity,
+  ContentType,
+  PublicationState,
+  Visibility,
+  EntityId,
+  ISODateTime,
+} from '@usmanalii/domain';
 
 export interface CreateContentDraftInput {
   id: string;
@@ -73,10 +81,13 @@ export class D1ContentRepository {
   }
 
   /** Find single content item by ID for owner */
-  async findById(ownerId: string, id: string): Promise<{ item: ContentItemEntity; latestBodySnapshot: string | null } | null> {
-    const itemStmt = this.db.prepare(
-      `SELECT * FROM content_items WHERE owner_id = ? AND id = ? AND deleted_at IS NULL`,
-    ).bind(ownerId, id);
+  async findById(
+    ownerId: string,
+    id: string,
+  ): Promise<{ item: ContentItemEntity; latestBodySnapshot: string | null } | null> {
+    const itemStmt = this.db
+      .prepare(`SELECT * FROM content_items WHERE owner_id = ? AND id = ? AND deleted_at IS NULL`)
+      .bind(ownerId, id);
 
     const row = await itemStmt.first<Record<string, unknown>>();
     if (!row) return null;
@@ -84,9 +95,11 @@ export class D1ContentRepository {
     const item = this.mapRowToEntity(row);
 
     // Get latest revision body
-    const revStmt = this.db.prepare(
-      `SELECT body_snapshot FROM content_revisions WHERE content_item_id = ? AND owner_id = ? ORDER BY revision_no DESC LIMIT 1`,
-    ).bind(id, ownerId);
+    const revStmt = this.db
+      .prepare(
+        `SELECT body_snapshot FROM content_revisions WHERE content_item_id = ? AND owner_id = ? ORDER BY revision_no DESC LIMIT 1`,
+      )
+      .bind(id, ownerId);
     const revRow = await revStmt.first<{ body_snapshot: string }>();
 
     return {
@@ -97,58 +110,58 @@ export class D1ContentRepository {
 
   /** Find by slug for owner */
   async findBySlug(ownerId: string, slug: string): Promise<ContentItemEntity | null> {
-    const stmt = this.db.prepare(
-      `SELECT * FROM content_items WHERE owner_id = ? AND slug = ? AND deleted_at IS NULL`,
-    ).bind(ownerId, slug);
+    const stmt = this.db
+      .prepare(`SELECT * FROM content_items WHERE owner_id = ? AND slug = ? AND deleted_at IS NULL`)
+      .bind(ownerId, slug);
     const row = await stmt.first<Record<string, unknown>>();
     return row ? this.mapRowToEntity(row) : null;
   }
 
   /** Create new draft content item + initial revision #1 */
-  async createDraft(ownerId: string, input: CreateContentDraftInput, createdBy: string): Promise<ContentItemEntity> {
+  async createDraft(
+    ownerId: string,
+    input: CreateContentDraftInput,
+    createdBy: string,
+  ): Promise<ContentItemEntity> {
     const now = new Date().toISOString();
     const bodyFormat = input.bodyFormat || 'json_blocks';
     const bodySchemaVersion = input.bodySchemaVersion || 'v1';
     const visibility = input.visibility || 'private';
 
-    const insertItemStmt = this.db.prepare(
-      `INSERT INTO content_items (
+    const insertItemStmt = this.db
+      .prepare(
+        `INSERT INTO content_items (
         id, owner_id, content_type, title, slug, summary,
         body_format, body_schema_version, visibility, state,
         occurred_at, scheduled_for, embargo_until, created_at, updated_at, version_no
       ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'draft', ?, ?, ?, ?, ?, 1)`,
-    ).bind(
-      input.id,
-      ownerId,
-      input.contentType,
-      input.title,
-      input.slug,
-      input.summary || null,
-      bodyFormat,
-      bodySchemaVersion,
-      visibility,
-      input.occurredAt || null,
-      input.scheduledFor || null,
-      input.embargoUntil || null,
-      now,
-      now,
-    );
+      )
+      .bind(
+        input.id,
+        ownerId,
+        input.contentType,
+        input.title,
+        input.slug,
+        input.summary || null,
+        bodyFormat,
+        bodySchemaVersion,
+        visibility,
+        input.occurredAt || null,
+        input.scheduledFor || null,
+        input.embargoUntil || null,
+        now,
+        now,
+      );
 
     const revisionId = crypto.randomUUID();
-    const insertRevisionStmt = this.db.prepare(
-      `INSERT INTO content_revisions (
+    const insertRevisionStmt = this.db
+      .prepare(
+        `INSERT INTO content_revisions (
         id, content_item_id, owner_id, revision_no,
         body_snapshot, body_schema_version, revision_note, created_at, created_by
       ) VALUES (?, ?, ?, 1, ?, ?, 'Initial draft creation', ?, ?)`,
-    ).bind(
-      revisionId,
-      input.id,
-      ownerId,
-      input.bodyBlocksJson,
-      bodySchemaVersion,
-      now,
-      createdBy,
-    );
+      )
+      .bind(revisionId, input.id, ownerId, input.bodyBlocksJson, bodySchemaVersion, now, createdBy);
 
     await this.db.batch([insertItemStmt, insertRevisionStmt]);
 
@@ -164,7 +177,10 @@ export class D1ContentRepository {
     expectedVersionNo: number,
     input: UpdateContentInput,
     updatedBy: string,
-  ): Promise<{ success: true; item: ContentItemEntity } | { success: false; reason: 'concurrency_conflict' | 'not_found' }> {
+  ): Promise<
+    | { success: true; item: ContentItemEntity }
+    | { success: false; reason: 'concurrency_conflict' | 'not_found' }
+  > {
     const current = await this.findById(ownerId, id);
     if (!current) return { success: false, reason: 'not_found' };
 
@@ -179,12 +195,16 @@ export class D1ContentRepository {
     const newSlug = input.slug ?? current.item.slug;
     const newSummary = input.summary !== undefined ? input.summary : current.item.summary;
     const newVisibility = input.visibility ?? current.item.visibility;
-    const newOccurredAt = input.occurredAt !== undefined ? input.occurredAt : current.item.occurredAt;
-    const newScheduledFor = input.scheduledFor !== undefined ? input.scheduledFor : current.item.scheduledFor;
-    const newEmbargoUntil = input.embargoUntil !== undefined ? input.embargoUntil : current.item.embargoUntil;
+    const newOccurredAt =
+      input.occurredAt !== undefined ? input.occurredAt : current.item.occurredAt;
+    const newScheduledFor =
+      input.scheduledFor !== undefined ? input.scheduledFor : current.item.scheduledFor;
+    const newEmbargoUntil =
+      input.embargoUntil !== undefined ? input.embargoUntil : current.item.embargoUntil;
 
-    const updateStmt = this.db.prepare(
-      `UPDATE content_items SET
+    const updateStmt = this.db
+      .prepare(
+        `UPDATE content_items SET
         title = ?,
         slug = ?,
         summary = ?,
@@ -195,47 +215,52 @@ export class D1ContentRepository {
         updated_at = ?,
         version_no = ?
       WHERE id = ? AND owner_id = ? AND version_no = ? AND deleted_at IS NULL`,
-    ).bind(
-      newTitle,
-      newSlug,
-      newSummary,
-      newVisibility,
-      newOccurredAt,
-      newScheduledFor,
-      newEmbargoUntil,
-      now,
-      newVersionNo,
-      id,
-      ownerId,
-      expectedVersionNo,
-    );
+      )
+      .bind(
+        newTitle,
+        newSlug,
+        newSummary,
+        newVisibility,
+        newOccurredAt,
+        newScheduledFor,
+        newEmbargoUntil,
+        now,
+        newVersionNo,
+        id,
+        ownerId,
+        expectedVersionNo,
+      );
 
     const batchStmts: D1PreparedStatement[] = [updateStmt];
 
     // Create new revision if bodyBlocksJson is provided
     if (input.bodyBlocksJson) {
-      const maxRevStmt = this.db.prepare(
-        `SELECT COALESCE(MAX(revision_no), 0) AS max_rev FROM content_revisions WHERE content_item_id = ? AND owner_id = ?`,
-      ).bind(id, ownerId);
+      const maxRevStmt = this.db
+        .prepare(
+          `SELECT COALESCE(MAX(revision_no), 0) AS max_rev FROM content_revisions WHERE content_item_id = ? AND owner_id = ?`,
+        )
+        .bind(id, ownerId);
       const maxRevRow = await maxRevStmt.first<{ max_rev: number }>();
       const nextRevNo = (maxRevRow?.max_rev || 0) + 1;
 
       const revId = crypto.randomUUID();
-      const insertRevStmt = this.db.prepare(
-        `INSERT INTO content_revisions (
+      const insertRevStmt = this.db
+        .prepare(
+          `INSERT INTO content_revisions (
           id, content_item_id, owner_id, revision_no,
           body_snapshot, body_schema_version, revision_note, created_at, created_by
         ) VALUES (?, ?, ?, ?, ?, 'v1', ?, ?, ?)`,
-      ).bind(
-        revId,
-        id,
-        ownerId,
-        nextRevNo,
-        input.bodyBlocksJson,
-        input.revisionNote || `Updated content version ${newVersionNo}`,
-        now,
-        updatedBy,
-      );
+        )
+        .bind(
+          revId,
+          id,
+          ownerId,
+          nextRevNo,
+          input.bodyBlocksJson,
+          input.revisionNote || `Updated content version ${newVersionNo}`,
+          now,
+          updatedBy,
+        );
       batchStmts.push(insertRevStmt);
     }
 
@@ -285,27 +310,31 @@ export class D1ContentRepository {
     const revId = crypto.randomUUID();
     const latestBodySnapshot = current.latestBodySnapshot || '[]';
 
-    const maxRevStmt = this.db.prepare(
-      `SELECT COALESCE(MAX(revision_no), 0) AS max_rev FROM content_revisions WHERE content_item_id = ? AND owner_id = ?`,
-    ).bind(id, ownerId);
+    const maxRevStmt = this.db
+      .prepare(
+        `SELECT COALESCE(MAX(revision_no), 0) AS max_rev FROM content_revisions WHERE content_item_id = ? AND owner_id = ?`,
+      )
+      .bind(id, ownerId);
     const maxRevRow = await maxRevStmt.first<{ max_rev: number }>();
     const nextRevNo = (maxRevRow?.max_rev || 0) + 1;
 
-    const auditRevStmt = this.db.prepare(
-      `INSERT INTO content_revisions (
+    const auditRevStmt = this.db
+      .prepare(
+        `INSERT INTO content_revisions (
         id, content_item_id, owner_id, revision_no,
         body_snapshot, body_schema_version, revision_note, created_at, created_by
       ) VALUES (?, ?, ?, ?, ?, 'v1', ?, ?, ?)`,
-    ).bind(
-      revId,
-      id,
-      ownerId,
-      nextRevNo,
-      latestBodySnapshot,
-      `State transition: ${current.item.state} -> ${targetState}`,
-      now,
-      changedBy || 'owner',
-    );
+      )
+      .bind(
+        revId,
+        id,
+        ownerId,
+        nextRevNo,
+        latestBodySnapshot,
+        `State transition: ${current.item.state} -> ${targetState}`,
+        now,
+        changedBy || 'owner',
+      );
 
     await this.db.batch([updateStateStmt, auditRevStmt]);
 
@@ -321,41 +350,49 @@ export class D1ContentRepository {
     sourceRevisionId: string,
     createdBy: string,
   ): Promise<ContentRevisionEntity> {
-    const targetRevStmt = this.db.prepare(
-      `SELECT * FROM content_revisions WHERE id = ? AND content_item_id = ? AND owner_id = ?`,
-    ).bind(sourceRevisionId, contentItemId, ownerId);
+    const targetRevStmt = this.db
+      .prepare(
+        `SELECT * FROM content_revisions WHERE id = ? AND content_item_id = ? AND owner_id = ?`,
+      )
+      .bind(sourceRevisionId, contentItemId, ownerId);
     const targetRev = await targetRevStmt.first<{ body_snapshot: string; revision_no: number }>();
     if (!targetRev) throw new Error('Target revision not found for rollback.');
 
-    const maxRevStmt = this.db.prepare(
-      `SELECT COALESCE(MAX(revision_no), 0) AS max_rev FROM content_revisions WHERE content_item_id = ? AND owner_id = ?`,
-    ).bind(contentItemId, ownerId);
+    const maxRevStmt = this.db
+      .prepare(
+        `SELECT COALESCE(MAX(revision_no), 0) AS max_rev FROM content_revisions WHERE content_item_id = ? AND owner_id = ?`,
+      )
+      .bind(contentItemId, ownerId);
     const maxRevRow = await maxRevStmt.first<{ max_rev: number }>();
     const nextRevNo = (maxRevRow?.max_rev || 0) + 1;
 
     const now = new Date().toISOString();
     const newRevId = crypto.randomUUID();
 
-    const insertRevStmt = this.db.prepare(
-      `INSERT INTO content_revisions (
+    const insertRevStmt = this.db
+      .prepare(
+        `INSERT INTO content_revisions (
         id, content_item_id, owner_id, revision_no,
         body_snapshot, body_schema_version, revision_note, created_at, created_by
       ) VALUES (?, ?, ?, ?, ?, 'v1', ?, ?, ?)`,
-    ).bind(
-      newRevId,
-      contentItemId,
-      ownerId,
-      nextRevNo,
-      targetRev.body_snapshot,
-      `Rollback to revision #${targetRev.revision_no}`,
-      now,
-      createdBy,
-    );
+      )
+      .bind(
+        newRevId,
+        contentItemId,
+        ownerId,
+        nextRevNo,
+        targetRev.body_snapshot,
+        `Rollback to revision #${targetRev.revision_no}`,
+        now,
+        createdBy,
+      );
 
     // Also update current content_items version_no
-    const updateItemStmt = this.db.prepare(
-      `UPDATE content_items SET updated_at = ?, version_no = version_no + 1 WHERE id = ? AND owner_id = ?`,
-    ).bind(now, contentItemId, ownerId);
+    const updateItemStmt = this.db
+      .prepare(
+        `UPDATE content_items SET updated_at = ?, version_no = version_no + 1 WHERE id = ? AND owner_id = ?`,
+      )
+      .bind(now, contentItemId, ownerId);
 
     await this.db.batch([insertRevStmt, updateItemStmt]);
 
@@ -374,9 +411,11 @@ export class D1ContentRepository {
 
   /** List all revisions for an item */
   async listRevisions(ownerId: string, contentItemId: string): Promise<ContentRevisionEntity[]> {
-    const stmt = this.db.prepare(
-      `SELECT * FROM content_revisions WHERE content_item_id = ? AND owner_id = ? ORDER BY revision_no DESC`,
-    ).bind(contentItemId, ownerId);
+    const stmt = this.db
+      .prepare(
+        `SELECT * FROM content_revisions WHERE content_item_id = ? AND owner_id = ? ORDER BY revision_no DESC`,
+      )
+      .bind(contentItemId, ownerId);
     const { results } = await stmt.all<Record<string, unknown>>();
     return (results || []).map((row) => ({
       id: String(row.id) as unknown as EntityId,
@@ -392,7 +431,10 @@ export class D1ContentRepository {
   }
 
   /** Public allowlisted query for public Journey pages with scheduled_for & embargo_until enforcement */
-  async getPublicPublishedEntries(filters?: { contentType?: ContentType; yearMonth?: string }): Promise<ContentItemEntity[]> {
+  async getPublicPublishedEntries(filters?: {
+    contentType?: ContentType;
+    yearMonth?: string;
+  }): Promise<ContentItemEntity[]> {
     const now = new Date().toISOString();
     let sql = `SELECT * FROM content_items WHERE state = 'published' AND visibility = 'public' AND deleted_at IS NULL AND archived_at IS NULL AND (scheduled_for IS NULL OR scheduled_for <= ?) AND (embargo_until IS NULL OR embargo_until <= ?)`;
     const params: string[] = [now, now];
@@ -414,19 +456,25 @@ export class D1ContentRepository {
   }
 
   /** Get single public published entry by slug with scheduled_for & embargo_until enforcement */
-  async getPublicPublishedEntryBySlug(slug: string): Promise<{ item: ContentItemEntity; bodySnapshot: string | null } | null> {
+  async getPublicPublishedEntryBySlug(
+    slug: string,
+  ): Promise<{ item: ContentItemEntity; bodySnapshot: string | null } | null> {
     const now = new Date().toISOString();
-    const stmt = this.db.prepare(
-      `SELECT * FROM content_items WHERE slug = ? AND state = 'published' AND visibility = 'public' AND deleted_at IS NULL AND archived_at IS NULL AND (scheduled_for IS NULL OR scheduled_for <= ?) AND (embargo_until IS NULL OR embargo_until <= ?)`,
-    ).bind(slug, now, now);
+    const stmt = this.db
+      .prepare(
+        `SELECT * FROM content_items WHERE slug = ? AND state = 'published' AND visibility = 'public' AND deleted_at IS NULL AND archived_at IS NULL AND (scheduled_for IS NULL OR scheduled_for <= ?) AND (embargo_until IS NULL OR embargo_until <= ?)`,
+      )
+      .bind(slug, now, now);
     const row = await stmt.first<Record<string, unknown>>();
     if (!row) return null;
 
     const item = this.mapRowToEntity(row);
 
-    const revStmt = this.db.prepare(
-      `SELECT body_snapshot FROM content_revisions WHERE content_item_id = ? ORDER BY revision_no DESC LIMIT 1`,
-    ).bind(item.id);
+    const revStmt = this.db
+      .prepare(
+        `SELECT body_snapshot FROM content_revisions WHERE content_item_id = ? ORDER BY revision_no DESC LIMIT 1`,
+      )
+      .bind(item.id);
     const revRow = await revStmt.first<{ body_snapshot: string }>();
 
     return {
@@ -445,7 +493,11 @@ export class D1ContentRepository {
     const records: LinkedEntityRecord[] = [];
 
     for (const id of skillIds) {
-      const stmt = this.db.prepare(`SELECT visibility FROM skills WHERE owner_id = ? AND id = ? AND archived_at IS NULL`).bind(ownerId, id);
+      const stmt = this.db
+        .prepare(
+          `SELECT visibility FROM skills WHERE owner_id = ? AND id = ? AND archived_at IS NULL`,
+        )
+        .bind(ownerId, id);
       const row = await stmt.first<{ visibility: Visibility }>();
       records.push({
         id,
@@ -456,7 +508,11 @@ export class D1ContentRepository {
     }
 
     for (const id of capabilityIds) {
-      const stmt = this.db.prepare(`SELECT visibility FROM capabilities WHERE owner_id = ? AND id = ? AND archived_at IS NULL`).bind(ownerId, id);
+      const stmt = this.db
+        .prepare(
+          `SELECT visibility FROM capabilities WHERE owner_id = ? AND id = ? AND archived_at IS NULL`,
+        )
+        .bind(ownerId, id);
       const row = await stmt.first<{ visibility: Visibility }>();
       records.push({
         id,
@@ -467,7 +523,11 @@ export class D1ContentRepository {
     }
 
     for (const id of evidenceIds) {
-      const stmt = this.db.prepare(`SELECT visibility FROM evidence_items WHERE owner_id = ? AND id = ? AND archived_at IS NULL`).bind(ownerId, id);
+      const stmt = this.db
+        .prepare(
+          `SELECT visibility FROM evidence_items WHERE owner_id = ? AND id = ? AND archived_at IS NULL`,
+        )
+        .bind(ownerId, id);
       const row = await stmt.first<{ visibility: Visibility }>();
       records.push({
         id,
@@ -495,8 +555,12 @@ export class D1ContentRepository {
       state: row.state as PublicationState,
       occurredAt: row.occurred_at ? (String(row.occurred_at) as unknown as ISODateTime) : null,
       publishedAt: row.published_at ? (String(row.published_at) as unknown as ISODateTime) : null,
-      scheduledFor: row.scheduled_for ? (String(row.scheduled_for) as unknown as ISODateTime) : null,
-      embargoUntil: row.embargo_until ? (String(row.embargo_until) as unknown as ISODateTime) : null,
+      scheduledFor: row.scheduled_for
+        ? (String(row.scheduled_for) as unknown as ISODateTime)
+        : null,
+      embargoUntil: row.embargo_until
+        ? (String(row.embargo_until) as unknown as ISODateTime)
+        : null,
       createdAt: String(row.created_at) as unknown as ISODateTime,
       updatedAt: String(row.updated_at) as unknown as ISODateTime,
       archivedAt: row.archived_at ? (String(row.archived_at) as unknown as ISODateTime) : null,

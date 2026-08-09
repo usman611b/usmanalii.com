@@ -10,7 +10,11 @@
 import { Hono } from 'hono';
 import type { WorkerEnv } from '../index.js';
 import type { AuthVariables } from '../middleware/auth.js';
-import { D1ContentRepository, D1EvidenceRepository, D1ArtifactRepository } from '@usmanalii/database';
+import {
+  D1ContentRepository,
+  D1EvidenceRepository,
+  D1ArtifactRepository,
+} from '@usmanalii/database';
 import { filterPublicEvidence, filterPublicArtifacts } from '@usmanalii/evidence';
 import { formatContentDisposition } from './artifacts.js';
 import type { ContentType, EntityId } from '@usmanalii/domain';
@@ -44,10 +48,22 @@ publicRoutes.post('/contact', async (c) => {
   const message = String(body.message || '');
 
   if (!email || !message) {
-    return c.json({ code: 'INVALID_PAYLOAD', message: 'Email and message are required.', requestId: c.get('requestId') }, 400);
+    return c.json(
+      {
+        code: 'INVALID_PAYLOAD',
+        message: 'Email and message are required.',
+        requestId: c.get('requestId'),
+      },
+      400,
+    );
   }
 
-  return c.json({ success: true, status: 'sent', message: 'Thank you for reaching out.', requestId: c.get('requestId') });
+  return c.json({
+    success: true,
+    status: 'sent',
+    message: 'Thank you for reaching out.',
+    requestId: c.get('requestId'),
+  });
 });
 
 // ----------------------------------------------------------------------------
@@ -72,17 +88,31 @@ publicRoutes.get('/journey', async (c) => {
 publicRoutes.get('/journey/:slug', async (c) => {
   const slug = c.req.param('slug');
   if (slug === 'preview') {
-    return c.json({ code: 'NOT_FOUND', message: 'Preview endpoint has been moved under Cloudflare Access protected private routes.', requestId: c.get('requestId') }, 404);
+    return c.json(
+      {
+        code: 'NOT_FOUND',
+        message:
+          'Preview endpoint has been moved under Cloudflare Access protected private routes.',
+        requestId: c.get('requestId'),
+      },
+      404,
+    );
   }
   if (!c.env?.DB) {
-    return c.json({ code: 'NOT_FOUND', message: 'Published entry not found.', requestId: c.get('requestId') }, 404);
+    return c.json(
+      { code: 'NOT_FOUND', message: 'Published entry not found.', requestId: c.get('requestId') },
+      404,
+    );
   }
 
   const repo = new D1ContentRepository(c.env.DB);
 
   const found = await repo.getPublicPublishedEntryBySlug(slug);
   if (!found) {
-    return c.json({ code: 'NOT_FOUND', message: 'Published entry not found.', requestId: c.get('requestId') }, 404);
+    return c.json(
+      { code: 'NOT_FOUND', message: 'Published entry not found.', requestId: c.get('requestId') },
+      404,
+    );
   }
 
   const blocks = found.bodySnapshot ? JSON.parse(found.bodySnapshot) : [];
@@ -129,18 +159,39 @@ publicRoutes.get('/evidence', async (c) => {
 publicRoutes.get('/evidence/:id', async (c) => {
   const id = c.req.param('id');
   if (!c.env?.DB) {
-    return c.json({ code: 'RESOURCE_NOT_FOUND', message: 'Evidence item not found.', requestId: c.get('requestId') }, 404);
+    return c.json(
+      {
+        code: 'RESOURCE_NOT_FOUND',
+        message: 'Evidence item not found.',
+        requestId: c.get('requestId'),
+      },
+      404,
+    );
   }
   const repo = new D1EvidenceRepository(c.env.DB);
   const found = await repo.getPublicEvidenceById(id);
 
   if (!found) {
-    return c.json({ code: 'RESOURCE_NOT_FOUND', message: 'Evidence item not found.', requestId: c.get('requestId') }, 404);
+    return c.json(
+      {
+        code: 'RESOURCE_NOT_FOUND',
+        message: 'Evidence item not found.',
+        requestId: c.get('requestId'),
+      },
+      404,
+    );
   }
 
   const eligible = filterPublicEvidence([found]);
   if (eligible.length === 0) {
-    return c.json({ code: 'RESOURCE_NOT_FOUND', message: 'Evidence item not found.', requestId: c.get('requestId') }, 404);
+    return c.json(
+      {
+        code: 'RESOURCE_NOT_FOUND',
+        message: 'Evidence item not found.',
+        requestId: c.get('requestId'),
+      },
+      404,
+    );
   }
 
   return c.json({
@@ -163,18 +214,27 @@ publicRoutes.get('/evidence/:id', async (c) => {
 publicRoutes.get('/artifacts/:id/download', async (c) => {
   const id = c.req.param('id');
   if (!c.env?.DB) {
-    return c.json({ code: 'RESOURCE_NOT_FOUND', message: 'Artifact not found.', requestId: c.get('requestId') }, 404);
+    return c.json(
+      { code: 'RESOURCE_NOT_FOUND', message: 'Artifact not found.', requestId: c.get('requestId') },
+      404,
+    );
   }
   const repo = new D1ArtifactRepository(c.env.DB);
   const artifact = await repo.getPublicArtifactById(id);
 
   if (!artifact) {
-    return c.json({ code: 'RESOURCE_NOT_FOUND', message: 'Artifact not found.', requestId: c.get('requestId') }, 404);
+    return c.json(
+      { code: 'RESOURCE_NOT_FOUND', message: 'Artifact not found.', requestId: c.get('requestId') },
+      404,
+    );
   }
 
   const eligible = filterPublicArtifacts([artifact]);
   if (eligible.length === 0) {
-    return c.json({ code: 'RESOURCE_NOT_FOUND', message: 'Artifact not found.', requestId: c.get('requestId') }, 404);
+    return c.json(
+      { code: 'RESOURCE_NOT_FOUND', message: 'Artifact not found.', requestId: c.get('requestId') },
+      404,
+    );
   }
 
   const r2 = c.env.ARTIFACTS_BUCKET || c.env.R2_PUBLIC || c.env.R2_PRIVATE;
@@ -182,7 +242,10 @@ publicRoutes.get('/artifacts/:id/download', async (c) => {
     const object = await r2.get(artifact.r2Key);
     if (object && object.body) {
       c.header('Content-Type', artifact.mediaType || 'application/octet-stream');
-      c.header('Content-Disposition', formatContentDisposition(artifact.originalName || 'artifact'));
+      c.header(
+        'Content-Disposition',
+        formatContentDisposition(artifact.originalName || 'artifact'),
+      );
       c.header('Content-Security-Policy', "default-src 'none'");
       c.header('X-Content-Type-Options', 'nosniff');
       c.header('Cache-Control', 'public, no-cache, must-revalidate');
@@ -191,7 +254,8 @@ publicRoutes.get('/artifacts/:id/download', async (c) => {
   }
 
   return c.json({
-    message: 'Public artifact metadata verified. Binary content delivered in R2 production binding.',
+    message:
+      'Public artifact metadata verified. Binary content delivered in R2 production binding.',
     data: {
       id: artifact.id,
       title: artifact.title,
@@ -222,7 +286,10 @@ publicRoutes.get('/skills/:slug', async (c) => {
 
   const skill = await repo.getSkillBySlug(ownerId, slug);
   if (!skill || skill.visibility !== 'public') {
-    return c.json({ code: 'RESOURCE_NOT_FOUND', message: 'Skill not found.', requestId: c.get('requestId') }, 404);
+    return c.json(
+      { code: 'RESOURCE_NOT_FOUND', message: 'Skill not found.', requestId: c.get('requestId') },
+      404,
+    );
   }
   return c.json({ data: skill, requestId: c.get('requestId') });
 });
@@ -232,7 +299,10 @@ publicRoutes.get('/capabilities', async (c) => {
   const { D1CapabilityRepository } = await import('@usmanalii/database');
   const repo = new D1CapabilityRepository(c.env.DB);
   const ownerId = '00000000-0000-0000-0000-000000000001' as EntityId;
-  const capabilities = await repo.listCapabilitiesByOwner(ownerId, { visibility: 'public', state: 'published' });
+  const capabilities = await repo.listCapabilitiesByOwner(ownerId, {
+    visibility: 'public',
+    state: 'published',
+  });
   return c.json({ data: capabilities, count: capabilities.length, requestId: c.get('requestId') });
 });
 
@@ -245,9 +315,99 @@ publicRoutes.get('/capabilities/:slug', async (c) => {
 
   const cap = await repo.getCapabilityBySlug(ownerId, slug);
   if (!cap || cap.visibility !== 'public' || cap.state !== 'published') {
-    return c.json({ code: 'RESOURCE_NOT_FOUND', message: 'Capability not found.', requestId: c.get('requestId') }, 404);
+    return c.json(
+      {
+        code: 'RESOURCE_NOT_FOUND',
+        message: 'Capability not found.',
+        requestId: c.get('requestId'),
+      },
+      404,
+    );
   }
   return c.json({ data: cap, requestId: c.get('requestId') });
+});
+
+/**
+ * Milestone M5 — Public Projects API Routes
+ */
+
+/** GET /api/v1/public/projects — List public eligible projects */
+publicRoutes.get('/projects', async (c) => {
+  const { D1ProjectRepository } = await import('@usmanalii/database');
+  const repo = new D1ProjectRepository(c.env.DB);
+  const ownerId = '00000000-0000-0000-0000-000000000001';
+
+  const projects = await repo.listProjects(ownerId, {
+    visibility: 'public',
+    publicationState: 'published',
+  });
+  const now = new Date().toISOString();
+
+  // Filter out scheduled, embargoed, archived, or deleted projects
+  const eligible = projects.filter((p) => {
+    if (p.archivedAt || p.deletedAt) return false;
+    if (p.scheduledFor && p.scheduledFor > now) return false;
+    if (p.embargoUntil && p.embargoUntil > now) return false;
+    return true;
+  });
+
+  return c.json({ data: eligible, count: eligible.length, requestId: c.get('requestId') });
+});
+
+/** GET /api/v1/public/projects/:slug — Get public eligible project detail */
+publicRoutes.get('/projects/:slug', async (c) => {
+  const { D1ProjectRepository, D1EngineeringRecordRepository, D1ProjectRelationshipRepository } =
+    await import('@usmanalii/database');
+  const { getPublicProjectProjection } = await import('@usmanalii/domain');
+  const ownerId = '00000000-0000-0000-0000-000000000001';
+  const slug = c.req.param('slug');
+
+  const projRepo = new D1ProjectRepository(c.env.DB);
+  const project = await projRepo.getProjectBySlug(ownerId, slug);
+
+  if (!project) {
+    return c.json(
+      { code: 'RESOURCE_NOT_FOUND', message: 'Project not found.', requestId: c.get('requestId') },
+      404,
+    );
+  }
+
+  const engRepo = new D1EngineeringRecordRepository(c.env.DB);
+  const relRepo = new D1ProjectRelationshipRepository(c.env.DB);
+
+  const [contributions, experiments, adrs, debuggingLessons, deployments, versions, relationships] =
+    await Promise.all([
+      engRepo.listContributions(ownerId, project.id),
+      engRepo.listExperiments(ownerId, project.id),
+      engRepo.listAdrs(ownerId, project.id),
+      engRepo.listDebuggingLessons(ownerId, project.id),
+      engRepo.listDeployments(ownerId, project.id),
+      engRepo.listVersions(ownerId, project.id),
+      relRepo.listRelationships(ownerId, project.id),
+    ]);
+
+  const projection = getPublicProjectProjection({
+    project,
+    contributions,
+    experiments,
+    adrs,
+    debuggingLessons,
+    deployments,
+    versions,
+    relationships,
+  });
+
+  if (!projection) {
+    return c.json(
+      { code: 'RESOURCE_NOT_FOUND', message: 'Project not found.', requestId: c.get('requestId') },
+      404,
+    );
+  }
+
+  return c.json({
+    data: projection,
+    requestId: c.get('requestId'),
+  });
 });
 
 /** GET /api/v1/public/graph/visualization — Get sanitized public graph projection */
@@ -257,6 +417,3 @@ publicRoutes.get('/graph/visualization', async (c) => {
   const projection = await repo.getPublicGraphProjection();
   return c.json({ data: projection, requestId: c.get('requestId') });
 });
-
-
-

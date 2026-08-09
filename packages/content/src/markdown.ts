@@ -33,10 +33,7 @@ export function escapeHtml(str: string): string {
  */
 export function escapeJsonLd(data: unknown): string {
   const json = JSON.stringify(data);
-  return json
-    .replace(/</g, '\\u003c')
-    .replace(/>/g, '\\u003e')
-    .replace(/&/g, '\\u0026');
+  return json.replace(/</g, '\\u003c').replace(/>/g, '\\u003e').replace(/&/g, '\\u0026');
 }
 
 /**
@@ -46,7 +43,13 @@ export function escapeJsonLd(data: unknown): string {
 export function isSafeLinkUrl(url: string): boolean {
   if (!url || typeof url !== 'string') return false;
   const trimmed = url.trim().toLowerCase();
-  if (trimmed.startsWith('/') || trimmed.startsWith('#') || trimmed.startsWith('./') || trimmed.startsWith('../')) return true;
+  if (
+    trimmed.startsWith('/') ||
+    trimmed.startsWith('#') ||
+    trimmed.startsWith('./') ||
+    trimmed.startsWith('../')
+  )
+    return true;
   return (
     trimmed.startsWith('https://') ||
     trimmed.startsWith('http://') ||
@@ -150,7 +153,10 @@ export function sanitizeSvg(svg: string): string {
   sanitized = sanitized.replace(/\son[a-z]+\s*=\s*(?:"[^"]*"|'[^']*'|[^\s>]+)/gi, '');
 
   // 3. Remove href / xlink:href containing javascript:, data:, or external URLs
-  sanitized = sanitized.replace(/(?:href|xlink:href)\s*=\s*["']?\s*(?:javascript:|data:|https?:|\/\/)[^"'>\s]+/gi, 'href="#"');
+  sanitized = sanitized.replace(
+    /(?:href|xlink:href)\s*=\s*["']?\s*(?:javascript:|data:|https?:|\/\/)[^"'>\s]+/gi,
+    'href="#"',
+  );
 
   // 4. Remove style attributes containing url(), expression(), or @import
   sanitized = sanitized.replace(/style\s*=\s*(?:"[^"]*?"|'[^']*?'|[^\s>]+)/gi, (match) => {
@@ -225,13 +231,19 @@ export function compileJsonBlocksToMarkdown(
       case 'callout': {
         const typeUpper = block.calloutType.toUpperCase();
         const title = block.title ? ` ${block.title}` : '';
-        const lines = block.text.split('\n').map((l) => `> ${l}`).join('\n');
+        const lines = block.text
+          .split('\n')
+          .map((l) => `> ${l}`)
+          .join('\n');
         markdownBlocks.push(`> [!${typeUpper}]${title}\n${lines}`);
         break;
       }
       case 'quote': {
         const cite = block.cite ? `\n> — *${block.cite}*` : '';
-        const lines = block.text.split('\n').map((l) => `> ${l}`).join('\n');
+        const lines = block.text
+          .split('\n')
+          .map((l) => `> ${l}`)
+          .join('\n');
         markdownBlocks.push(`${lines}${cite}`);
         break;
       }

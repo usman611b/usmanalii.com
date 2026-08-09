@@ -56,9 +56,7 @@ export function csrfProtection(allowedOrigins?: readonly string[]): MiddlewareHa
     }
 
     const isAllowed = allowed.some(
-      (a) =>
-        a === sourceDomain ||
-        (requestHost ? sourceDomain?.endsWith(requestHost) : false),
+      (a) => a === sourceDomain || (requestHost ? sourceDomain?.endsWith(requestHost) : false),
     );
 
     if (!sourceDomain || !isAllowed) {

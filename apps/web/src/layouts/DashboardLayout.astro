@@ -6,10 +6,7 @@ interface Props {
   activeSection?: string;
 }
 
-const {
-  title = 'Dashboard — usmanalii.com',
-  activeSection = 'overview',
-} = Astro.props;
+const { title = 'Dashboard — usmanalii.com', activeSection = 'overview' } = Astro.props;
 
 const dashboardLinks = [
   { href: '/dashboard', id: 'overview', label: 'Overview', icon: '📊' },
@@ -23,7 +20,7 @@ const dashboardLinks = [
 ];
 ---
 
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en" class="dark">
   <head>
     <meta charset="UTF-8" />
@@ -31,10 +28,12 @@ const dashboardLinks = [
     <title>{title}</title>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
   </head>
   <body class="bg-[#050509] text-[#F7FBFF] flex min-h-screen">
-    
     <!-- Sidebar Navigation -->
     <aside class="w-64 border-r border-white/10 bg-[#080D1A] flex flex-col p-4">
       <div class="flex items-center space-x-2 px-3 py-2 mb-6">
@@ -43,22 +42,24 @@ const dashboardLinks = [
       </div>
 
       <nav class="flex-grow space-y-1" aria-label="Dashboard Navigation">
-        {dashboardLinks.map((link) => {
-          const isActive = activeSection === link.id;
-          return (
-            <a
-              href={link.href}
-              class={`flex items-center space-x-3 px-3 py-2 rounded-lg text-xs font-medium transition-colors ${
-                isActive
-                  ? 'bg-[#101A31] text-[#22D3EE] font-semibold border border-white/10'
-                  : 'text-[#9CAAC1] hover:text-white hover:bg-white/5'
-              }`}
-            >
-              <span>{link.icon}</span>
-              <span>{link.label}</span>
-            </a>
-          );
-        })}
+        {
+          dashboardLinks.map((link) => {
+            const isActive = activeSection === link.id;
+            return (
+              <a
+                href={link.href}
+                class={`flex items-center space-x-3 px-3 py-2 rounded-lg text-xs font-medium transition-colors ${
+                  isActive
+                    ? 'bg-[#101A31] text-[#22D3EE] font-semibold border border-white/10'
+                    : 'text-[#9CAAC1] hover:text-white hover:bg-white/5'
+                }`}
+              >
+                <span>{link.icon}</span>
+                <span>{link.label}</span>
+              </a>
+            );
+          })
+        }
       </nav>
 
       <!-- Quick Capture Trigger -->
@@ -80,10 +81,14 @@ const dashboardLinks = [
     <!-- Main Content Area -->
     <div class="flex-1 flex flex-col min-w-0 overflow-hidden">
       <!-- Top App Bar -->
-      <header class="h-14 border-b border-white/10 bg-[#080D1A]/50 px-6 flex items-center justify-between">
+      <header
+        class="h-14 border-b border-white/10 bg-[#080D1A]/50 px-6 flex items-center justify-between"
+      >
         <h1 class="text-sm font-semibold text-white">{title}</h1>
         <div class="flex items-center space-x-3 text-xs">
-          <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+          <span
+            class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-emerald-500/10 text-emerald-400 border border-emerald-500/20"
+          >
             ● Protected Session
           </span>
         </div>

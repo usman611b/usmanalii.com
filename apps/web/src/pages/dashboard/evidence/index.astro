@@ -46,7 +46,9 @@ const mockEvidenceItems = [
     <div class="flex items-center justify-between">
       <div>
         <h2 class="text-xl font-bold text-white">Evidence Ledger</h2>
-        <p class="text-xs text-[#9CAAC1] mt-1">Verifiable proof and supporting material for claims, capabilities, and projects.</p>
+        <p class="text-xs text-[#9CAAC1] mt-1">
+          Verifiable proof and supporting material for claims, capabilities, and projects.
+        </p>
       </div>
       <a
         href="/dashboard/evidence/new"
@@ -59,7 +61,10 @@ const mockEvidenceItems = [
     <!-- Filters -->
     <div class="p-4 rounded-xl glass-panel flex flex-wrap items-center justify-between gap-3">
       <div class="flex items-center gap-2 flex-wrap">
-        <select aria-label="Filter by Evidence Type" class="bg-[#101A31] text-xs text-white border border-white/10 rounded-lg px-2.5 py-1.5">
+        <select
+          aria-label="Filter by Evidence Type"
+          class="bg-[#101A31] text-xs text-white border border-white/10 rounded-lg px-2.5 py-1.5"
+        >
           <option value="">All Evidence Types</option>
           <option value="commit">Commit</option>
           <option value="pull_request">Pull Request</option>
@@ -68,7 +73,10 @@ const mockEvidenceItems = [
           <option value="manual_evidence">Manual Proof</option>
         </select>
 
-        <select aria-label="Filter by Verification State" class="bg-[#101A31] text-xs text-white border border-white/10 rounded-lg px-2.5 py-1.5">
+        <select
+          aria-label="Filter by Verification State"
+          class="bg-[#101A31] text-xs text-white border border-white/10 rounded-lg px-2.5 py-1.5"
+        >
           <option value="">All Verification States</option>
           <option value="owner_verified">Owner Verified</option>
           <option value="source_verified">Source Verified</option>
@@ -76,7 +84,10 @@ const mockEvidenceItems = [
           <option value="disputed">Disputed</option>
         </select>
 
-        <select aria-label="Filter by Visibility" class="bg-[#101A31] text-xs text-white border border-white/10 rounded-lg px-2.5 py-1.5">
+        <select
+          aria-label="Filter by Visibility"
+          class="bg-[#101A31] text-xs text-white border border-white/10 rounded-lg px-2.5 py-1.5"
+        >
           <option value="">All Visibilities</option>
           <option value="private">Private</option>
           <option value="public">Public</option>
@@ -105,32 +116,39 @@ const mockEvidenceItems = [
           </tr>
         </thead>
         <tbody class="divide-y divide-white/5 text-white">
-          {mockEvidenceItems.map((item) => (
-            <tr class="hover:bg-white/5 transition-colors">
-              <td class="p-3">
-                <div class="font-medium">{item.title}</div>
-                <div class="mt-1 flex items-center gap-1.5">
-                  <EvidenceBadge evidenceType={item.evidenceType} />
-                </div>
-              </td>
-              <td class="p-3 font-mono text-[11px] text-[#9CAAC1]">
-                {item.provider || item.sourceType}
-              </td>
-              <td class="p-3">
-                <VerificationStatusBadge status={item.verificationState} />
-              </td>
-              <td class="p-3 capitalize font-mono text-[11px] text-[#9CAAC1]">
-                {item.visibility}
-              </td>
-              <td class="p-3 font-mono text-[11px] text-[#9CAAC1]">
-                {item.occurredAt}
-              </td>
-              <td class="p-3 text-right space-x-2">
-                <a href={`/dashboard/evidence/${item.id}`} class="text-[#22D3EE] hover:underline">View</a>
-                <a href={`/dashboard/evidence/${item.id}/edit`} class="text-[#9CAAC1] hover:text-white">Edit</a>
-              </td>
-            </tr>
-          ))}
+          {
+            mockEvidenceItems.map((item) => (
+              <tr class="hover:bg-white/5 transition-colors">
+                <td class="p-3">
+                  <div class="font-medium">{item.title}</div>
+                  <div class="mt-1 flex items-center gap-1.5">
+                    <EvidenceBadge evidenceType={item.evidenceType} />
+                  </div>
+                </td>
+                <td class="p-3 font-mono text-[11px] text-[#9CAAC1]">
+                  {item.provider || item.sourceType}
+                </td>
+                <td class="p-3">
+                  <VerificationStatusBadge status={item.verificationState} />
+                </td>
+                <td class="p-3 capitalize font-mono text-[11px] text-[#9CAAC1]">
+                  {item.visibility}
+                </td>
+                <td class="p-3 font-mono text-[11px] text-[#9CAAC1]">{item.occurredAt}</td>
+                <td class="p-3 text-right space-x-2">
+                  <a href={`/dashboard/evidence/${item.id}`} class="text-[#22D3EE] hover:underline">
+                    View
+                  </a>
+                  <a
+                    href={`/dashboard/evidence/${item.id}/edit`}
+                    class="text-[#9CAAC1] hover:text-white"
+                  >
+                    Edit
+                  </a>
+                </td>
+              </tr>
+            ))
+          }
         </tbody>
       </table>
     </div>

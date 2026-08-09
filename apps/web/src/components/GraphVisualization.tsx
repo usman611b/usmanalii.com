@@ -23,9 +23,8 @@ export const GraphVisualization: React.FC<GraphVisualizationProps> = ({ nodes, e
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [viewMode, setViewMode] = useState<'visual' | 'table'>('visual');
 
-  const filteredNodes = selectedCategory === 'all'
-    ? nodes
-    : nodes.filter((n) => n.category === selectedCategory);
+  const filteredNodes =
+    selectedCategory === 'all' ? nodes : nodes.filter((n) => n.category === selectedCategory);
 
   const filteredNodeIds = new Set(filteredNodes.map((n) => n.id));
   const filteredEdges = edges.filter(
@@ -37,7 +36,9 @@ export const GraphVisualization: React.FC<GraphVisualizationProps> = ({ nodes, e
       {/* Accessible Controls */}
       <div className="flex flex-wrap items-center justify-between gap-3 p-4 rounded-xl glass-panel border border-white/10">
         <div className="flex items-center gap-3">
-          <label htmlFor="category-filter" className="text-xs font-semibold text-[#9CAAC1]">Filter Category:</label>
+          <label htmlFor="category-filter" className="text-xs font-semibold text-[#9CAAC1]">
+            Filter Category:
+          </label>
           <select
             id="category-filter"
             aria-label="Filter skills and capabilities by category"
@@ -57,7 +58,9 @@ export const GraphVisualization: React.FC<GraphVisualizationProps> = ({ nodes, e
             type="button"
             onClick={() => setViewMode('visual')}
             className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
-              viewMode === 'visual' ? 'bg-[#22D3EE] text-[#050509]' : 'bg-[#101A31] text-[#9CAAC1] hover:text-white'
+              viewMode === 'visual'
+                ? 'bg-[#22D3EE] text-[#050509]'
+                : 'bg-[#101A31] text-[#9CAAC1] hover:text-white'
             }`}
           >
             Visual Graph
@@ -66,7 +69,9 @@ export const GraphVisualization: React.FC<GraphVisualizationProps> = ({ nodes, e
             type="button"
             onClick={() => setViewMode('table')}
             className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
-              viewMode === 'table' ? 'bg-[#22D3EE] text-[#050509]' : 'bg-[#101A31] text-[#9CAAC1] hover:text-white'
+              viewMode === 'table'
+                ? 'bg-[#22D3EE] text-[#050509]'
+                : 'bg-[#101A31] text-[#9CAAC1] hover:text-white'
             }`}
           >
             Accessible Table View
@@ -76,7 +81,8 @@ export const GraphVisualization: React.FC<GraphVisualizationProps> = ({ nodes, e
 
       {/* ARIA Screen Reader Summary */}
       <div className="sr-only" aria-live="polite">
-        Showing graph with {filteredNodes.length} nodes and {filteredEdges.length} relationship edges.
+        Showing graph with {filteredNodes.length} nodes and {filteredEdges.length} relationship
+        edges.
       </div>
 
       {viewMode === 'visual' ? (
@@ -94,7 +100,11 @@ export const GraphVisualization: React.FC<GraphVisualizationProps> = ({ nodes, e
                   {node.stage && <span className="text-amber-400">Stage: {node.stage}</span>}
                 </div>
                 <h3 className="text-sm font-bold text-[#FFFFFF] mt-1">{node.name}</h3>
-                {node.category && <p className="text-xs text-[#9CAAC1] mt-1 capitalize">{node.category.replace('_', ' ')}</p>}
+                {node.category && (
+                  <p className="text-xs text-[#9CAAC1] mt-1 capitalize">
+                    {node.category.replace('_', ' ')}
+                  </p>
+                )}
               </button>
             ))}
           </div>
@@ -105,22 +115,36 @@ export const GraphVisualization: React.FC<GraphVisualizationProps> = ({ nodes, e
           <table className="w-full text-left text-xs text-white">
             <thead className="bg-[#101A31] text-[#9CAAC1] uppercase text-[10px]">
               <tr>
-                <th scope="col" className="p-3">Node Name</th>
-                <th scope="col" className="p-3">Type</th>
-                <th scope="col" className="p-3">Category / Stage</th>
-                <th scope="col" className="p-3">Incoming / Outgoing Edges</th>
+                <th scope="col" className="p-3">
+                  Node Name
+                </th>
+                <th scope="col" className="p-3">
+                  Type
+                </th>
+                <th scope="col" className="p-3">
+                  Category / Stage
+                </th>
+                <th scope="col" className="p-3">
+                  Incoming / Outgoing Edges
+                </th>
               </tr>
             </thead>
             <tbody className="divide-y divide-white/5">
               {filteredNodes.map((node) => {
-                const nodeEdges = filteredEdges.filter((e) => e.sourceId === node.id || e.targetId === node.id);
+                const nodeEdges = filteredEdges.filter(
+                  (e) => e.sourceId === node.id || e.targetId === node.id,
+                );
                 return (
                   <tr key={node.id} className="hover:bg-white/5">
                     <td className="p-3 font-semibold text-white">{node.name}</td>
                     <td className="p-3 font-mono text-[#22D3EE] capitalize">{node.type}</td>
-                    <td className="p-3 text-[#9CAAC1] capitalize">{node.category || node.stage || 'N/A'}</td>
+                    <td className="p-3 text-[#9CAAC1] capitalize">
+                      {node.category || node.stage || 'N/A'}
+                    </td>
                     <td className="p-3 font-mono text-xs text-[#9CAAC1]">
-                      {nodeEdges.length > 0 ? `${nodeEdges.length} connected edge(s)` : 'Isolated node'}
+                      {nodeEdges.length > 0
+                        ? `${nodeEdges.length} connected edge(s)`
+                        : 'Isolated node'}
                     </td>
                   </tr>
                 );

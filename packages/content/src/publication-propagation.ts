@@ -31,16 +31,20 @@ export function filterPublicProjections(
 export function generateRssFeedXml(items: ContentItemEntity[], now: Date = new Date()): string {
   const publicItems = filterPublicProjections(items, now);
 
-  const itemXmls = publicItems.map((item) => {
-    const pubDateStr = item.publishedAt ? new Date(item.publishedAt).toUTCString() : new Date().toUTCString();
-    return `  <item>
+  const itemXmls = publicItems
+    .map((item) => {
+      const pubDateStr = item.publishedAt
+        ? new Date(item.publishedAt).toUTCString()
+        : new Date().toUTCString();
+      return `  <item>
     <title>${escapeXml(item.title)}</title>
     <link>https://usmanalii.com/journey/${item.slug}</link>
     <guid>https://usmanalii.com/journey/${item.slug}</guid>
     <pubDate>${pubDateStr}</pubDate>
     <description>${escapeXml(item.summary || '')}</description>
   </item>`;
-  }).join('\n');
+    })
+    .join('\n');
 
   return `<?xml version="1.0" encoding="UTF-8" ?>
 <rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
@@ -59,14 +63,16 @@ ${itemXmls}
 export function generateSitemapXml(items: ContentItemEntity[], now: Date = new Date()): string {
   const publicItems = filterPublicProjections(items, now);
 
-  const urlXmls = publicItems.map((item) => {
-    const lastModDate = item.updatedAt ? item.updatedAt.split('T')[0] : '2026-08-08';
-    return `  <url>
+  const urlXmls = publicItems
+    .map((item) => {
+      const lastModDate = item.updatedAt ? item.updatedAt.split('T')[0] : '2026-08-08';
+      return `  <url>
     <loc>https://usmanalii.com/journey/${item.slug}</loc>
     <lastmod>${lastModDate}</lastmod>
     <priority>0.8</priority>
   </url>`;
-  }).join('\n');
+    })
+    .join('\n');
 
   return `<?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
@@ -91,7 +97,10 @@ export function resolveDirectEntryRoute(
 }
 
 /** Cache & invalidation headers based on state and visibility */
-export function getCacheHeadersForState(item: ContentItemEntity, now: Date = new Date()): Record<string, string> {
+export function getCacheHeadersForState(
+  item: ContentItemEntity,
+  now: Date = new Date(),
+): Record<string, string> {
   const isPublic = filterPublicProjections([item], now).length > 0;
 
   if (isPublic) {

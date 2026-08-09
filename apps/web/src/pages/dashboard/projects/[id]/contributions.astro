@@ -1,0 +1,99 @@
+---
+import DashboardLayout from '../../../../layouts/DashboardLayout.astro';
+
+export function getStaticPaths() {
+  return [{ params: { id: 'proj-1' } }, { params: { id: 'proj-2' } }];
+}
+
+const { id } = Astro.params;
+---
+
+<DashboardLayout title={`Contributions — ${id}`}>
+  <div class="contributions-container card">
+    <a href={`/dashboard/projects/${id}`} class="back-link">← Back to Overview</a>
+    <h1 class="text-2xl font-bold mt-2">Contributions & Evidence Linkage</h1>
+
+    <div class="existing-contributions mt-4 mb-6">
+      <h2 class="text-lg font-semibold mb-2">Recorded Contributions</h2>
+      <div class="contrib-card p-3 border rounded mb-3 bg-surface">
+        <div class="flex justify-between items-center">
+          <span class="badge badge-info">DESIGNED & IMPLEMENTED</span>
+          <span class="badge badge-success">OWNER APPROVED</span>
+        </div>
+        <p class="mt-2 text-sm">
+          Architected and implemented multi-tenant D1 database schema with migration runner and
+          SHA-256 verification baseline.
+        </p>
+        <div class="mt-2 text-xs text-dim">Linked Evidence: <code>ev-1</code> (Peer Verified)</div>
+      </div>
+    </div>
+
+    <form class="new-contrib-form border-t pt-4">
+      <h2 class="text-lg font-semibold mb-3">Add New Contribution</h2>
+
+      <div class="form-group mb-3">
+        <label for="contributionType">Contribution Type</label>
+        <select id="contributionType">
+          <option value="designed">Designed</option>
+          <option value="implemented" selected>Implemented</option>
+          <option value="tested">Tested</option>
+          <option value="debugged">Debugged</option>
+          <option value="deployed">Deployed</option>
+          <option value="led">Led</option>
+        </select>
+      </div>
+
+      <div class="form-group mb-3">
+        <label for="description">Detailed Description</label>
+        <textarea id="description" rows="3" placeholder="Describe specific engineering work done..."
+        ></textarea>
+      </div>
+
+      <div class="form-group mb-3">
+        <label for="evidenceId">Link Supporting Evidence</label>
+        <select id="evidenceId">
+          <option value="">None (Unverified Context)</option>
+          <option value="ev-1">ev-1: Monorepo Security Test Audit Log</option>
+          <option value="ev-2">ev-2: Benchmark Performance Analysis</option>
+        </select>
+      </div>
+
+      <div class="form-checkbox mb-4">
+        <label class="flex items-center gap-2">
+          <input type="checkbox" id="ownerApproval" checked />
+          <span>Explicit Owner Approval (Required for Public Wording Attribution)</span>
+        </label>
+      </div>
+
+      <button type="submit" class="button button-primary">Save Contribution</button>
+    </form>
+  </div>
+</DashboardLayout>
+
+<style>
+  .contributions-container {
+    padding: var(--space-6);
+    max-width: 800px;
+    margin: 0 auto;
+  }
+  .back-link {
+    color: var(--color-primary);
+    text-decoration: none;
+    font-size: var(--font-size-sm);
+  }
+  .form-group {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-1);
+  }
+  input,
+  select,
+  textarea {
+    background: var(--color-background);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-md);
+    padding: var(--space-2);
+    color: inherit;
+    font: inherit;
+  }
+</style>

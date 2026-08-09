@@ -1,11 +1,5 @@
 export type ContentState =
-  | 'draft'
-  | 'review'
-  | 'approved'
-  | 'scheduled'
-  | 'published'
-  | 'unlisted'
-  | 'archived';
+  'draft' | 'review' | 'approved' | 'scheduled' | 'published' | 'unlisted' | 'archived';
 
 const ALLOWED_TRANSITIONS: Record<ContentState, ContentState[]> = {
   draft: ['review', 'archived'],

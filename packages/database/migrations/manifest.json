@@ -13,6 +13,8 @@
     "009_evidence_constraints_m3.sql": "70ed707e2a6f08c810885a297700a8268d6bdb1d755d803482f4da13212a1944",
     "010_reconciliation_queue_m3.sql": "c66bf77221ae65214a3aa624d4880f76b24c394d0ed9d4ae5e4cd41744fb64b4",
     "011_skills_capabilities_m4.sql": "02ff7ef71a9731dc41d0d2f0c23231fea161ac7df79326587b9285b29fee788b",
-    "012_m4_final_gate_closure.sql": "ff3c1a54a48ca4161a06f8f9dbb765952789e403614468e29ccfd3006c4c9aeb"
+    "012_m4_final_gate_closure.sql": "ff3c1a54a48ca4161a06f8f9dbb765952789e403614468e29ccfd3006c4c9aeb",
+    "013_projects_engineering_m5.sql": "44bb7a1e9bcaf29ef64849c7b8a28f4310d8ba77e0e1d45fde48843410c1f05a",
+    "014_m5_content_model_gate1.sql": "e9099e8d5befe8212111204c087ddc736bac67560f9e2f1ca2034929b34f6d0a"
   }
 }

@@ -8,6 +8,7 @@
 import type { Visibility, PublicationState } from '../entities/index.js';
 
 export * from './graph-invariants.js';
+export * from './project-rules.js';
 
 // ---------------------------------------------------------------------------
 // Default visibility rule — Section 4 of Database Model

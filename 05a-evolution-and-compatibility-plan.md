@@ -47,12 +47,12 @@ Physical tables may evolve, but these domain meanings cannot be merged or weaken
 
 ## 4. Version capability map
 
-| Version | Adds | Reads from |
-|---|---|---|
-| V1 | Journal, evidence, capabilities, claims, projects, public identity | Canonical owner records |
-| V2 | GitHub sync, AI proposals, progression suggestions, résumé engine | V1 evidence, claims and projects |
-| V3 | Job matching, career gaps, interview prep, semantic retrieval | V1 canonical data plus V2 approved automation output |
-| V4 | Tenant isolation, onboarding, reusable integrations and product controls | Same domain model partitioned by workspace/tenant |
+| Version | Adds                                                                     | Reads from                                           |
+| ------- | ------------------------------------------------------------------------ | ---------------------------------------------------- |
+| V1      | Journal, evidence, capabilities, claims, projects, public identity       | Canonical owner records                              |
+| V2      | GitHub sync, AI proposals, progression suggestions, résumé engine        | V1 evidence, claims and projects                     |
+| V3      | Job matching, career gaps, interview prep, semantic retrieval            | V1 canonical data plus V2 approved automation output |
+| V4      | Tenant isolation, onboarding, reusable integrations and product controls | Same domain model partitioned by workspace/tenant    |
 
 ## 5. V1 → V2 evolution
 

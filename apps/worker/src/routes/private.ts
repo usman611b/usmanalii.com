@@ -11,7 +11,12 @@ import { Hono } from 'hono';
 import { z } from 'zod';
 import { requireOwnerAuth, type AuthVariables } from '../middleware/auth.js';
 import type { WorkerEnv } from '../index.js';
-import { D1ContentRepository } from '@usmanalii/database';
+import {
+  D1ContentRepository,
+  D1ProjectRepository,
+  D1EngineeringRecordRepository,
+  D1ProjectRelationshipRepository,
+} from '@usmanalii/database';
 import {
   ContentBodyV1Schema,
   compileJsonBlocksToMarkdown,
@@ -19,7 +24,23 @@ import {
   validateStateTransition,
   type ContentBlockV1,
 } from '@usmanalii/content';
-import type { ContentType, PublicationState, Visibility } from '@usmanalii/domain';
+import {
+  type ContentType,
+  type PublicationState,
+  type Visibility,
+  type ProjectLifecycleState,
+  type ProjectContributionType,
+  type EvidenceVerificationState,
+  type ExperimentStatus,
+  type ProjectAdrStatus,
+  type DeploymentEnvironment,
+  type DeploymentStatus,
+  type ProjectVersionStatus,
+  validateProjectWording,
+  classifyAndValidateUrl,
+  validateAdrSupersession,
+  validateProjectRelationship,
+} from '@usmanalii/domain';
 
 import { evidenceRoutes } from './evidence.js';
 import { artifactRoutes } from './artifacts.js';
@@ -90,7 +111,9 @@ privateRoutes.get('/profile', (c) => {
 const CreateContentItemSchema = z.object({
   contentType: z.enum(['note', 'journal', 'deep_dive', 'retrospective']),
   title: z.string().min(1, 'Title is required.'),
-  slug: z.string().regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/, 'Slug must be valid lowercase hyphenated string.'),
+  slug: z
+    .string()
+    .regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/, 'Slug must be valid lowercase hyphenated string.'),
   summary: z.string().optional(),
   visibility: z.enum(['private', 'restricted', 'unlisted', 'public']).default('private'),
   occurredAt: z.string().optional(),
@@ -99,7 +122,10 @@ const CreateContentItemSchema = z.object({
 
 const UpdateContentItemSchema = z.object({
   title: z.string().optional(),
-  slug: z.string().regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/).optional(),
+  slug: z
+    .string()
+    .regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/)
+    .optional(),
   summary: z.string().optional(),
   visibility: z.enum(['private', 'restricted', 'unlisted', 'public']).optional(),
   occurredAt: z.string().optional(),
@@ -132,7 +158,10 @@ privateRoutes.post('/content', async (c) => {
   const parseResult = CreateContentItemSchema.safeParse(body);
 
   if (!parseResult.success) {
-    return c.json({ code: 'INVALID_PAYLOAD', errors: parseResult.error.errors, requestId: c.get('requestId') }, 400);
+    return c.json(
+      { code: 'INVALID_PAYLOAD', errors: parseResult.error.errors, requestId: c.get('requestId') },
+      400,
+    );
   }
 
   const repo = new D1ContentRepository(c.env.DB);
@@ -141,7 +170,14 @@ privateRoutes.post('/content', async (c) => {
   // Check unique slug for owner
   const existing = await repo.findBySlug(authContext.ownerId, data.slug);
   if (existing) {
-    return c.json({ code: 'SLUG_CONFLICT', message: `Slug "${data.slug}" is already in use.`, requestId: c.get('requestId') }, 409);
+    return c.json(
+      {
+        code: 'SLUG_CONFLICT',
+        message: `Slug "${data.slug}" is already in use.`,
+        requestId: c.get('requestId'),
+      },
+      409,
+    );
   }
 
   const id = crypto.randomUUID();
@@ -171,7 +207,10 @@ privateRoutes.get('/content/:id', async (c) => {
 
   const found = await repo.findById(authContext.ownerId, id);
   if (!found) {
-    return c.json({ code: 'NOT_FOUND', message: 'Content item not found.', requestId: c.get('requestId') }, 404);
+    return c.json(
+      { code: 'NOT_FOUND', message: 'Content item not found.', requestId: c.get('requestId') },
+      404,
+    );
   }
 
   const revisions = await repo.listRevisions(authContext.ownerId, id);
@@ -193,7 +232,10 @@ privateRoutes.put('/content/:id', async (c) => {
   const parseResult = UpdateContentItemSchema.safeParse(body);
 
   if (!parseResult.success) {
-    return c.json({ code: 'INVALID_PAYLOAD', errors: parseResult.error.errors, requestId: c.get('requestId') }, 400);
+    return c.json(
+      { code: 'INVALID_PAYLOAD', errors: parseResult.error.errors, requestId: c.get('requestId') },
+      400,
+    );
   }
 
   const repo = new D1ContentRepository(c.env.DB);
@@ -203,7 +245,14 @@ privateRoutes.put('/content/:id', async (c) => {
   if (data.slug) {
     const existing = await repo.findBySlug(authContext.ownerId, data.slug);
     if (existing && existing.id !== id) {
-      return c.json({ code: 'SLUG_CONFLICT', message: `Slug "${data.slug}" is already in use.`, requestId: c.get('requestId') }, 409);
+      return c.json(
+        {
+          code: 'SLUG_CONFLICT',
+          message: `Slug "${data.slug}" is already in use.`,
+          requestId: c.get('requestId'),
+        },
+        409,
+      );
     }
   }
 
@@ -234,7 +283,10 @@ privateRoutes.put('/content/:id', async (c) => {
         409,
       );
     }
-    return c.json({ code: 'NOT_FOUND', message: 'Content item not found.', requestId: c.get('requestId') }, 404);
+    return c.json(
+      { code: 'NOT_FOUND', message: 'Content item not found.', requestId: c.get('requestId') },
+      404,
+    );
   }
 
   return c.json({ item: updateResult.item, requestId: c.get('requestId') });
@@ -248,40 +300,66 @@ privateRoutes.delete('/content/:id', async (c) => {
 
   const found = await repo.findById(authContext.ownerId, id);
   if (!found) {
-    return c.json({ code: 'NOT_FOUND', message: 'Content item not found.', requestId: c.get('requestId') }, 404);
+    return c.json(
+      { code: 'NOT_FOUND', message: 'Content item not found.', requestId: c.get('requestId') },
+      404,
+    );
   }
 
   const updated = await repo.transitionState(authContext.ownerId, id, 'archived');
-  return c.json({ item: updated, message: 'Content item archived.', requestId: c.get('requestId') });
+  return c.json({
+    item: updated,
+    message: 'Content item archived.',
+    requestId: c.get('requestId'),
+  });
 });
 
 /** POST /api/v1/private/content/:id/state — State machine transition & publication validation */
 privateRoutes.post('/content/:id/state', async (c) => {
   const authContext = c.get('authContext')!;
   const id = c.req.param('id');
-  const body = ((await c.req.json().catch(() => ({}))) as { targetState?: PublicationState });
+  const body = (await c.req.json().catch(() => ({}))) as { targetState?: PublicationState };
   const targetState = body.targetState;
 
   if (!targetState) {
-    return c.json({ code: 'INVALID_PAYLOAD', message: 'targetState is required.', requestId: c.get('requestId') }, 400);
+    return c.json(
+      {
+        code: 'INVALID_PAYLOAD',
+        message: 'targetState is required.',
+        requestId: c.get('requestId'),
+      },
+      400,
+    );
   }
 
   const repo = new D1ContentRepository(c.env.DB);
   const found = await repo.findById(authContext.ownerId, id);
 
   if (!found) {
-    return c.json({ code: 'NOT_FOUND', message: 'Content item not found.', requestId: c.get('requestId') }, 404);
+    return c.json(
+      { code: 'NOT_FOUND', message: 'Content item not found.', requestId: c.get('requestId') },
+      404,
+    );
   }
 
   // 1. Validate state machine transition
   const transitionCheck = validateStateTransition(found.item.state, targetState);
   if (!transitionCheck.valid) {
-    return c.json({ code: 'INVALID_TRANSITION', message: transitionCheck.reason, requestId: c.get('requestId') }, 400);
+    return c.json(
+      {
+        code: 'INVALID_TRANSITION',
+        message: transitionCheck.reason,
+        requestId: c.get('requestId'),
+      },
+      400,
+    );
   }
 
   // 2. If targetState is 'published' or 'scheduled', execute 7-gate publication validation
   if (targetState === 'published' || targetState === 'scheduled') {
-    const blocks: ContentBlockV1[] = found.latestBodySnapshot ? JSON.parse(found.latestBodySnapshot) : [];
+    const blocks: ContentBlockV1[] = found.latestBodySnapshot
+      ? JSON.parse(found.latestBodySnapshot)
+      : [];
 
     // Extract relationship tag entity IDs
     const skillIds: string[] = [];
@@ -296,7 +374,12 @@ privateRoutes.post('/content/:id/state', async (c) => {
       }
     }
 
-    const linkedStatuses = await repo.getLinkedEntitiesStatus(authContext.ownerId, skillIds, capabilityIds, evidenceIds);
+    const linkedStatuses = await repo.getLinkedEntitiesStatus(
+      authContext.ownerId,
+      skillIds,
+      capabilityIds,
+      evidenceIds,
+    );
 
     const valResult = validateContentForPublication({
       id: found.item.id,
@@ -340,10 +423,17 @@ privateRoutes.post('/content/:id/revisions/:revisionId/rollback', async (c) => {
       revisionId,
       authContext.authenticatedSubject,
     );
-    return c.json({ revision: newRev, message: 'Rollback created as new revision.', requestId: c.get('requestId') });
+    return c.json({
+      revision: newRev,
+      message: 'Rollback created as new revision.',
+      requestId: c.get('requestId'),
+    });
   } catch (err: unknown) {
     const error = err as Error;
-    return c.json({ code: 'ROLLBACK_FAILED', message: error.message, requestId: c.get('requestId') }, 400);
+    return c.json(
+      { code: 'ROLLBACK_FAILED', message: error.message, requestId: c.get('requestId') },
+      400,
+    );
   }
 });
 
@@ -355,10 +445,15 @@ privateRoutes.get('/content/:id/export/markdown', async (c) => {
 
   const found = await repo.findById(authContext.ownerId, id);
   if (!found) {
-    return c.json({ code: 'NOT_FOUND', message: 'Content item not found.', requestId: c.get('requestId') }, 404);
+    return c.json(
+      { code: 'NOT_FOUND', message: 'Content item not found.', requestId: c.get('requestId') },
+      404,
+    );
   }
 
-  const blocks: ContentBlockV1[] = found.latestBodySnapshot ? JSON.parse(found.latestBodySnapshot) : [];
+  const blocks: ContentBlockV1[] = found.latestBodySnapshot
+    ? JSON.parse(found.latestBodySnapshot)
+    : [];
   const markdown = compileJsonBlocksToMarkdown(
     {
       id: found.item.id,
@@ -388,7 +483,10 @@ privateRoutes.post('/content/:id/preview-token', async (c) => {
 
   const found = await repo.findById(authContext.ownerId, id);
   if (!found) {
-    return c.json({ code: 'NOT_FOUND', message: 'Content item not found.', requestId: c.get('requestId') }, 404);
+    return c.json(
+      { code: 'NOT_FOUND', message: 'Content item not found.', requestId: c.get('requestId') },
+      404,
+    );
   }
 
   // Bind token to: id:ownerId:versionNo:purpose:expiresAt
@@ -404,7 +502,11 @@ privateRoutes.post('/content/:id/preview-token', async (c) => {
     false,
     ['sign'],
   );
-  const signatureBuffer = await crypto.subtle.sign('HMAC', key, new TextEncoder().encode(tokenPayload));
+  const signatureBuffer = await crypto.subtle.sign(
+    'HMAC',
+    key,
+    new TextEncoder().encode(tokenPayload),
+  );
   const signature = Array.from(new Uint8Array(signatureBuffer))
     .map((b) => b.toString(16).padStart(2, '0'))
     .join('');
@@ -432,29 +534,64 @@ privateRoutes.get('/content/:id/preview', async (c) => {
   c.header('Referrer-Policy', 'no-referrer');
 
   if (!token) {
-    return c.json({ code: 'PREVIEW_TOKEN_REQUIRED', message: 'Preview token parameter is required.', requestId: c.get('requestId') }, 400);
+    return c.json(
+      {
+        code: 'PREVIEW_TOKEN_REQUIRED',
+        message: 'Preview token parameter is required.',
+        requestId: c.get('requestId'),
+      },
+      400,
+    );
   }
 
   // Parse token payload: id:ownerId:versionNo:purpose:expiresAt:signature
   const parts = token.split(':');
   if (parts.length !== 6) {
-    return c.json({ code: 'INVALID_PREVIEW_TOKEN', message: 'Malformed preview token structure.', requestId: c.get('requestId') }, 403);
+    return c.json(
+      {
+        code: 'INVALID_PREVIEW_TOKEN',
+        message: 'Malformed preview token structure.',
+        requestId: c.get('requestId'),
+      },
+      403,
+    );
   }
 
   const [tokenId, tokenOwnerId, tokenVersionNoStr, purpose, expiresAtStr, signature] = parts;
   if (!signature) {
-    return c.json({ code: 'INVALID_PREVIEW_TOKEN', message: 'Missing token signature.', requestId: c.get('requestId') }, 403);
+    return c.json(
+      {
+        code: 'INVALID_PREVIEW_TOKEN',
+        message: 'Missing token signature.',
+        requestId: c.get('requestId'),
+      },
+      403,
+    );
   }
 
   const expiresAt = Number(expiresAtStr);
   const tokenVersionNo = Number(tokenVersionNoStr);
 
   if (tokenId !== id || tokenOwnerId !== authContext.ownerId || purpose !== 'preview') {
-    return c.json({ code: 'INVALID_PREVIEW_TOKEN', message: 'Preview token binding mismatch.', requestId: c.get('requestId') }, 403);
+    return c.json(
+      {
+        code: 'INVALID_PREVIEW_TOKEN',
+        message: 'Preview token binding mismatch.',
+        requestId: c.get('requestId'),
+      },
+      403,
+    );
   }
 
   if (isNaN(expiresAt) || Date.now() > expiresAt) {
-    return c.json({ code: 'PREVIEW_TOKEN_EXPIRED', message: 'Preview token has expired.', requestId: c.get('requestId') }, 403);
+    return c.json(
+      {
+        code: 'PREVIEW_TOKEN_EXPIRED',
+        message: 'Preview token has expired.',
+        requestId: c.get('requestId'),
+      },
+      403,
+    );
   }
 
   const tokenPayload = `${tokenId}:${tokenOwnerId}:${tokenVersionNoStr}:${purpose}:${expiresAtStr}`;
@@ -468,24 +605,50 @@ privateRoutes.get('/content/:id/preview', async (c) => {
     ['verify'],
   );
 
-  const hexBytes = new Uint8Array(signature.match(/.{1,2}/g)?.map((byte) => parseInt(byte, 16)) || []);
-  const valid = await crypto.subtle.verify('HMAC', key, hexBytes, new TextEncoder().encode(tokenPayload));
+  const hexBytes = new Uint8Array(
+    signature.match(/.{1,2}/g)?.map((byte) => parseInt(byte, 16)) || [],
+  );
+  const valid = await crypto.subtle.verify(
+    'HMAC',
+    key,
+    hexBytes,
+    new TextEncoder().encode(tokenPayload),
+  );
 
   if (!valid) {
-    return c.json({ code: 'INVALID_PREVIEW_SIGNATURE', message: 'Invalid preview token signature.', requestId: c.get('requestId') }, 403);
+    return c.json(
+      {
+        code: 'INVALID_PREVIEW_SIGNATURE',
+        message: 'Invalid preview token signature.',
+        requestId: c.get('requestId'),
+      },
+      403,
+    );
   }
 
   const found = await repo.findById(authContext.ownerId, id);
   if (!found) {
-    return c.json({ code: 'NOT_FOUND', message: 'Content item not found.', requestId: c.get('requestId') }, 404);
+    return c.json(
+      { code: 'NOT_FOUND', message: 'Content item not found.', requestId: c.get('requestId') },
+      404,
+    );
   }
 
   // Version invalidation check: editing content increments versionNo, invalidating old preview tokens
   if (found.item.versionNo !== tokenVersionNo) {
-    return c.json({ code: 'PREVIEW_TOKEN_STALE', message: 'Content has been updated since this preview token was issued.', requestId: c.get('requestId') }, 403);
+    return c.json(
+      {
+        code: 'PREVIEW_TOKEN_STALE',
+        message: 'Content has been updated since this preview token was issued.',
+        requestId: c.get('requestId'),
+      },
+      403,
+    );
   }
 
-  const blocks: ContentBlockV1[] = found.latestBodySnapshot ? JSON.parse(found.latestBodySnapshot) : [];
+  const blocks: ContentBlockV1[] = found.latestBodySnapshot
+    ? JSON.parse(found.latestBodySnapshot)
+    : [];
 
   return c.json({
     item: found.item,
@@ -500,10 +663,26 @@ privateRoutes.get('/relationships/available', async (c) => {
   const authContext = c.get('authContext')!;
   const db = c.env.DB;
 
-  const skillsStmt = db.prepare(`SELECT id, name AS label, 'skill' AS type, visibility FROM skills WHERE owner_id = ? AND archived_at IS NULL`).bind(authContext.ownerId);
-  const capsStmt = db.prepare(`SELECT id, title AS label, 'capability' AS type, visibility FROM capabilities WHERE owner_id = ? AND archived_at IS NULL`).bind(authContext.ownerId);
-  const projectsStmt = db.prepare(`SELECT id, title AS label, 'project' AS type, visibility FROM projects WHERE owner_id = ? AND archived_at IS NULL`).bind(authContext.ownerId);
-  const evidenceStmt = db.prepare(`SELECT id, title AS label, 'evidence' AS type, visibility FROM evidence_items WHERE owner_id = ? AND archived_at IS NULL`).bind(authContext.ownerId);
+  const skillsStmt = db
+    .prepare(
+      `SELECT id, name AS label, 'skill' AS type, visibility FROM skills WHERE owner_id = ? AND archived_at IS NULL`,
+    )
+    .bind(authContext.ownerId);
+  const capsStmt = db
+    .prepare(
+      `SELECT id, title AS label, 'capability' AS type, visibility FROM capabilities WHERE owner_id = ? AND archived_at IS NULL`,
+    )
+    .bind(authContext.ownerId);
+  const projectsStmt = db
+    .prepare(
+      `SELECT id, title AS label, 'project' AS type, visibility FROM projects WHERE owner_id = ? AND archived_at IS NULL`,
+    )
+    .bind(authContext.ownerId);
+  const evidenceStmt = db
+    .prepare(
+      `SELECT id, title AS label, 'evidence' AS type, visibility FROM evidence_items WHERE owner_id = ? AND archived_at IS NULL`,
+    )
+    .bind(authContext.ownerId);
 
   const [skills, caps, projects, evidence] = await Promise.all([
     skillsStmt.all<{ id: string; label: string; type: string; visibility: string }>(),
@@ -519,4 +698,617 @@ privateRoutes.get('/relationships/available', async (c) => {
     evidence: evidence.results || [],
     requestId: c.get('requestId'),
   });
+});
+
+/**
+ * Milestone M5 — Private Projects API Routes
+ */
+
+/** GET /api/v1/private/projects — List projects for owner */
+privateRoutes.get('/projects', async (c) => {
+  const authContext = c.get('authContext')!;
+  const repo = new D1ProjectRepository(c.env.DB);
+  const projects = await repo.listProjects(authContext.ownerId);
+  return c.json({ projects, requestId: c.get('requestId') });
+});
+
+/** POST /api/v1/private/projects — Create project */
+privateRoutes.post('/projects', async (c) => {
+  const authContext = c.get('authContext')!;
+  const body = (await c.req.json().catch(() => ({}))) as Record<string, unknown>;
+
+  const title = body.title as string | undefined;
+  const slug = body.slug as string | undefined;
+
+  if (!title || !slug) {
+    return c.json(
+      {
+        code: 'INVALID_PAYLOAD',
+        message: 'Title and slug are required.',
+        requestId: c.get('requestId'),
+      },
+      400,
+    );
+  }
+
+  const wordingCheck = validateProjectWording(title, (body.shortSummary as string) || null);
+  if (!wordingCheck.valid) {
+    return c.json(
+      { code: 'INVALID_WORDING', message: wordingCheck.reason, requestId: c.get('requestId') },
+      400,
+    );
+  }
+
+  const repo = new D1ProjectRepository(c.env.DB);
+  const existing = await repo.getProjectBySlug(authContext.ownerId, slug);
+  if (existing) {
+    return c.json(
+      {
+        code: 'SLUG_CONFLICT',
+        message: `Slug "${slug}" is already in use.`,
+        requestId: c.get('requestId'),
+      },
+      409,
+    );
+  }
+
+  const id = `proj-${crypto.randomUUID()}`;
+  const project = await repo.createProject({
+    id,
+    ownerId: authContext.ownerId,
+    title,
+    slug,
+    shortSummary: (body.shortSummary as string) || null,
+    detailedContext: (body.detailedContext as string) || null,
+    problemStatement: (body.problemStatement as string) || null,
+    goals: (body.goals as string[]) || [],
+    nonGoals: (body.nonGoals as string[]) || [],
+    constraints: (body.constraints as string[]) || [],
+    role: (body.role as string) || null,
+    contributionStatement: (body.contributionStatement as string) || null,
+    collaborationContext: (body.collaborationContext as string) || null,
+    startDate: (body.startDate as string) || null,
+    endDate: (body.endDate as string) || null,
+    ongoingStatus: Boolean(body.ongoingStatus),
+    isFeatured: Boolean(body.isFeatured),
+    recruiterSummary: (body.recruiterSummary as string) || null,
+    deepDiveContent: (body.deepDiveContent as string) || null,
+    repositoryReferences: (body.repositoryReferences as string[]) || [],
+    liveDemoReferences: (body.liveDemoReferences as string[]) || [],
+    heroArtifactId: (body.heroArtifactId as string) || null,
+    caseStudyBody: (body.caseStudyBody as string) || null,
+    scheduledFor: (body.scheduledFor as string) || null,
+    embargoUntil: (body.embargoUntil as string) || null,
+    provenance: (body.provenance as string) || '{}',
+    ...(body.lifecycleState ? { lifecycleState: body.lifecycleState as ProjectLifecycleState } : {}),
+    ...(body.publicationState ? { publicationState: body.publicationState as PublicationState } : {}),
+    ...(body.visibility ? { visibility: body.visibility as Visibility } : {}),
+  });
+
+  return c.json({ project, requestId: c.get('requestId') }, 201);
+});
+
+/** GET /api/v1/private/projects/:id — Get project detail with engineering records */
+privateRoutes.get('/projects/:id', async (c) => {
+  const authContext = c.get('authContext')!;
+  const id = c.req.param('id');
+  const projRepo = new D1ProjectRepository(c.env.DB);
+  const engRepo = new D1EngineeringRecordRepository(c.env.DB);
+  const relRepo = new D1ProjectRelationshipRepository(c.env.DB);
+
+  const project = await projRepo.getProjectById(authContext.ownerId, id);
+  if (!project) {
+    return c.json(
+      { code: 'NOT_FOUND', message: 'Project not found.', requestId: c.get('requestId') },
+      404,
+    );
+  }
+
+  const [contributions, experiments, adrs, debuggingLessons, deployments, versions, relationships] =
+    await Promise.all([
+      engRepo.listContributions(authContext.ownerId, id),
+      engRepo.listExperiments(authContext.ownerId, id),
+      engRepo.listAdrs(authContext.ownerId, id),
+      engRepo.listDebuggingLessons(authContext.ownerId, id),
+      engRepo.listDeployments(authContext.ownerId, id),
+      engRepo.listVersions(authContext.ownerId, id),
+      relRepo.listRelationships(authContext.ownerId, id),
+    ]);
+
+  return c.json({
+    project,
+    contributions,
+    experiments,
+    adrs,
+    debuggingLessons,
+    deployments,
+    versions,
+    relationships,
+    requestId: c.get('requestId'),
+  });
+});
+
+/** PUT /api/v1/private/projects/:id — Update project */
+privateRoutes.put('/projects/:id', async (c) => {
+  const authContext = c.get('authContext')!;
+  const id = c.req.param('id');
+  const body = (await c.req.json().catch(() => ({}))) as Record<string, unknown>;
+
+  const title = body.title as string | undefined;
+  if (title) {
+    const wordingCheck = validateProjectWording(title, (body.shortSummary as string) || null);
+    if (!wordingCheck.valid) {
+      return c.json(
+        { code: 'INVALID_WORDING', message: wordingCheck.reason, requestId: c.get('requestId') },
+        400,
+      );
+    }
+  }
+
+  const repo = new D1ProjectRepository(c.env.DB);
+  try {
+    const updated = await repo.updateProject(authContext.ownerId, id, {
+      ...(title ? { title } : {}),
+      ...(body.slug ? { slug: body.slug as string } : {}),
+      ...(body.shortSummary !== undefined ? { shortSummary: body.shortSummary as string } : {}),
+      ...(body.detailedContext !== undefined ? { detailedContext: body.detailedContext as string } : {}),
+      ...(body.problemStatement !== undefined ? { problemStatement: body.problemStatement as string } : {}),
+      ...(body.goals ? { goals: body.goals as string[] } : {}),
+      ...(body.nonGoals ? { nonGoals: body.nonGoals as string[] } : {}),
+      ...(body.constraints ? { constraints: body.constraints as string[] } : {}),
+      ...(body.role !== undefined ? { role: body.role as string } : {}),
+      ...(body.contributionStatement !== undefined ? { contributionStatement: body.contributionStatement as string } : {}),
+      ...(body.collaborationContext !== undefined ? { collaborationContext: body.collaborationContext as string } : {}),
+      ...(body.startDate !== undefined ? { startDate: body.startDate as string } : {}),
+      ...(body.endDate !== undefined ? { endDate: body.endDate as string } : {}),
+      ...(body.ongoingStatus !== undefined ? { ongoingStatus: Boolean(body.ongoingStatus) } : {}),
+      ...(body.lifecycleState ? { lifecycleState: body.lifecycleState as ProjectLifecycleState } : {}),
+      ...(body.publicationState ? { publicationState: body.publicationState as PublicationState } : {}),
+      ...(body.visibility ? { visibility: body.visibility as Visibility } : {}),
+      ...(body.scheduledFor !== undefined ? { scheduledFor: body.scheduledFor as string } : {}),
+      ...(body.embargoUntil !== undefined ? { embargoUntil: body.embargoUntil as string } : {}),
+      ...(body.isFeatured !== undefined ? { isFeatured: Boolean(body.isFeatured) } : {}),
+      ...(body.recruiterSummary !== undefined ? { recruiterSummary: body.recruiterSummary as string } : {}),
+      ...(body.deepDiveContent !== undefined ? { deepDiveContent: body.deepDiveContent as string } : {}),
+      ...(body.repositoryReferences ? { repositoryReferences: body.repositoryReferences as string[] } : {}),
+      ...(body.liveDemoReferences ? { liveDemoReferences: body.liveDemoReferences as string[] } : {}),
+      ...(body.heroArtifactId !== undefined ? { heroArtifactId: body.heroArtifactId as string } : {}),
+      ...(body.caseStudyBody !== undefined ? { caseStudyBody: body.caseStudyBody as string } : {}),
+      ...(body.expectedVersionNo ? { expectedVersionNo: body.expectedVersionNo as number } : {}),
+    });
+
+    if (body.caseStudyBody) {
+      await repo.createRevisionSnapshot(
+        authContext.ownerId,
+        id,
+        body.caseStudyBody as string,
+        body.revisionNote as string,
+      );
+    }
+
+    return c.json({ project: updated, requestId: c.get('requestId') });
+  } catch (err: unknown) {
+    const errMsg = err instanceof Error ? err.message : String(err);
+    if (errMsg.includes('CONCURRENCY_CONFLICT')) {
+      return c.json(
+        { code: 'CONCURRENCY_CONFLICT', message: errMsg, requestId: c.get('requestId') },
+        409,
+      );
+    }
+    return c.json(
+      { code: 'NOT_FOUND', message: 'Project not found.', requestId: c.get('requestId') },
+      404,
+    );
+  }
+});
+
+/** GET /api/v1/private/projects/:id/revisions — List revision history */
+privateRoutes.get('/projects/:id/revisions', async (c) => {
+  const authContext = c.get('authContext')!;
+  const id = c.req.param('id');
+  const repo = new D1ProjectRepository(c.env.DB);
+  const revisions = await repo.listRevisions(authContext.ownerId, id);
+  return c.json({ revisions, requestId: c.get('requestId') });
+});
+
+/** POST /api/v1/private/projects/:id/revisions/:version/rollback — Rollback to revision */
+privateRoutes.post('/projects/:id/revisions/:version/rollback', async (c) => {
+  const authContext = c.get('authContext')!;
+  const id = c.req.param('id');
+  const targetRevNo = Number(c.req.param('version'));
+
+  if (isNaN(targetRevNo) || targetRevNo < 1) {
+    return c.json(
+      {
+        code: 'INVALID_PAYLOAD',
+        message: 'Valid positive integer revision number is required.',
+        requestId: c.get('requestId'),
+      },
+      400,
+    );
+  }
+
+  const repo = new D1ProjectRepository(c.env.DB);
+  try {
+    const updated = await repo.rollbackToRevision(authContext.ownerId, id, targetRevNo);
+    return c.json({ project: updated, requestId: c.get('requestId') });
+  } catch (err: unknown) {
+    const errMsg = err instanceof Error ? err.message : String(err);
+    if (errMsg.includes('REVISION_NOT_FOUND')) {
+      return c.json(
+        { code: 'REVISION_NOT_FOUND', message: errMsg, requestId: c.get('requestId') },
+        404,
+      );
+    }
+    return c.json(
+      { code: 'NOT_FOUND', message: 'Project not found.', requestId: c.get('requestId') },
+      404,
+    );
+  }
+});
+
+/** POST /api/v1/private/projects/:id/contributions — Create contribution */
+privateRoutes.post('/projects/:id/contributions', async (c) => {
+  const authContext = c.get('authContext')!;
+  const projectId = c.req.param('id');
+  const body = (await c.req.json().catch(() => ({}))) as Record<string, unknown>;
+
+  if (!body.contributionType || !body.description) {
+    return c.json(
+      {
+        code: 'INVALID_PAYLOAD',
+        message: 'contributionType and description are required.',
+        requestId: c.get('requestId'),
+      },
+      400,
+    );
+  }
+
+  const repo = new D1EngineeringRecordRepository(c.env.DB);
+  const contribution = await repo.createContribution({
+    id: `contrib-${crypto.randomUUID()}`,
+    projectId,
+    ownerId: authContext.ownerId,
+    contributionType: body.contributionType as ProjectContributionType,
+    description: body.description as string,
+    scope: (body.scope as string) || null,
+    startDate: (body.startDate as string) || null,
+    endDate: (body.endDate as string) || null,
+    collaborationContext: (body.collaborationContext as string) || null,
+    supportingEvidenceIds: (body.supportingEvidenceIds as string[]) || [],
+    ownerApproval: Boolean(body.ownerApproval),
+    ...(body.verificationState ? { verificationState: body.verificationState as EvidenceVerificationState } : {}),
+    ...(body.visibility ? { visibility: body.visibility as Visibility } : {}),
+  });
+
+  return c.json({ contribution, requestId: c.get('requestId') }, 201);
+});
+
+/** POST /api/v1/private/projects/:id/experiments — Create experiment */
+privateRoutes.post('/projects/:id/experiments', async (c) => {
+  const authContext = c.get('authContext')!;
+  const projectId = c.req.param('id');
+  const body = (await c.req.json().catch(() => ({}))) as Record<string, unknown>;
+
+  const title = body.title as string | undefined;
+  const hypothesis = body.hypothesis as string | undefined;
+  const methodology = body.methodology as string | undefined;
+
+  if (!title || !hypothesis || !methodology) {
+    return c.json(
+      {
+        code: 'INVALID_PAYLOAD',
+        message: 'title, hypothesis, and methodology are required.',
+        requestId: c.get('requestId'),
+      },
+      400,
+    );
+  }
+
+  const repo = new D1EngineeringRecordRepository(c.env.DB);
+  const experiment = await repo.createExperiment({
+    id: `exp-${crypto.randomUUID()}`,
+    projectId,
+    ownerId: authContext.ownerId,
+    title,
+    slug: (body.slug as string) || title.toLowerCase().replace(/[^a-z0-9]+/g, '-'),
+    hypothesis,
+    motivation: (body.motivation as string) || null,
+    methodology,
+    variables: (body.variables as string[]) || [],
+    inputs: (body.inputs as string) || null,
+    results: (body.results as string) || null,
+    conclusion: (body.conclusion as string) || null,
+    limitations: (body.limitations as string) || null,
+    dates: (body.dates as string) || null,
+    supportingEvidenceIds: (body.supportingEvidenceIds as string[]) || [],
+    artifactIds: (body.artifactIds as string[]) || [],
+    ...(body.status ? { status: body.status as ExperimentStatus } : {}),
+    ...(body.visibility ? { visibility: body.visibility as Visibility } : {}),
+    ...(body.state ? { state: body.state as PublicationState } : {}),
+  });
+
+  return c.json({ experiment, requestId: c.get('requestId') }, 201);
+});
+
+/** POST /api/v1/private/projects/:id/adrs — Create ADR */
+privateRoutes.post('/projects/:id/adrs', async (c) => {
+  const authContext = c.get('authContext')!;
+  const projectId = c.req.param('id');
+  const body = (await c.req.json().catch(() => ({}))) as Record<string, unknown>;
+
+  const title = body.title as string | undefined;
+  const context = body.context as string | undefined;
+  const decision = body.decision as string | undefined;
+  const consequences = body.consequences as string | undefined;
+  const adrNumber = body.adrNumber as number | undefined;
+
+  if (!title || !context || !decision || !consequences || adrNumber === undefined) {
+    return c.json(
+      {
+        code: 'INVALID_PAYLOAD',
+        message: 'adrNumber, title, context, decision, and consequences are required.',
+        requestId: c.get('requestId'),
+      },
+      400,
+    );
+  }
+
+  const repo = new D1EngineeringRecordRepository(c.env.DB);
+
+  if (body.supersededBy) {
+    const existingAdrs = await repo.listAdrs(authContext.ownerId, projectId);
+    const cycleCheck = validateAdrSupersession(
+      existingAdrs,
+      `adr-${adrNumber}`,
+      body.supersededBy as string,
+    );
+    if (!cycleCheck.valid) {
+      return c.json(
+        { code: 'SUPERSESSION_CYCLE', message: cycleCheck.reason, requestId: c.get('requestId') },
+        400,
+      );
+    }
+  }
+
+  const adr = await repo.createAdr({
+    id: `adr-${crypto.randomUUID()}`,
+    projectId,
+    ownerId: authContext.ownerId,
+    adrNumber,
+    title,
+    slug:
+      (body.slug as string) ||
+      `adr-${adrNumber}-${title.toLowerCase().replace(/[^a-z0-9]+/g, '-')}`,
+    context,
+    decision,
+    consequences,
+    alternativesConsidered: (body.alternativesConsidered as string[]) || [],
+    rationale: (body.rationale as string) || null,
+    tradeOffs: (body.tradeOffs as string) || null,
+    supersededBy: (body.supersededBy as string) || null,
+    decisionDate: (body.decisionDate as string) || null,
+    supportingEvidenceIds: (body.supportingEvidenceIds as string[]) || [],
+    ...(body.status ? { status: body.status as ProjectAdrStatus } : {}),
+    ...(body.visibility ? { visibility: body.visibility as Visibility } : {}),
+    ...(body.state ? { state: body.state as PublicationState } : {}),
+  });
+
+  return c.json({ adr, requestId: c.get('requestId') }, 201);
+});
+
+/** POST /api/v1/private/projects/:id/debugging — Create debugging lesson */
+privateRoutes.post('/projects/:id/debugging', async (c) => {
+  const authContext = c.get('authContext')!;
+  const projectId = c.req.param('id');
+  const body = (await c.req.json().catch(() => ({}))) as Record<string, unknown>;
+
+  const title = body.title as string | undefined;
+  const symptom = body.symptom as string | undefined;
+  const rootCause = body.rootCause as string | undefined;
+  const resolution = body.resolution as string | undefined;
+  const prevention = body.prevention as string | undefined;
+
+  if (!title || !symptom || !rootCause || !resolution || !prevention) {
+    return c.json(
+      {
+        code: 'INVALID_PAYLOAD',
+        message: 'title, symptom, rootCause, resolution, and prevention are required.',
+        requestId: c.get('requestId'),
+      },
+      400,
+    );
+  }
+
+  const repo = new D1EngineeringRecordRepository(c.env.DB);
+  const lesson = await repo.createDebuggingLesson({
+    id: `debug-${crypto.randomUUID()}`,
+    projectId,
+    ownerId: authContext.ownerId,
+    title,
+    slug: (body.slug as string) || title.toLowerCase().replace(/[^a-z0-9]+/g, '-'),
+    symptom,
+    impact: (body.impact as string) || null,
+    environment: (body.environment as string) || null,
+    investigation: (body.investigation as string) || null,
+    rootCause,
+    resolution,
+    prevention,
+    lessonsLearned: (body.lessonsLearned as string) || null,
+    relevantDates: (body.relevantDates as string) || null,
+    tags: (body.tags as string[]) || [],
+    supportingEvidenceIds: (body.supportingEvidenceIds as string[]) || [],
+    artifactIds: (body.artifactIds as string[]) || [],
+    ...(body.visibility ? { visibility: body.visibility as Visibility } : {}),
+    ...(body.state ? { state: body.state as PublicationState } : {}),
+  });
+
+  return c.json({ lesson, requestId: c.get('requestId') }, 201);
+});
+
+/** POST /api/v1/private/projects/:id/deployments — Create deployment record */
+privateRoutes.post('/projects/:id/deployments', async (c) => {
+  const authContext = c.get('authContext')!;
+  const projectId = c.req.param('id');
+  const body = (await c.req.json().catch(() => ({}))) as Record<string, unknown>;
+
+  const environment = body.environment as DeploymentEnvironment | undefined;
+  const releaseVersion = body.releaseVersion as string | undefined;
+  const deploymentUrl = body.deploymentUrl as string | undefined;
+
+  if (!environment || !releaseVersion) {
+    return c.json(
+      {
+        code: 'INVALID_PAYLOAD',
+        message: 'environment and releaseVersion are required.',
+        requestId: c.get('requestId'),
+      },
+      400,
+    );
+  }
+
+  if (deploymentUrl) {
+    const urlCheck = classifyAndValidateUrl(
+      deploymentUrl,
+      environment === 'production' ? 'public_deployment' : 'preview_staging',
+    );
+    if (!urlCheck.valid) {
+      return c.json(
+        { code: 'INVALID_URL', message: urlCheck.reason, requestId: c.get('requestId') },
+        400,
+      );
+    }
+  }
+
+  const repo = new D1EngineeringRecordRepository(c.env.DB);
+  const deployment = await repo.createDeployment({
+    id: `dep-${crypto.randomUUID()}`,
+    projectId,
+    ownerId: authContext.ownerId,
+    environment,
+    releaseVersion,
+    gitSha: (body.gitSha as string) || null,
+    deploymentUrl: deploymentUrl || null,
+    startedAt: (body.startedAt as string) || null,
+    deployedAt: (body.deployedAt as string) || new Date().toISOString(),
+    rollbackInfo: (body.rollbackInfo as string) || null,
+    outcome: (body.outcome as string) || null,
+    supportingEvidenceIds: (body.supportingEvidenceIds as string[]) || [],
+    artifactIds: (body.artifactIds as string[]) || [],
+    ...(body.status ? { status: body.status as DeploymentStatus } : {}),
+    ...(body.visibility ? { visibility: body.visibility as Visibility } : {}),
+    ...(body.publicationState ? { publicationState: body.publicationState as PublicationState } : {}),
+  });
+
+  return c.json({ deployment, requestId: c.get('requestId') }, 201);
+});
+
+/** POST /api/v1/private/projects/:id/versions — Create project version/milestone */
+privateRoutes.post('/projects/:id/versions', async (c) => {
+  const authContext = c.get('authContext')!;
+  const projectId = c.req.param('id');
+  const body = (await c.req.json().catch(() => ({}))) as Record<string, unknown>;
+
+  const name = body.name as string | undefined;
+  const versionIdentifier = body.versionIdentifier as string | undefined;
+
+  if (!name || !versionIdentifier) {
+    return c.json(
+      {
+        code: 'INVALID_PAYLOAD',
+        message: 'name and versionIdentifier are required.',
+        requestId: c.get('requestId'),
+      },
+      400,
+    );
+  }
+
+  const repo = new D1EngineeringRecordRepository(c.env.DB);
+  const version = await repo.createVersion({
+    id: `ver-${crypto.randomUUID()}`,
+    projectId,
+    ownerId: authContext.ownerId,
+    name,
+    versionIdentifier,
+    description: (body.description as string) || null,
+    startedDate: (body.startedDate as string) || null,
+    completedDate: (body.completedDate as string) || null,
+    changelog: (body.changelog as string) || null,
+    outcome: (body.outcome as string) || null,
+    supportingEvidenceIds: (body.supportingEvidenceIds as string[]) || [],
+    artifactIds: (body.artifactIds as string[]) || [],
+    previousVersionId: (body.previousVersionId as string) || null,
+    ...(body.status ? { status: body.status as ProjectVersionStatus } : {}),
+    ...(body.visibility ? { visibility: body.visibility as Visibility } : {}),
+    ...(body.state ? { state: body.state as PublicationState } : {}),
+  });
+
+  return c.json({ version, requestId: c.get('requestId') }, 201);
+});
+
+/** POST /api/v1/private/projects/:id/relationships — Create relationship */
+privateRoutes.post('/projects/:id/relationships', async (c) => {
+  const authContext = c.get('authContext')!;
+  const sourceId = c.req.param('id');
+  const body = (await c.req.json().catch(() => ({}))) as Record<string, unknown>;
+
+  const targetId = body.targetId as string | undefined;
+  const targetType = body.targetType as string | undefined;
+  const relationshipType = body.relationshipType as string | undefined;
+  const relevance = (body.relevance as number) ?? 1;
+
+  if (!targetId || !targetType || !relationshipType) {
+    return c.json(
+      {
+        code: 'INVALID_PAYLOAD',
+        message: 'targetId, targetType, and relationshipType are required.',
+        requestId: c.get('requestId'),
+      },
+      400,
+    );
+  }
+
+  const check = validateProjectRelationship({
+    sourceId,
+    targetId,
+    relationshipType,
+    relevance,
+  });
+
+  if (!check.valid) {
+    return c.json(
+      { code: 'INVALID_RELATIONSHIP', message: check.reason, requestId: c.get('requestId') },
+      400,
+    );
+  }
+
+  const repo = new D1ProjectRelationshipRepository(c.env.DB);
+  try {
+    const relationship = await repo.createRelationship({
+      id: `rel-${crypto.randomUUID()}`,
+      ownerId: authContext.ownerId,
+      sourceId,
+      sourceType: (body.sourceType as string) || 'project',
+      targetId,
+      targetType,
+      relationshipType,
+      relevance,
+      displayOrder: body.displayOrder as number,
+      ownerNote: body.ownerNote as string,
+    });
+    return c.json({ relationship, requestId: c.get('requestId') }, 201);
+  } catch (err: unknown) {
+    const errMsg = err instanceof Error ? err.message : String(err);
+    if (errMsg.includes('UNIQUE constraint failed') || errMsg.includes('idx_project_rel_active')) {
+      return c.json(
+        {
+          code: 'DUPLICATE_EDGE',
+          message: 'An active relationship between these entities already exists.',
+          requestId: c.get('requestId'),
+        },
+        409,
+      );
+    }
+    throw err;
+  }
 });

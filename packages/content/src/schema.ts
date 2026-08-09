@@ -14,7 +14,11 @@ import { z } from 'zod';
 const SafeUrlSchema = z.string().refine(
   (url) => {
     const trimmed = url.trim().toLowerCase();
-    if (trimmed.startsWith('javascript:') || trimmed.startsWith('data:text/html') || trimmed.startsWith('vbscript:')) {
+    if (
+      trimmed.startsWith('javascript:') ||
+      trimmed.startsWith('data:text/html') ||
+      trimmed.startsWith('vbscript:')
+    ) {
       return false;
     }
     return true;

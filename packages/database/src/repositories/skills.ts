@@ -42,22 +42,24 @@ export class D1SkillRepository {
       ) VALUES (?, ?, ?, ?, ?, ?, '[]', ?, ?, ?, ?, 1, ?, ?, ?, ?, 1)
     `);
 
-    await stmt.bind(
-      params.id,
-      params.ownerId,
-      params.name,
-      params.slug,
-      params.description || null,
-      params.parentId || null,
-      params.visibility || 'private',
-      params.category || 'engineering_practice',
-      params.skillType || 'technical',
-      params.lifecycleState || 'active',
-      params.externalIdentifier || null,
-      params.provenanceMetadata || '{}',
-      now,
-      now,
-    ).run();
+    await stmt
+      .bind(
+        params.id,
+        params.ownerId,
+        params.name,
+        params.slug,
+        params.description || null,
+        params.parentId || null,
+        params.visibility || 'private',
+        params.category || 'engineering_practice',
+        params.skillType || 'technical',
+        params.lifecycleState || 'active',
+        params.externalIdentifier || null,
+        params.provenanceMetadata || '{}',
+        now,
+        now,
+      )
+      .run();
 
     const created = await this.getSkillById(params.ownerId, params.id);
     if (!created) throw new Error('Skill creation failed');
@@ -65,18 +67,28 @@ export class D1SkillRepository {
   }
 
   async getSkillById(ownerId: EntityId, id: EntityId): Promise<SkillEntity | null> {
-    const row = await this.db.prepare(`
+    const row = await this.db
+      .prepare(
+        `
       SELECT * FROM skills WHERE id = ? AND owner_id = ?
-    `).bind(id, ownerId).first();
+    `,
+      )
+      .bind(id, ownerId)
+      .first();
 
     if (!row) return null;
     return this.mapRowToSkill(row);
   }
 
   async getSkillBySlug(ownerId: EntityId, slug: string): Promise<SkillEntity | null> {
-    const row = await this.db.prepare(`
+    const row = await this.db
+      .prepare(
+        `
       SELECT * FROM skills WHERE slug = ? AND owner_id = ?
-    `).bind(slug, ownerId).first();
+    `,
+      )
+      .bind(slug, ownerId)
+      .first();
 
     if (!row) return null;
     return this.mapRowToSkill(row);
@@ -101,11 +113,18 @@ export class D1SkillRepository {
     sql += ` ORDER BY name ASC LIMIT ?`;
     bindings.push(filters?.limit || 100);
 
-    const { results } = await this.db.prepare(sql).bind(...bindings).all();
+    const { results } = await this.db
+      .prepare(sql)
+      .bind(...bindings)
+      .all();
     return (results || []).map((r) => this.mapRowToSkill(r));
   }
 
-  async updateSkill(ownerId: EntityId, id: EntityId, params: UpdateSkillParams): Promise<SkillEntity> {
+  async updateSkill(
+    ownerId: EntityId,
+    id: EntityId,
+    params: UpdateSkillParams,
+  ): Promise<SkillEntity> {
     const existing = await this.getSkillById(ownerId, id);
     if (!existing) throw new Error('Skill not found');
 
@@ -116,7 +135,9 @@ export class D1SkillRepository {
     const now = new Date().toISOString() as ISODateTime;
     const newVersion = existing.versionNo + 1;
 
-    const res = await this.db.prepare(`
+    const res = await this.db
+      .prepare(
+        `
       UPDATE skills
       SET name = COALESCE(?, name),
           slug = COALESCE(?, slug),
@@ -130,22 +151,25 @@ export class D1SkillRepository {
           updated_at = ?,
           version_no = ?
       WHERE id = ? AND owner_id = ? AND version_no = ?
-    `).bind(
-      params.name || null,
-      params.slug || null,
-      params.description !== undefined ? params.description : null,
-      params.parentId !== undefined ? params.parentId : null,
-      params.category || null,
-      params.skillType || null,
-      params.visibility || null,
-      params.lifecycleState || null,
-      params.archivedAt || null,
-      now,
-      newVersion,
-      id,
-      ownerId,
-      params.versionNo,
-    ).run();
+    `,
+      )
+      .bind(
+        params.name || null,
+        params.slug || null,
+        params.description !== undefined ? params.description : null,
+        params.parentId !== undefined ? params.parentId : null,
+        params.category || null,
+        params.skillType || null,
+        params.visibility || null,
+        params.lifecycleState || null,
+        params.archivedAt || null,
+        now,
+        newVersion,
+        id,
+        ownerId,
+        params.versionNo,
+      )
+      .run();
 
     if (res.meta.changes === 0) {
       throw new Error('OPTIMISTIC_CONCURRENCY_CONFLICT: Concurrent edit detected');

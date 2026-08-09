@@ -47,12 +47,16 @@ export function validateContentForPublication(
   // Gate 2: Slug validity
   const slugRegex = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
   if (!ctx.slug || !slugRegex.test(ctx.slug)) {
-    reasons.push('Slug must be non-empty and contain lower-case alphanumeric characters and hyphens only.');
+    reasons.push(
+      'Slug must be non-empty and contain lower-case alphanumeric characters and hyphens only.',
+    );
   }
 
   // Gate 3: Effective visibility
   if (ctx.visibility !== 'public' && ctx.visibility !== 'unlisted') {
-    reasons.push(`Effective visibility must be "public" or "unlisted" to publish (current: "${ctx.visibility}").`);
+    reasons.push(
+      `Effective visibility must be "public" or "unlisted" to publish (current: "${ctx.visibility}").`,
+    );
   }
 
   // Gate 4 & 6: Private-dependency conflicts & Broken references
@@ -62,9 +66,13 @@ export function validateContentForPublication(
       continue;
     }
     if (ctx.visibility === 'public' && entity.visibility !== 'public') {
-      reasons.push(`Private dependency conflict: public content references ${entity.visibility} ${entity.type} "${entity.id}".`);
+      reasons.push(
+        `Private dependency conflict: public content references ${entity.visibility} ${entity.type} "${entity.id}".`,
+      );
     } else if (ctx.visibility === 'unlisted' && entity.visibility === 'private') {
-      reasons.push(`Private dependency conflict: unlisted content references private ${entity.type} "${entity.id}".`);
+      reasons.push(
+        `Private dependency conflict: unlisted content references private ${entity.type} "${entity.id}".`,
+      );
     }
   }
 
@@ -87,7 +95,11 @@ export function validateContentForPublication(
 
     // Unsafe script/html tag check across text fields
     const textToCheck = extractTextFromBlock(block);
-    if (/<script\b/i.test(textToCheck) || /<iframe\b/i.test(textToCheck) || /\bon\w+\s*=/i.test(textToCheck)) {
+    if (
+      /<script\b/i.test(textToCheck) ||
+      /<iframe\b/i.test(textToCheck) ||
+      /\bon\w+\s*=/i.test(textToCheck)
+    ) {
       reasons.push(`Unsafe executable HTML or script payload detected in block "${block.id}".`);
     }
   }

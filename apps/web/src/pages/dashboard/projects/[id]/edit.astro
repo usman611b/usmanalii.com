@@ -1,0 +1,116 @@
+---
+import DashboardLayout from '../../../../layouts/DashboardLayout.astro';
+
+export function getStaticPaths() {
+  return [{ params: { id: 'proj-1' } }, { params: { id: 'proj-2' } }];
+}
+
+const { id } = Astro.params;
+---
+
+<DashboardLayout title={`Edit Project — ${id}`}>
+  <div class="edit-container card">
+    <div class="header-nav">
+      <a href={`/dashboard/projects/${id}`} class="back-link">← Back to Overview</a>
+      <h1>Edit Project Metadata</h1>
+    </div>
+
+    <form class="metadata-form">
+      <div class="form-group">
+        <label for="title">Project Title</label>
+        <input type="text" id="title" value="Secure Multi-Tenant Monorepo System" required />
+      </div>
+
+      <div class="form-group">
+        <label for="slug">URL Slug</label>
+        <input type="text" id="slug" value="secure-multi-tenant-monorepo" required />
+      </div>
+
+      <div class="form-group">
+        <label for="shortSummary">Short Executive Summary</label>
+        <textarea id="shortSummary" rows="3"
+          >Evidence-backed Cloudflare Workers monorepo system with D1 database and R2 storage.</textarea
+        >
+      </div>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label for="visibility">Visibility</label>
+          <select id="visibility">
+            <option value="private">Private</option>
+            <option value="unlisted">Unlisted</option>
+            <option value="public" selected>Public</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label for="publicationState">State</label>
+          <select id="publicationState">
+            <option value="draft">Draft</option>
+            <option value="published" selected>Published</option>
+            <option value="archived">Archived</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label for="scheduledFor">Scheduled Publication Date</label>
+          <input type="datetime-local" id="scheduledFor" />
+        </div>
+
+        <div class="form-group">
+          <label for="embargoUntil">Embargo Until Date</label>
+          <input type="datetime-local" id="embargoUntil" />
+        </div>
+      </div>
+
+      <div class="form-actions">
+        <button type="submit" class="button button-primary">Save Metadata</button>
+        <a href={`/dashboard/projects/${id}`} class="button button-secondary">Cancel</a>
+      </div>
+    </form>
+  </div>
+</DashboardLayout>
+
+<style>
+  .edit-container {
+    padding: var(--space-6);
+    max-width: 800px;
+    margin: 0 auto;
+  }
+  .header-nav {
+    margin-bottom: var(--space-4);
+  }
+  .back-link {
+    color: var(--color-primary);
+    text-decoration: none;
+    font-size: var(--font-size-sm);
+  }
+  .form-group {
+    margin-bottom: var(--space-4);
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-1);
+  }
+  .form-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: var(--space-4);
+  }
+  input,
+  select,
+  textarea {
+    background: var(--color-background);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-md);
+    padding: var(--space-2) var(--space-3);
+    color: inherit;
+    font: inherit;
+  }
+  .form-actions {
+    display: flex;
+    gap: var(--space-3);
+    margin-top: var(--space-6);
+  }
+</style>

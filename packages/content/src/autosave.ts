@@ -39,7 +39,8 @@ export class ContentAutosaveManager {
     this.storageKey = `usmanalii_draft_autosave_${contentId}`;
     this.adapter =
       adapter ||
-      (typeof globalThis !== 'undefined' && (globalThis as unknown as { localStorage?: LocalStorageAdapter }).localStorage
+      (typeof globalThis !== 'undefined' &&
+      (globalThis as unknown as { localStorage?: LocalStorageAdapter }).localStorage
         ? (globalThis as unknown as { localStorage: LocalStorageAdapter }).localStorage
         : new MemoryStorageAdapter());
   }
@@ -100,7 +101,8 @@ export class ContentAutosaveManager {
           // CONCURRENCY CONFLICT DETECTED: Prevent silent overwrite!
           return {
             status: 'concurrency_conflict',
-            message: 'Remote content has been updated by another session. Silent overwrite blocked.',
+            message:
+              'Remote content has been updated by another session. Silent overwrite blocked.',
             requiresUserResolution: true,
           };
         }

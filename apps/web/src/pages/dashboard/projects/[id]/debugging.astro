@@ -1,0 +1,89 @@
+---
+import DashboardLayout from '../../../../layouts/DashboardLayout.astro';
+
+export function getStaticPaths() {
+  return [{ params: { id: 'proj-1' } }, { params: { id: 'proj-2' } }];
+}
+
+const { id } = Astro.params;
+---
+
+<DashboardLayout title={`Debugging Lessons — ${id}`}>
+  <div class="debugging-container card">
+    <a href={`/dashboard/projects/${id}`} class="back-link">← Back to Overview</a>
+    <h1 class="text-2xl font-bold mt-2">Debugging Lessons & Incident Retrospectives</h1>
+
+    <div class="lessons-list mt-4 mb-6">
+      <div class="lesson-card p-4 border rounded mb-3 bg-surface">
+        <h3 class="font-bold text-lg mb-1">D1 Concurrency Conflict under Parallel Writes</h3>
+        <p class="text-sm">
+          <strong>Symptom:</strong> Simultaneous PUT requests resulted in <code>SQLITE_BUSY</code> errors.
+        </p>
+        <p class="text-sm mt-1">
+          <strong>Root Cause:</strong> Lack of optimistic concurrency version checks on <code
+            >UPDATE</code
+          > statements.
+        </p>
+        <p class="text-sm mt-1">
+          <strong>Resolution:</strong> Implemented <code>expectedVersionNo</code> optimistic locking in
+          D1 queries.
+        </p>
+      </div>
+    </div>
+
+    <form class="new-lesson-form border-t pt-4">
+      <h2 class="text-lg font-semibold mb-3">Record Debugging Lesson</h2>
+      <div class="form-group mb-3">
+        <label for="title">Incident Title</label>
+        <input type="text" id="title" placeholder="Title..." required />
+      </div>
+      <div class="form-group mb-3">
+        <label for="symptom">Symptom</label>
+        <textarea id="symptom" rows="2" placeholder="Observed symptom..." required></textarea>
+      </div>
+      <div class="form-group mb-3">
+        <label for="rootCause">Root Cause</label>
+        <textarea id="rootCause" rows="2" placeholder="Technical root cause..." required></textarea>
+      </div>
+      <div class="form-group mb-3">
+        <label for="resolution">Resolution</label>
+        <textarea id="resolution" rows="2" placeholder="Fix & resolution applied..." required
+        ></textarea>
+      </div>
+      <div class="form-group mb-3">
+        <label for="prevention">Prevention</label>
+        <textarea id="prevention" rows="2" placeholder="Preventative measures..." required
+        ></textarea>
+      </div>
+      <button type="submit" class="button button-primary">Save Lesson</button>
+    </form>
+  </div>
+</DashboardLayout>
+
+<style>
+  .debugging-container {
+    padding: var(--space-6);
+    max-width: 800px;
+    margin: 0 auto;
+  }
+  .back-link {
+    color: var(--color-primary);
+    text-decoration: none;
+    font-size: var(--font-size-sm);
+  }
+  .form-group {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-1);
+  }
+  input,
+  select,
+  textarea {
+    background: var(--color-background);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-md);
+    padding: var(--space-2);
+    color: inherit;
+    font: inherit;
+  }
+</style>

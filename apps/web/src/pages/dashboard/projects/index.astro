@@ -1,0 +1,105 @@
+---
+import BaseLayout from '../../../layouts/BaseLayout.astro';
+
+const mockDashboardProjects = [
+  {
+    id: 'proj-1',
+    title: 'Secure Multi-Tenant Monorepo Platform',
+    slug: 'secure-multi-tenant-monorepo',
+    lifecycleState: 'active',
+    publicationState: 'published',
+    visibility: 'public',
+    updatedAt: '2026-08-09T05:48:52Z',
+  },
+  {
+    id: 'proj-2',
+    title: 'Distributed Cache Invalidation Engine',
+    slug: 'distributed-cache-engine',
+    lifecycleState: 'completed',
+    publicationState: 'draft',
+    visibility: 'private',
+    updatedAt: '2026-08-08T12:00:00Z',
+  },
+];
+---
+
+<BaseLayout
+  title="Manage Projects — Dashboard"
+  description="Manage engineering project records and case studies"
+  currentPath="/dashboard/projects"
+>
+  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+    <!-- Dashboard Header -->
+    <div
+      class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-[#1E3A5F] pb-6"
+    >
+      <div>
+        <h1 class="text-2xl font-bold text-white tracking-tight">Projects Management</h1>
+        <p class="text-xs text-[#9CAAC1] mt-1">
+          Manage evidence-backed project records, engineering details, and case study revisions.
+        </p>
+      </div>
+      <a
+        href="/dashboard/projects/new"
+        class="inline-flex items-center px-4 py-2 rounded-xl bg-[#22D3EE] text-[#0B1528] text-xs font-semibold hover:bg-[#67E8F9] transition-colors"
+      >
+        + Create Project
+      </a>
+    </div>
+
+    <!-- Projects Table / Grid -->
+    <div class="mt-8 overflow-hidden rounded-2xl glass-panel border border-[#1E3A5F]">
+      <table class="w-full text-left border-collapse">
+        <thead>
+          <tr
+            class="bg-[#0B1528] border-b border-[#1E3A5F] text-[11px] font-mono text-[#9CAAC1] uppercase"
+          >
+            <th class="p-4">Title / Slug</th>
+            <th class="p-4">Lifecycle</th>
+            <th class="p-4">State</th>
+            <th class="p-4">Visibility</th>
+            <th class="p-4">Last Updated</th>
+            <th class="p-4 text-right">Actions</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-[#1E3A5F]/50 text-xs">
+          {
+            mockDashboardProjects.map((p) => (
+              <tr class="hover:bg-[#112338]/50 transition-colors">
+                <td class="p-4">
+                  <div class="font-bold text-white">{p.title}</div>
+                  <div class="text-[10px] font-mono text-[#22D3EE]">{p.slug}</div>
+                </td>
+                <td class="p-4">
+                  <span class="px-2 py-0.5 rounded text-[10px] font-mono uppercase bg-[#112338] text-[#22D3EE] border border-[#1E3A5F]">
+                    {p.lifecycleState}
+                  </span>
+                </td>
+                <td class="p-4">
+                  <span class="px-2 py-0.5 rounded text-[10px] font-mono uppercase bg-[#112338] text-[#B6F43A] border border-[#1E3A5F]">
+                    {p.publicationState}
+                  </span>
+                </td>
+                <td class="p-4">
+                  <span class="px-2 py-0.5 rounded text-[10px] font-mono uppercase bg-[#112338] text-white border border-[#1E3A5F]">
+                    {p.visibility}
+                  </span>
+                </td>
+                <td class="p-4 text-[#9CAAC1] font-mono text-[10px]">{p.updatedAt}</td>
+                <td class="p-4 text-right space-x-2">
+                  <a href={`/projects/${p.slug}`} class="text-[#22D3EE] hover:underline">
+                    View
+                  </a>
+                  <span class="text-[#1E3A5F]">|</span>
+                  <button type="button" class="text-white hover:underline">
+                    Edit
+                  </button>
+                </td>
+              </tr>
+            ))
+          }
+        </tbody>
+      </table>
+    </div>
+  </div>
+</BaseLayout>

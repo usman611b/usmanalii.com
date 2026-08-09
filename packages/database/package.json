@@ -18,6 +18,7 @@
   },
   "dependencies": {
     "@usmanalii/authorization": "workspace:*",
+    "@usmanalii/content": "workspace:*",
     "@usmanalii/contracts": "workspace:*",
     "@usmanalii/domain": "workspace:*"
   },

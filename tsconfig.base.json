@@ -24,7 +24,7 @@
     "sourceMap": true,
 
     // Libraries
-    "lib": ["ESNext"],
+    "lib": ["ESNext", "DOM"],
     "target": "ESNext",
 
     // Paths — overridden per package

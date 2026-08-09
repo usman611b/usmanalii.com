@@ -22,18 +22,18 @@
 export type LogLevel = 'debug' | 'info' | 'warn' | 'error';
 
 export interface SafeLogEntry {
-  readonly timestamp: string;              // UTC ISO-8601
+  readonly timestamp: string; // UTC ISO-8601
   readonly level: LogLevel;
   readonly environment: string;
   readonly requestId: string;
   readonly traceId?: string;
-  readonly route?: string;                 // safe route name, no private params
-  readonly useCase?: string;              // use case / action name
-  readonly entityType?: string;           // safe type string only (e.g. "capability")
-  readonly entityId?: string;             // UUID only — no private slug/title
+  readonly route?: string; // safe route name, no private params
+  readonly useCase?: string; // use case / action name
+  readonly entityType?: string; // safe type string only (e.g. "capability")
+  readonly entityId?: string; // UUID only — no private slug/title
   readonly durationMs?: number;
   readonly statusCode?: number;
-  readonly errorCode?: string;            // stable machine error code
+  readonly errorCode?: string; // stable machine error code
   readonly message: string;
   // NEVER add: body, content, evidence, secrets, tokens, signed URLs, AI prompts
 }
