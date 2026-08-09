@@ -24,7 +24,7 @@ Migration 015 backfills valid JSON arrays from the historical `case_study_snapsh
 
 The application does not store unredacted originals. No repository input or domain entity exposes `sensitive_original_text`; public projection, search, export, logs, fixtures, errors, metadata, and audit paths therefore cannot receive it through supported code.
 
-Because application of migration 014 to persistent databases cannot be ruled out, migration 015 does not destructively drop the legacy physical column. Instead, database triggers reject every future insert or update that supplies a non-null value. Removing the physical compatibility column requires separate owner authorization after confirming all persistent databases contain no value. Redaction provenance records only finding type and location, never the secret value.
+Because application of migration 014 to persistent databases cannot be ruled out, migration 015 retains the physical compatibility column but irreversibly clears every non-null legacy value. It records only the project identifier, cleanup timestamp, and fixed cleanup reason—never the secret value. Database triggers then reject every future insert or update that supplies a non-null value. Removing the empty physical compatibility column requires a separately reviewed schema migration.
 
 ## Security boundary
 

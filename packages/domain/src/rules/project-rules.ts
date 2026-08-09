@@ -757,13 +757,13 @@ export function getPublicProjectProjection(params: {
   nowIso?: string;
 }): {
   project: Record<string, unknown>;
-  contributions: readonly ProjectContributionEntity[];
-  experiments: readonly ExperimentEntity[];
-  adrs: readonly ProjectAdrEntity[];
-  debuggingLessons: readonly DebuggingLessonEntity[];
-  deployments: readonly DeploymentEntity[];
-  versions: readonly ProjectVersionEntity[];
-  relationships: readonly ProjectRelationshipEntity[];
+  contributions: readonly Record<string, unknown>[];
+  experiments: readonly Record<string, unknown>[];
+  adrs: readonly Record<string, unknown>[];
+  debuggingLessons: readonly Record<string, unknown>[];
+  deployments: readonly Record<string, unknown>[];
+  versions: readonly Record<string, unknown>[];
+  relationships: readonly Record<string, unknown>[];
   evidence: readonly Record<string, unknown>[];
   artifacts: readonly Record<string, unknown>[];
   skills: readonly Record<string, unknown>[];
@@ -834,31 +834,47 @@ export function getPublicProjectProjection(params: {
     (url) => classifyAndValidateUrl(url, 'public_deployment').valid,
   );
 
+  const sanitizePublicRecord = (record: object): Record<string, unknown> => {
+    const output: Record<string, unknown> = { ...record };
+    for (const privateField of [
+      'ownerId',
+      'provenance',
+      'ownerNote',
+      'privateIdentifier',
+      'redactionMetadata',
+    ])
+      delete output[privateField];
+    return output;
+  };
+
   const eligibleGeneric = (items: readonly Record<string, unknown>[] = []) =>
-    items.filter((item) => {
-      if (item.visibility !== undefined && item.visibility !== 'public') return false;
-      if (item.state !== undefined && item.state !== 'published' && item.state !== 'approved')
-        return false;
-      if (item.publicationState !== undefined && item.publicationState !== 'published')
-        return false;
-      if (item.approvalState !== undefined && item.approvalState !== 'approved') return false;
-      if (item.ownerApproval !== undefined && item.ownerApproval !== true) return false;
-      if (item.deletedAt || item.archivedAt || item.disputedAt || item.revokedAt) return false;
-      if (typeof item.scheduledFor === 'string' && item.scheduledFor > now) return false;
-      if (typeof item.embargoUntil === 'string' && item.embargoUntil > now) return false;
-      if (item.parentProjectEligible === false || item.relationshipApproved === false) return false;
-      return true;
-    });
+    items
+      .filter((item) => {
+        if (item.visibility !== undefined && item.visibility !== 'public') return false;
+        if (item.state !== undefined && item.state !== 'published' && item.state !== 'approved')
+          return false;
+        if (item.publicationState !== undefined && item.publicationState !== 'published')
+          return false;
+        if (item.approvalState !== undefined && item.approvalState !== 'approved') return false;
+        if (item.ownerApproval !== undefined && item.ownerApproval !== true) return false;
+        if (item.deletedAt || item.archivedAt || item.disputedAt || item.revokedAt) return false;
+        if (typeof item.scheduledFor === 'string' && item.scheduledFor > now) return false;
+        if (typeof item.embargoUntil === 'string' && item.embargoUntil > now) return false;
+        if (item.parentProjectEligible === false || item.relationshipApproved === false)
+          return false;
+        return true;
+      })
+      .map(sanitizePublicRecord);
 
   return {
     project: publicProject,
-    contributions: eligibleContributions,
-    experiments: eligibleExperiments,
-    adrs: eligibleAdrs,
-    debuggingLessons: eligibleDebugging,
-    deployments: eligibleDeployments,
-    versions: eligibleVersions,
-    relationships: eligibleRelationships,
+    contributions: eligibleContributions.map(sanitizePublicRecord),
+    experiments: eligibleExperiments.map(sanitizePublicRecord),
+    adrs: eligibleAdrs.map(sanitizePublicRecord),
+    debuggingLessons: eligibleDebugging.map(sanitizePublicRecord),
+    deployments: eligibleDeployments.map(sanitizePublicRecord),
+    versions: eligibleVersions.map(sanitizePublicRecord),
+    relationships: eligibleRelationships.map(sanitizePublicRecord),
     evidence: eligibleGeneric(params.evidence),
     artifacts: eligibleGeneric(params.artifacts),
     skills: eligibleGeneric(params.skills),

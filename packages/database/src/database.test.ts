@@ -1091,7 +1091,8 @@ describe('Requirement 1 & 2: Database Integrity & Public Scheduling/Embargo Logi
     expect(rel.relationshipType).toBe('uses_skill');
   });
 
-  it('15. M5 IDOR: every engineering child read is scoped by owner and project', async () => {
+  it('15. M5 IDOR: project and every engineering child read are scoped by owner and project', async () => {
+    const { D1ProjectRepository } = await import('./repositories/projects.js');
     const { D1EngineeringRecordRepository } = await import('./repositories/engineering.js');
     const { D1ProjectRelationshipRepository } =
       await import('./repositories/project-relationships.js');
@@ -1118,6 +1119,8 @@ describe('Requirement 1 & 2: Database Integrity & Public Scheduling/Embargo Logi
     };
     const engineering = new D1EngineeringRecordRepository(db as any);
     const relationships = new D1ProjectRelationshipRepository(db as any);
+    const projects = new D1ProjectRepository(db as any);
+    await projects.getProjectById('owner-a', 'project-a');
     await engineering.listContributions('owner-a', 'project-a');
     await engineering.listExperiments('owner-a', 'project-a');
     await engineering.listAdrs('owner-a', 'project-a');
@@ -1125,7 +1128,7 @@ describe('Requirement 1 & 2: Database Integrity & Public Scheduling/Embargo Logi
     await engineering.listDeployments('owner-a', 'project-a');
     await engineering.listVersions('owner-a', 'project-a');
     await relationships.listRelationships('owner-a', 'project-a');
-    expect(calls).toHaveLength(7);
+    expect(calls).toHaveLength(8);
     for (const call of calls) {
       expect(call.sql).toMatch(/owner_id\s*=\s*\?/i);
       expect(call.params[0]).toBe('owner-a');

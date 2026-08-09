@@ -640,4 +640,18 @@ describe('Worker API Integration & Security Tests', () => {
     );
     expect(selfAdrRes.status).toBe(400);
   });
+
+  it('M5 unauthorized project publish and unpublish attempts fail closed', async () => {
+    for (const publicationState of ['published', 'draft']) {
+      const response = await worker.fetch(
+        new Request('http://localhost/api/v1/private/projects/proj-1', {
+          method: 'PUT',
+          headers: { Origin: 'http://localhost:4321', 'Content-Type': 'application/json' },
+          body: JSON.stringify({ publicationState, expectedVersionNo: 1 }),
+        }),
+        { ...env, ENVIRONMENT: 'test', DB: mockDb as any },
+      );
+      expect(response.status).toBe(401);
+    }
+  });
 });

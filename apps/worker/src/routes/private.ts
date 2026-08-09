@@ -30,7 +30,6 @@ import {
   type Visibility,
   type ProjectLifecycleState,
   type ProjectContributionType,
-  type EvidenceVerificationState,
   type ExperimentStatus,
   type ProjectAdrStatus,
   type DeploymentEnvironment,
@@ -41,6 +40,34 @@ import {
   validateAdrSupersession,
   validateProjectRelationship,
 } from '@usmanalii/domain';
+
+type OwnedLinkKind = 'project' | 'evidence' | 'artifact' | 'skill' | 'capability';
+
+const OWNED_LINK_TABLES: Record<OwnedLinkKind, string> = {
+  project: 'projects',
+  evidence: 'evidence_items',
+  artifact: 'artifacts',
+  skill: 'skills',
+  capability: 'capabilities',
+};
+
+export async function validateOwnedLinkIds(
+  db: D1Database,
+  ownerId: string,
+  kind: OwnedLinkKind,
+  ids: readonly string[],
+): Promise<boolean> {
+  const uniqueIds = [...new Set(ids.filter(Boolean))];
+  if (uniqueIds.length === 0) return true;
+  const placeholders = uniqueIds.map(() => '?').join(', ');
+  const result = await db
+    .prepare(
+      `SELECT id FROM ${OWNED_LINK_TABLES[kind]} WHERE owner_id = ? AND id IN (${placeholders})`,
+    )
+    .bind(ownerId, ...uniqueIds)
+    .all<{ id: string }>();
+  return (result.results ?? []).length === uniqueIds.length;
+}
 
 import { evidenceRoutes } from './evidence.js';
 import { artifactRoutes } from './artifacts.js';
@@ -783,10 +810,10 @@ privateRoutes.post('/projects', async (c) => {
     ...(body.lifecycleState
       ? { lifecycleState: body.lifecycleState as ProjectLifecycleState }
       : {}),
-    ...(body.publicationState
-      ? { publicationState: body.publicationState as PublicationState }
-      : {}),
-    ...(body.visibility ? { visibility: body.visibility as Visibility } : {}),
+    // Security boundary: creation always starts private/draft. Publication and
+    // visibility changes require an authenticated update after review.
+    publicationState: 'draft',
+    visibility: 'private',
   });
 
   return c.json({ project, requestId: c.get('requestId') }, 201);
@@ -990,6 +1017,20 @@ privateRoutes.post('/projects/:id/contributions', async (c) => {
     );
   }
 
+  const supportingEvidenceIds = (body.supportingEvidenceIds as string[]) || [];
+  if (
+    !(await validateOwnedLinkIds(c.env.DB, authContext.ownerId, 'evidence', supportingEvidenceIds))
+  ) {
+    return c.json(
+      {
+        code: 'INVALID_LINK_REFERENCE',
+        message: 'Linked evidence is outside the owner scope.',
+        requestId: c.get('requestId'),
+      },
+      400,
+    );
+  }
+
   const repo = new D1EngineeringRecordRepository(c.env.DB);
   const contribution = await repo.createContribution({
     id: `contrib-${crypto.randomUUID()}`,
@@ -1001,12 +1042,12 @@ privateRoutes.post('/projects/:id/contributions', async (c) => {
     startDate: (body.startDate as string) || null,
     endDate: (body.endDate as string) || null,
     collaborationContext: (body.collaborationContext as string) || null,
-    supportingEvidenceIds: (body.supportingEvidenceIds as string[]) || [],
-    ownerApproval: Boolean(body.ownerApproval),
-    ...(body.verificationState
-      ? { verificationState: body.verificationState as EvidenceVerificationState }
-      : {}),
-    ...(body.visibility ? { visibility: body.visibility as Visibility } : {}),
+    supportingEvidenceIds,
+    // Attribution, approval, verification, and public visibility are never
+    // mass-assigned from a creation payload.
+    ownerApproval: false,
+    verificationState: 'unverified',
+    visibility: 'private',
   });
 
   return c.json({ contribution, requestId: c.get('requestId') }, 201);
@@ -1033,6 +1074,27 @@ privateRoutes.post('/projects/:id/experiments', async (c) => {
     );
   }
 
+  const supportingEvidenceIds = (body.supportingEvidenceIds as string[]) || [];
+  const artifactIds = (body.artifactIds as string[]) || [];
+  if (
+    !(await validateOwnedLinkIds(
+      c.env.DB,
+      authContext.ownerId,
+      'evidence',
+      supportingEvidenceIds,
+    )) ||
+    !(await validateOwnedLinkIds(c.env.DB, authContext.ownerId, 'artifact', artifactIds))
+  ) {
+    return c.json(
+      {
+        code: 'INVALID_LINK_REFERENCE',
+        message: 'Linked evidence or artifact is outside the owner scope.',
+        requestId: c.get('requestId'),
+      },
+      400,
+    );
+  }
+
   const repo = new D1EngineeringRecordRepository(c.env.DB);
   const experiment = await repo.createExperiment({
     id: `exp-${crypto.randomUUID()}`,
@@ -1049,8 +1111,8 @@ privateRoutes.post('/projects/:id/experiments', async (c) => {
     conclusion: (body.conclusion as string) || null,
     limitations: (body.limitations as string) || null,
     dates: (body.dates as string) || null,
-    supportingEvidenceIds: (body.supportingEvidenceIds as string[]) || [],
-    artifactIds: (body.artifactIds as string[]) || [],
+    supportingEvidenceIds,
+    artifactIds,
     ...(body.status ? { status: body.status as ExperimentStatus } : {}),
     ...(body.visibility ? { visibility: body.visibility as Visibility } : {}),
     ...(body.state ? { state: body.state as PublicationState } : {}),
@@ -1076,6 +1138,20 @@ privateRoutes.post('/projects/:id/adrs', async (c) => {
       {
         code: 'INVALID_PAYLOAD',
         message: 'adrNumber, title, context, decision, and consequences are required.',
+        requestId: c.get('requestId'),
+      },
+      400,
+    );
+  }
+
+  const supportingEvidenceIds = (body.supportingEvidenceIds as string[]) || [];
+  if (
+    !(await validateOwnedLinkIds(c.env.DB, authContext.ownerId, 'evidence', supportingEvidenceIds))
+  ) {
+    return c.json(
+      {
+        code: 'INVALID_LINK_REFERENCE',
+        message: 'Linked evidence is outside the owner scope.',
         requestId: c.get('requestId'),
       },
       400,
@@ -1116,7 +1192,7 @@ privateRoutes.post('/projects/:id/adrs', async (c) => {
     tradeOffs: (body.tradeOffs as string) || null,
     supersededBy: (body.supersededBy as string) || null,
     decisionDate: (body.decisionDate as string) || null,
-    supportingEvidenceIds: (body.supportingEvidenceIds as string[]) || [],
+    supportingEvidenceIds,
     ...(body.status ? { status: body.status as ProjectAdrStatus } : {}),
     ...(body.visibility ? { visibility: body.visibility as Visibility } : {}),
     ...(body.state ? { state: body.state as PublicationState } : {}),
@@ -1148,6 +1224,27 @@ privateRoutes.post('/projects/:id/debugging', async (c) => {
     );
   }
 
+  const supportingEvidenceIds = (body.supportingEvidenceIds as string[]) || [];
+  const artifactIds = (body.artifactIds as string[]) || [];
+  if (
+    !(await validateOwnedLinkIds(
+      c.env.DB,
+      authContext.ownerId,
+      'evidence',
+      supportingEvidenceIds,
+    )) ||
+    !(await validateOwnedLinkIds(c.env.DB, authContext.ownerId, 'artifact', artifactIds))
+  ) {
+    return c.json(
+      {
+        code: 'INVALID_LINK_REFERENCE',
+        message: 'Linked evidence or artifact is outside the owner scope.',
+        requestId: c.get('requestId'),
+      },
+      400,
+    );
+  }
+
   const repo = new D1EngineeringRecordRepository(c.env.DB);
   const lesson = await repo.createDebuggingLesson({
     id: `debug-${crypto.randomUUID()}`,
@@ -1165,8 +1262,8 @@ privateRoutes.post('/projects/:id/debugging', async (c) => {
     lessonsLearned: (body.lessonsLearned as string) || null,
     relevantDates: (body.relevantDates as string) || null,
     tags: (body.tags as string[]) || [],
-    supportingEvidenceIds: (body.supportingEvidenceIds as string[]) || [],
-    artifactIds: (body.artifactIds as string[]) || [],
+    supportingEvidenceIds,
+    artifactIds,
     ...(body.visibility ? { visibility: body.visibility as Visibility } : {}),
     ...(body.state ? { state: body.state as PublicationState } : {}),
   });
@@ -1189,6 +1286,27 @@ privateRoutes.post('/projects/:id/deployments', async (c) => {
       {
         code: 'INVALID_PAYLOAD',
         message: 'environment and releaseVersion are required.',
+        requestId: c.get('requestId'),
+      },
+      400,
+    );
+  }
+
+  const supportingEvidenceIds = (body.supportingEvidenceIds as string[]) || [];
+  const artifactIds = (body.artifactIds as string[]) || [];
+  if (
+    !(await validateOwnedLinkIds(
+      c.env.DB,
+      authContext.ownerId,
+      'evidence',
+      supportingEvidenceIds,
+    )) ||
+    !(await validateOwnedLinkIds(c.env.DB, authContext.ownerId, 'artifact', artifactIds))
+  ) {
+    return c.json(
+      {
+        code: 'INVALID_LINK_REFERENCE',
+        message: 'Linked evidence or artifact is outside the owner scope.',
         requestId: c.get('requestId'),
       },
       400,
@@ -1221,8 +1339,8 @@ privateRoutes.post('/projects/:id/deployments', async (c) => {
     deployedAt: (body.deployedAt as string) || new Date().toISOString(),
     rollbackInfo: (body.rollbackInfo as string) || null,
     outcome: (body.outcome as string) || null,
-    supportingEvidenceIds: (body.supportingEvidenceIds as string[]) || [],
-    artifactIds: (body.artifactIds as string[]) || [],
+    supportingEvidenceIds,
+    artifactIds,
     ...(body.status ? { status: body.status as DeploymentStatus } : {}),
     ...(body.visibility ? { visibility: body.visibility as Visibility } : {}),
     ...(body.publicationState
@@ -1253,6 +1371,27 @@ privateRoutes.post('/projects/:id/versions', async (c) => {
     );
   }
 
+  const supportingEvidenceIds = (body.supportingEvidenceIds as string[]) || [];
+  const artifactIds = (body.artifactIds as string[]) || [];
+  if (
+    !(await validateOwnedLinkIds(
+      c.env.DB,
+      authContext.ownerId,
+      'evidence',
+      supportingEvidenceIds,
+    )) ||
+    !(await validateOwnedLinkIds(c.env.DB, authContext.ownerId, 'artifact', artifactIds))
+  ) {
+    return c.json(
+      {
+        code: 'INVALID_LINK_REFERENCE',
+        message: 'Linked evidence or artifact is outside the owner scope.',
+        requestId: c.get('requestId'),
+      },
+      400,
+    );
+  }
+
   const repo = new D1EngineeringRecordRepository(c.env.DB);
   const version = await repo.createVersion({
     id: `ver-${crypto.randomUUID()}`,
@@ -1265,8 +1404,8 @@ privateRoutes.post('/projects/:id/versions', async (c) => {
     completedDate: (body.completedDate as string) || null,
     changelog: (body.changelog as string) || null,
     outcome: (body.outcome as string) || null,
-    supportingEvidenceIds: (body.supportingEvidenceIds as string[]) || [],
-    artifactIds: (body.artifactIds as string[]) || [],
+    supportingEvidenceIds,
+    artifactIds,
     previousVersionId: (body.previousVersionId as string) || null,
     ...(body.status ? { status: body.status as ProjectVersionStatus } : {}),
     ...(body.visibility ? { visibility: body.visibility as Visibility } : {}),
@@ -1292,6 +1431,31 @@ privateRoutes.post('/projects/:id/relationships', async (c) => {
       {
         code: 'INVALID_PAYLOAD',
         message: 'targetId, targetType, and relationshipType are required.',
+        requestId: c.get('requestId'),
+      },
+      400,
+    );
+  }
+
+  if (!['project', 'evidence', 'artifact', 'skill', 'capability'].includes(targetType)) {
+    return c.json(
+      {
+        code: 'INVALID_LINK_REFERENCE',
+        message: 'Unsupported relationship target type.',
+        requestId: c.get('requestId'),
+      },
+      400,
+    );
+  }
+  if (
+    !(await validateOwnedLinkIds(c.env.DB, authContext.ownerId, targetType as OwnedLinkKind, [
+      targetId,
+    ]))
+  ) {
+    return c.json(
+      {
+        code: 'INVALID_LINK_REFERENCE',
+        message: 'Relationship target is outside the owner scope.',
         requestId: c.get('requestId'),
       },
       400,

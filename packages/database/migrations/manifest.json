@@ -16,6 +16,6 @@
     "012_m4_final_gate_closure.sql": "ff3c1a54a48ca4161a06f8f9dbb765952789e403614468e29ccfd3006c4c9aeb",
     "013_projects_engineering_m5.sql": "44bb7a1e9bcaf29ef64849c7b8a28f4310d8ba77e0e1d45fde48843410c1f05a",
     "014_m5_content_model_gate1.sql": "e9099e8d5befe8212111204c087ddc736bac67560f9e2f1ca2034929b34f6d0a",
-    "015_m5_integrity_closure.sql": "bd97a406af21f5fd110bae216f611f02ab7303a49cbe05f91ecd49ddd4581f3b"
+    "015_m5_integrity_closure.sql": "a8e36e7b4d985285bb996619a14503650ff0cecf6e5ca09cba8a2a6eca40331a"
   }
 }

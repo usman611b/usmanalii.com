@@ -282,4 +282,131 @@ describe('Milestone M5 — Project Rules & URL Policy Tests', () => {
       }
     }
   });
+
+  it('18. centralized projection prevents hidden counts, draft revisions, private URLs, and approval-removal leaks in every mode', () => {
+    const project = {
+      id: 'project-public',
+      publicationState: 'published',
+      visibility: 'public',
+      scheduledFor: null,
+      embargoUntil: null,
+      deletedAt: null,
+      repositoryReferences: ['https://github.com/example/public', 'https://localhost/private'],
+      liveDemoReferences: [],
+    } as unknown as ProjectEntity;
+    const build = (mode: 'general' | 'recruiter' | 'deep_dive') =>
+      getPublicProjectProjection({
+        project,
+        mode,
+        contributions: [
+          {
+            id: 'contribution-public',
+            ownerId: 'private-owner-id',
+            provenance: 'private-provenance',
+            visibility: 'public',
+            ownerApproval: true,
+            deletedAt: null,
+          },
+          {
+            id: 'contribution-hidden',
+            visibility: 'private',
+            ownerApproval: true,
+            deletedAt: null,
+          },
+        ] as never,
+        experiments: [
+          { id: 'experiment-public', visibility: 'public', state: 'published', deletedAt: null },
+          { id: 'experiment-hidden', visibility: 'private', state: 'published', deletedAt: null },
+        ] as never,
+        adrs: [
+          { id: 'adr-public', visibility: 'public', state: 'published', deletedAt: null },
+          { id: 'adr-hidden', visibility: 'private', state: 'published', deletedAt: null },
+        ] as never,
+        debuggingLessons: [
+          { id: 'debug-public', visibility: 'public', state: 'published', deletedAt: null },
+          { id: 'debug-hidden', visibility: 'private', state: 'published', deletedAt: null },
+        ] as never,
+        deployments: [
+          {
+            id: 'deployment-public',
+            visibility: 'public',
+            publicationState: 'published',
+            deletedAt: null,
+            deploymentUrl: 'https://example.com/release',
+            environment: 'production',
+          },
+          {
+            id: 'deployment-hidden',
+            visibility: 'private',
+            publicationState: 'published',
+            deletedAt: null,
+            deploymentUrl: 'https://private.example/release',
+            environment: 'production',
+          },
+        ] as never,
+        versions: [
+          { id: 'version-public', visibility: 'public', state: 'published', deletedAt: null },
+          { id: 'version-hidden', visibility: 'private', state: 'published', deletedAt: null },
+        ] as never,
+        relationships: [
+          { id: 'relationship-public', approvalState: 'accepted', archivedAt: null },
+          { id: 'relationship-hidden', approvalState: 'pending', archivedAt: null },
+        ] as never,
+        evidence: [
+          { id: 'evidence-public', visibility: 'public', state: 'published' },
+          { id: 'evidence-hidden', visibility: 'private', state: 'published' },
+        ],
+        artifacts: [
+          { id: 'artifact-public', visibility: 'public', state: 'published' },
+          { id: 'artifact-hidden', visibility: 'private', state: 'published' },
+        ],
+        skills: [
+          { id: 'skill-public', visibility: 'public', state: 'published' },
+          { id: 'skill-hidden', visibility: 'private', state: 'published' },
+        ],
+        capabilities: [
+          { id: 'capability-public', visibility: 'public', state: 'published' },
+          { id: 'capability-hidden', visibility: 'private', state: 'published' },
+        ],
+        journalLinks: [
+          { id: 'journal-public', visibility: 'public', state: 'published' },
+          { id: 'journal-hidden', visibility: 'private', state: 'published' },
+        ],
+        relatedProjects: [
+          { id: 'related-public', visibility: 'public', state: 'published' },
+          { id: 'related-hidden', visibility: 'private', state: 'published' },
+        ],
+        externalUrls: [
+          {
+            id: 'url-public',
+            url: 'https://example.com/public',
+            visibility: 'public',
+            approvalState: 'approved',
+          },
+          {
+            id: 'url-private',
+            url: 'https://private.example/secret',
+            visibility: 'private',
+            approvalState: 'approved',
+          },
+          {
+            id: 'url-revoked',
+            url: 'https://example.com/revoked',
+            visibility: 'public',
+            approvalState: 'pending',
+          },
+        ],
+      });
+    const serialized = (['general', 'recruiter', 'deep_dive'] as const).map((mode) =>
+      JSON.stringify(build(mode)),
+    );
+    expect(new Set(serialized).size).toBe(1);
+    for (const output of serialized) {
+      expect(output).not.toMatch(/hidden|private\.example|revoked/);
+      expect(output).not.toContain('count');
+      expect(output).not.toContain('revisions');
+      expect(output).not.toMatch(/private-owner-id|private-provenance/);
+      expect(output).toContain('url-public');
+    }
+  });
 });
