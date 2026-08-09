@@ -44,7 +44,7 @@ const mockBlocks = [
             <div class="block-header text-sm text-dim mb-1">
               Block #{idx + 1} — [{block.type.toUpperCase()}]
             </div>
-            <textarea class="block-text-input" rows="2">
+            <textarea class="block-text-input" rows="2" aria-label={`Block #${idx + 1} text content`}>
               {block.text}
             </textarea>
           </div>

@@ -39,39 +39,39 @@ const mockProject = {
 
   <nav class="subnav-grid mt-6">
     <a href={`/dashboard/projects/${id}/edit`} class="subnav-card">
-      <h3>⚙️ Project Metadata</h3>
+      <h2 class="subnav-title">⚙️ Project Metadata</h2>
       <p>Edit title, slug, visibility, embargo, scheduling, and role details.</p>
     </a>
     <a href={`/dashboard/projects/${id}/case-study`} class="subnav-card">
-      <h3>📝 Case Study Authoring</h3>
+      <h2 class="subnav-title">📝 Case Study Authoring</h2>
       <p>Structured JSON blocks, autosave, local recovery, and revision rollback.</p>
     </a>
     <a href={`/dashboard/projects/${id}/contributions`} class="subnav-card">
-      <h3>🤝 Contributions & Evidence</h3>
+      <h2 class="subnav-title">🤝 Contributions & Evidence</h2>
       <p>Attributions, explicit owner approvals, and evidence linkage.</p>
     </a>
     <a href={`/dashboard/projects/${id}/experiments`} class="subnav-card">
-      <h3>🧪 Experiments</h3>
+      <h2 class="subnav-title">🧪 Experiments</h2>
       <p>Hypotheses, methodology, variables, and empirical outcome records.</p>
     </a>
     <a href={`/dashboard/projects/${id}/adrs`} class="subnav-card">
-      <h3>🏛 Architecture Decisions (ADRs)</h3>
+      <h2 class="subnav-title">🏛 Architecture Decisions (ADRs)</h2>
       <p>Decision records, trade-offs, and supersession graph management.</p>
     </a>
     <a href={`/dashboard/projects/${id}/debugging`} class="subnav-card">
-      <h3>🐛 Debugging Lessons</h3>
+      <h2 class="subnav-title">🐛 Debugging Lessons</h2>
       <p>Symptom analysis, root-cause investigations, and prevention steps.</p>
     </a>
     <a href={`/dashboard/projects/${id}/deployments`} class="subnav-card">
-      <h3>🚀 Deployments</h3>
+      <h2 class="subnav-title">🚀 Deployments</h2>
       <p>Staging & production deployment logs and environment URL policies.</p>
     </a>
     <a href={`/dashboard/projects/${id}/versions`} class="subnav-card">
-      <h3>📌 Versions & Milestones</h3>
+      <h2 class="subnav-title">📌 Versions & Milestones</h2>
       <p>Semantic version milestones, changelogs, and lineage chains.</p>
     </a>
     <a href={`/dashboard/projects/${id}/relationships`} class="subnav-card">
-      <h3>🔗 Graph Relationships</h3>
+      <h2 class="subnav-title">🔗 Graph Relationships</h2>
       <p>Owner-scoped directed edges, skill links, and capability bindings.</p>
     </a>
   </nav>
@@ -112,7 +112,7 @@ const mockProject = {
     transform: translateY(-2px);
     border-color: var(--color-primary);
   }
-  .subnav-card h3 {
+  .subnav-title {
     margin: 0 0 var(--space-2) 0;
     font-size: var(--font-size-lg);
     color: var(--color-text-emphasis);
