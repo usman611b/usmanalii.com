@@ -4,7 +4,9 @@
   "private": true,
   "description": "Structured logging, metrics and error taxonomy. Logs exclude private content, secrets and AI prompts.",
   "type": "module",
-  "exports": { ".": "./src/index.ts" },
+  "exports": {
+    ".": "./src/index.ts"
+  },
   "scripts": {
     "typecheck": "tsc --noEmit",
     "lint": "eslint src --max-warnings=0",
@@ -14,6 +16,6 @@
   "devDependencies": {
     "@types/node": "^22.10.0",
     "typescript": "^5.7.2",
-    "vitest": "^2.1.8"
+    "vitest": "^4.1.10"
   }
 }

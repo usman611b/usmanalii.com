@@ -7,6 +7,7 @@
     "verify-migrations": "node verify-migrations.mjs",
     "check-migration-order": "node check-migration-order.mjs",
     "verify-no-secrets": "node verify-no-secrets.mjs",
+    "test": "node --test migration-integrity.test.mjs",
     "typecheck": "echo 'Scripts are pure ESM — no TS compilation needed'",
     "lint": "echo 'No lint in infrastructure/scripts'"
   }

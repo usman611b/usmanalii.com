@@ -13,8 +13,7 @@
 -- Database Model references: §6 (field conventions), §16 (migrations).
 -- ============================================================================
 
--- D1 controls its own journaling mode; attempting PRAGMA journal_mode = WAL
--- is rejected with SQLITE_AUTH by Wrangler's D1 runtime.
+PRAGMA journal_mode = WAL;
 PRAGMA foreign_keys = ON;
 
 -- ----------------------------------------------------------------------------

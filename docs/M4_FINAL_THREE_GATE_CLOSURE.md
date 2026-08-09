@@ -34,7 +34,7 @@ The parallel `pnpm test` invocation exhausted Windows child-process memory (`spa
 - Canonical-stage UI: `apps/web/src/pages/capabilities/[slug].astro`, `apps/web/src/pages/capabilities/index.astro`, `apps/web/src/pages/dashboard/capabilities/index.astro`, `apps/web/src/pages/dashboard/graph/index.astro`.
 - Domain/fixtures: `packages/domain/src/entities/index.ts`, `packages/domain/src/invariants.test.ts`, `packages/domain/src/rules/graph-invariants.ts`, `packages/domain/src/rules/graph-invariants.test.ts`, `packages/test-fixtures/src/index.ts`, `packages/test-fixtures/src/fixtures.test.ts`.
 - Cursor: `packages/evidence/src/graph-traversal.ts`, `packages/evidence/src/evidence.test.ts`.
-- Database/M3 migration repairs: `packages/database/migrations/001_initial.sql`, `packages/database/migrations/003_evidence_ledger.sql`, `packages/database/migrations/008_evidence_ledger_m3.sql`, `packages/database/migrations/012_m4_final_gate_closure.sql`, `packages/database/src/migrations/runner.ts`, `packages/database/src/repositories/capabilities.ts`, `packages/database/src/repositories/reconciliation.ts`, `packages/database/src/database.test.ts`.
+- Database/M3 compatibility: historical migrations `001`, `003`, and `008` are preserved byte-for-byte under ADR-011; checksum-gated compatibility execution handles their known D1 defects. Migration `012_m4_final_gate_closure.sql` remains forward-only.
 - Migration tooling: `infrastructure/scripts/run-migrations.mjs`, `infrastructure/scripts/check-migration-order.mjs`, `infrastructure/scripts/verify-migrations.mjs`.
 - Documentation: `docs/M4_FINAL_THREE_GATE_CLOSURE.md`, `docs/architecture/progression_rules.md`, `docs/architecture/traceability_matrix.md`, `docs/security/threat_model.md`.
 

@@ -1,7 +1,12 @@
 node_modules/
+.turbo/
 dist/
 .astro/
 .output/
 .wrangler/
 coverage/
+test-results/
+playwright-report/
+blob-report/
+*.snap
 *.tsbuildinfo

@@ -1,1 +1,25 @@
-{"name":"@usmanalii/evidence","version":"0.0.1","private":true,"description":"Evidence provenance and support-edge logic.","type":"module","exports":{".":"./src/index.ts"},"scripts":{"typecheck":"tsc --noEmit","lint":"eslint src --max-warnings=0","test":"vitest run","clean":"rm -rf dist *.tsbuildinfo"},"dependencies":{"@usmanalii/domain":"workspace:*","@usmanalii/contracts":"workspace:*"},"devDependencies":{"typescript":"^5.7.2","vitest":"^2.1.8"}}
+{
+  "name": "@usmanalii/evidence",
+  "version": "0.0.1",
+  "private": true,
+  "description": "Evidence provenance and support-edge logic.",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint src --max-warnings=0",
+    "test": "vitest run",
+    "clean": "rm -rf dist *.tsbuildinfo"
+  },
+  "dependencies": {
+    "@usmanalii/contracts": "workspace:*",
+    "@usmanalii/domain": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.0",
+    "typescript": "^5.7.2",
+    "vitest": "^4.1.10"
+  }
+}

@@ -1,0 +1,18 @@
+{
+  "formatVersion": 1,
+  "immutableFromCommit": "1e38e0ba931a945e8e9739f30b77f23a7c4dd0e0",
+  "migrations": {
+    "001_initial.sql": "ee4e5ab83eebd18bef109e0a1cd60621775582bc84f6d1ef2d99568b7bc3aca4",
+    "002_skills_capabilities.sql": "db8dca05350a3066f06910d5efa28dc2b785b7dcff2eb6b5a57959fe5a4149b5",
+    "003_evidence_ledger.sql": "3f334a6f8f366a2abe6265ea1f2e26f8e7926759c6ba5838780a3c6bd4105539",
+    "004_content_projects_activities.sql": "353ef6351e784be602047ba70b3da044ef7642b9d5aa89d22c5eb01a6b1659c0",
+    "005_claims_integrations_proposals.sql": "8ab9e90d59fafaa2a2985b4d735b38ea431846a5db78f573b3b338c4ea48e357",
+    "006_engineering_records.sql": "c23607003545e4d83dca4fcbfb9ddc22ae5afc265b8a844e42f40d0b1f0e0634",
+    "007_embargo_until.sql": "4278ae0effbc653a1a95727a795bace8bf1a7a5751f61a357fec13ce2f8d0517",
+    "008_evidence_ledger_m3.sql": "d6e6d0c166eb14aa37fe1f191dd882ff6dcff0b029b8bc2de680a03c02d5e40e",
+    "009_evidence_constraints_m3.sql": "70ed707e2a6f08c810885a297700a8268d6bdb1d755d803482f4da13212a1944",
+    "010_reconciliation_queue_m3.sql": "c66bf77221ae65214a3aa624d4880f76b24c394d0ed9d4ae5e4cd41744fb64b4",
+    "011_skills_capabilities_m4.sql": "02ff7ef71a9731dc41d0d2f0c23231fea161ac7df79326587b9285b29fee788b",
+    "012_m4_final_gate_closure.sql": "ff3c1a54a48ca4161a06f8f9dbb765952789e403614468e29ccfd3006c4c9aeb"
+  }
+}

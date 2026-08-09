@@ -37,10 +37,8 @@ CREATE INDEX IF NOT EXISTS idx_verification_events_item
 ALTER TABLE artifacts ADD COLUMN deleted_at TEXT;
 ALTER TABLE artifacts ADD COLUMN uploaded_by TEXT;
 ALTER TABLE artifacts ADD COLUMN description TEXT;
-ALTER TABLE evidence_items ADD COLUMN deleted_at TEXT;
 
 CREATE INDEX IF NOT EXISTS idx_artifacts_deleted ON artifacts (owner_id, deleted_at);
-CREATE INDEX IF NOT EXISTS idx_evidence_items_deleted ON evidence_items (owner_id, deleted_at);
 
 -- ----------------------------------------------------------------------------
 -- 3. Add Relevance, Ordering, and Provenance Columns to Evidence Links

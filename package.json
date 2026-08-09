@@ -14,28 +14,31 @@
     "lint": "turbo run lint",
     "lint:fix": "turbo run lint:fix",
     "format": "prettier --write \"**/*.{ts,tsx,astro,json,md,yaml,yml,css}\" --ignore-path .prettierignore",
-    "format:check": "prettier --check \"**/*.{ts,tsx,astro,json,md,yaml,yml,css}\" --ignore-path .prettierignore",
+    "format:check": "node infrastructure/scripts/check-format-incremental.mjs",
+    "format:check:all": "prettier --check \"**/*.{ts,tsx,astro,json,md,yaml,yml,css}\" --ignore-path .prettierignore",
     "test": "turbo run test",
+    "test:sequential": "pnpm -r --workspace-concurrency=1 --if-present test",
     "test:coverage": "turbo run test:coverage",
     "test:e2e": "turbo run test:e2e",
     "clean": "turbo run clean && rm -rf node_modules",
     "migrate:local": "wrangler d1 execute usmanalii-local --local --file=packages/database/migrations/001_initial.sql",
     "migrate:all:local": "node infrastructure/scripts/run-migrations.mjs --env=local",
     "security:audit": "pnpm audit --audit-level=high",
-    "security:scan": "node infrastructure/scripts/verify-no-secrets.mjs"
+    "security:scan": "node infrastructure/scripts/verify-no-secrets.mjs",
+    "migrations:check": "node infrastructure/scripts/verify-migration-checksums.mjs && node infrastructure/scripts/check-migration-order.mjs"
   },
   "devDependencies": {
+    "@axe-core/playwright": "^4.10.1",
+    "@playwright/test": "^1.49.1",
     "@turbo/gen": "^2.3.3",
     "@typescript-eslint/eslint-plugin": "^8.18.0",
     "@typescript-eslint/parser": "^8.18.0",
-    "@playwright/test": "^1.49.1",
-    "@axe-core/playwright": "^4.10.1",
     "eslint": "^9.16.0",
-    "eslint-plugin-boundaries": "^5.0.1",
+    "eslint-plugin-boundaries": "^7.1.0",
     "eslint-plugin-jsx-a11y": "^6.10.2",
-    "typescript-eslint": "^8.18.0",
     "prettier": "^3.4.2",
-    "turbo": "^2.3.3"
+    "turbo": "^2.3.3",
+    "typescript-eslint": "^8.18.0"
   },
   "packageManager": "pnpm@9.15.4"
 }

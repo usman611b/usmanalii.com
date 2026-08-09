@@ -27,7 +27,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
         with:
-          fetch-depth: 0  # Full history for secret scanning
+          fetch-depth: 0 # Full history for secret scanning
 
       - name: Install pnpm
         uses: pnpm/action-setup@v4
@@ -111,14 +111,8 @@ jobs:
           node-version: ${{ env.NODE_VERSION }}
           cache: pnpm
       - run: pnpm install --frozen-lockfile
-      - name: Run tests with coverage
-        run: pnpm test:coverage
-      - name: Upload coverage
-        uses: actions/upload-artifact@v4
-        with:
-          name: coverage-report
-          path: '**/coverage/**'
-          retention-days: 7
+      - name: Run complete workspace test inventory sequentially
+        run: pnpm test:sequential
 
   # ============================================================================
   # Migration verification — fresh database from all migrations
@@ -140,14 +134,11 @@ jobs:
           cache: pnpm
       - run: pnpm install --frozen-lockfile
 
-      - name: Install Wrangler
-        run: pnpm add -g wrangler@3
-
       - name: Verify migrations on fresh database
         run: node infrastructure/scripts/verify-migrations.mjs
 
-      - name: Verify migration file list is ordered and complete
-        run: node infrastructure/scripts/check-migration-order.mjs
+      - name: Verify migration order and immutable checksums
+        run: pnpm migrations:check
 
   # ============================================================================
   # Build — apps/web and apps/worker
@@ -174,13 +165,20 @@ jobs:
           ENVIRONMENT: ci
           NODE_ENV: production
 
-  # ============================================================================
-  # Accessibility smoke tests (when web app has pages)
-  # Implemented in M1 — placeholder job for now
-  # ============================================================================
-  # accessibility:
-  #   name: Accessibility
-  #   runs-on: ubuntu-latest
-  #   needs: build
-  #   steps:
-  #     - ... (playwright + axe-core — enabled in M1)
+  accessibility:
+    name: Playwright + axe-core
+    runs-on: ubuntu-latest
+    needs: build
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: ${{ env.PNPM_VERSION }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm --filter @usmanalii/web exec playwright install --with-deps chromium
+      - name: Run browser and accessibility tests with one worker
+        run: pnpm --dir apps/web exec playwright test --workers=1

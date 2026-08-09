@@ -1,6 +1,4 @@
-@import "tailwindcss/base";
-@import "tailwindcss/components";
-@import "tailwindcss/utilities";
+@import 'tailwindcss';
 
 :root {
   --color-obsidian: #050509;
@@ -20,7 +18,14 @@
 body {
   background-color: var(--color-obsidian);
   color: var(--color-foreground);
-  font-family: "Inter", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  font-family:
+    'Inter',
+    system-ui,
+    -apple-system,
+    BlinkMacSystemFont,
+    'Segoe UI',
+    Roboto,
+    sans-serif;
   overflow-x: hidden;
   min-height: 100vh;
 }
@@ -42,7 +47,12 @@ body {
 
 /* Gradient text utility */
 .text-gradient-hero {
-  background: linear-gradient(135deg, var(--color-cyber-cyan), var(--color-electric-violet), var(--color-hot-magenta));
+  background: linear-gradient(
+    135deg,
+    var(--color-cyber-cyan),
+    var(--color-electric-violet),
+    var(--color-hot-magenta)
+  );
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
 }
@@ -61,7 +71,9 @@ body {
 
 /* Reduced motion preference */
 @media (prefers-reduced-motion: reduce) {
-  *, ::before, ::after {
+  *,
+  ::before,
+  ::after {
     animation-duration: 0.01ms !important;
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;

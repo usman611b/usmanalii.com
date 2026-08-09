@@ -9,18 +9,18 @@
 
 ## 1. Product Invariants Traceability
 
-| Product Invariant | Document Reference | Code Implementation | Verification / Test |
-|---|---|---|---|
-| Evidence, skills, capabilities, claims are separate domain concepts | PRD §5, Master Prompt §39 | `packages/domain/src/entities/index.ts` | `packages/domain/src/invariants.test.ts` |
-| No arbitrary or percentage skill bars | PRD §2.3, §5.1, DB §2.10 | `packages/domain/src/value-objects/index.ts` (`assertNoNumericProficiency`), `packages/database/migrations/002_skills_capabilities.sql` | `packages/domain/src/invariants.test.ts`, `infrastructure/scripts/verify-migrations.mjs` |
-| AI proposes only — cannot publish or invent facts | PRD §2.3, Master Prompt §42 | `packages/domain/src/rules/index.ts` (`AI_ALLOWED_PROPOSAL_TRANSITIONS`), `packages/database/migrations/005_claims_integrations_proposals.sql` | `packages/domain/src/invariants.test.ts` |
-| Published claims require approved evidence or background exception | PRD §2.3, §8.4, DB §11 | `packages/domain/src/value-objects/index.ts` (`validateClaimIntegrity`) | `packages/domain/src/invariants.test.ts` |
-| New and imported records default to private | PRD §2.3, DB §2.4 | `packages/domain/src/rules/index.ts` (`DEFAULT_VISIBILITY`), all DB migration defaults | `packages/domain/src/invariants.test.ts`, `packages/test-fixtures/src/fixtures.test.ts` |
-| Public pages use approved public projections only | PRD §10, DB §2.5 | `packages/contracts/src/index.ts` (`PublicProfileDto`, `PublicCapabilityDto`, `PublicEvidenceDto`, `PublicSkillDto`) | `packages/contracts/src/contracts.test.ts` |
-| Private data must not leak through HTML/APIs/search/errors | Security 5B CRITICAL-04 | `packages/authorization/src/index.ts` (`checkAuthorization`, `requireOwnerContext`), `packages/observability/src/index.ts` | `packages/authorization/src/authorization.test.ts` |
-| V1 works without AI and without continuous GitHub sync | Master Prompt §47, Evolution §4 | `packages/domain/src/flags/index.ts` (`V1_DEFAULT_FLAGS`) | `packages/domain/src/invariants.test.ts` |
-| Portable export formats (Markdown + JSON + SQLite + R2 manifest) | PRD §2.3, DB §2.6, ADR-005, ADR-008 | `docs/adrs/ADR-005-content-block-format.md`, `docs/adrs/ADR-008-backup-encryption.md` | ADR-005 & ADR-008 documentation |
-| Additive V1 architecture compatible with V2–V4 | Evolution Plan §3 | `packages/domain/src/entities/index.ts` (extension points) | Extension point tests |
+| Product Invariant                                                   | Document Reference                  | Code Implementation                                                                                                                            | Verification / Test                                                                      |
+| ------------------------------------------------------------------- | ----------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------- |
+| Evidence, skills, capabilities, claims are separate domain concepts | PRD §5, Master Prompt §39           | `packages/domain/src/entities/index.ts`                                                                                                        | `packages/domain/src/invariants.test.ts`                                                 |
+| No arbitrary or percentage skill bars                               | PRD §2.3, §5.1, DB §2.10            | `packages/domain/src/value-objects/index.ts` (`assertNoNumericProficiency`), `packages/database/migrations/002_skills_capabilities.sql`        | `packages/domain/src/invariants.test.ts`, `infrastructure/scripts/verify-migrations.mjs` |
+| AI proposes only — cannot publish or invent facts                   | PRD §2.3, Master Prompt §42         | `packages/domain/src/rules/index.ts` (`AI_ALLOWED_PROPOSAL_TRANSITIONS`), `packages/database/migrations/005_claims_integrations_proposals.sql` | `packages/domain/src/invariants.test.ts`                                                 |
+| Published claims require approved evidence or background exception  | PRD §2.3, §8.4, DB §11              | `packages/domain/src/value-objects/index.ts` (`validateClaimIntegrity`)                                                                        | `packages/domain/src/invariants.test.ts`                                                 |
+| New and imported records default to private                         | PRD §2.3, DB §2.4                   | `packages/domain/src/rules/index.ts` (`DEFAULT_VISIBILITY`), all DB migration defaults                                                         | `packages/domain/src/invariants.test.ts`, `packages/test-fixtures/src/fixtures.test.ts`  |
+| Public pages use approved public projections only                   | PRD §10, DB §2.5                    | `packages/contracts/src/index.ts` (`PublicProfileDto`, `PublicCapabilityDto`, `PublicEvidenceDto`, `PublicSkillDto`)                           | `packages/contracts/src/contracts.test.ts`                                               |
+| Private data must not leak through HTML/APIs/search/errors          | Security 5B CRITICAL-04             | `packages/authorization/src/index.ts` (`checkAuthorization`, `requireOwnerContext`), `packages/observability/src/index.ts`                     | `packages/authorization/src/authorization.test.ts`                                       |
+| V1 works without AI and without continuous GitHub sync              | Master Prompt §47, Evolution §4     | `packages/domain/src/flags/index.ts` (`V1_DEFAULT_FLAGS`)                                                                                      | `packages/domain/src/invariants.test.ts`                                                 |
+| Portable export formats (Markdown + JSON + SQLite + R2 manifest)    | PRD §2.3, DB §2.6, ADR-005, ADR-008 | `docs/adrs/ADR-005-content-block-format.md`, `docs/adrs/ADR-008-backup-encryption.md`                                                          | ADR-005 & ADR-008 documentation                                                          |
+| Additive V1 architecture compatible with V2–V4                      | Evolution Plan §3                   | `packages/domain/src/entities/index.ts` (extension points)                                                                                     | Extension point tests                                                                    |
 
 ---
 
@@ -28,85 +28,85 @@
 
 ### Public Experience Requirements (PRD §7)
 
-| PRD Req ID | Description | Backlog Epic | Target Milestone | Backing Implementation / Design |
-|---|---|---|---|---|
-| `PUB-001` | Global accessible shell, search, mode switch, résumé/contact actions | E01 | M1 | `apps/web/src/pages/index.astro`, `packages/design-system` |
-| `PUB-002` | Recruiter mode (<90 sec scan path) | E10 | M7 | `packages/contracts/src/index.ts`, `apps/web` recruiter route |
-| `PUB-003` | Deep-dive mode (architecture, ADRs, experiments, failures) | E10 | M7 | `packages/database/migrations/006_engineering_records.sql` |
-| `PUB-004` | Mode as URL/cookie preference without altering visibility | E01 | M1 | `packages/authorization/src/index.ts` |
-| `PUB-005` | "View evidence" link on public claims | E06 | M4 | `packages/domain/src/entities/index.ts` (`EvidenceLinkTarget`) |
-| `HOME-001` | Display name, current focus, proof summary, primary actions | E10 | M7 | `packages/contracts/src/index.ts` (`PublicProfileDto`) |
-| `HOME-002` | Featured capabilities with descriptive maturity (no percentages) | E10 | M7 | `packages/domain/src/entities/index.ts` (`CapabilityMaturity`) |
-| `HOME-003` | Featured projects, latest journey entries, activity summary | E10 | M7 | `packages/database/migrations/004_content_projects_activities.sql` |
-| `HOME-004` | Proof-at-a-glance bento grid | E01, E10 | M7 | `packages/design-system/src/tokens/index.ts` (`layoutTokens`) |
-| `HOME-005` | Empty modules collapse or display owner message | E01 | M1 | `packages/design-system` component states |
-| `JRN-001` | Journey index with year/month, topic, skill, project filters | E04 | M2 | `packages/database/migrations/004_content_projects_activities.sql` |
-| `JRN-002` | Entry types: Note, Journal, Deep Dive, Retrospective | E04 | M2 | `packages/database/migrations/004_content_projects_activities.sql` |
-| `JRN-003` | Entry detail with code, diagrams, lessons, next steps | E04 | M2 | `docs/adrs/ADR-005-content-block-format.md` |
-| `JRN-004` | Published/updated dates, reading time, revision indicator | E04 | M2 | `packages/database/migrations/004_content_projects_activities.sql` |
-| `JRN-005` | GitHub/code references with commit SHA/path & link health | E12 | M7 | `packages/domain/src/entities/index.ts` (`EvidenceItemEntity`) |
-| `JRN-006` | Draft, scheduled, archived, unlisted, public state enforcement | E04 | M2 | `packages/domain/src/value-objects/index.ts` (`isPubliclyDiscoverable`) |
-| `SKL-001` | Taxonomy browsing, search, domains, capability filters | E06 | M4 | `packages/database/migrations/002_skills_capabilities.sql` |
-| `SKL-002` | Detail separates taxonomy from observable capabilities | E06 | M4 | `packages/domain/src/entities/index.ts` (`SkillEntity`, `CapabilityEntity`) |
-| `SKL-003` | Capability cards show descriptive maturity & rationale | E06 | M4 | `packages/domain/src/entities/index.ts` (`CapabilityMaturity`) |
-| `SKL-004` | Capability ordering combines editorial priority + evidence | E06 | M4 | `packages/domain/src/entities/index.ts` |
-| `SKL-005` | Dated supporting events history without mastery claims | E06 | M4 | `packages/database/migrations/003_evidence_ledger.sql` |
-| `PRJ-001` | Project cards: status, outcome, role, tech, proof links | E07 | M5 | `packages/database/migrations/004_content_projects_activities.sql` |
-| `PRJ-002` | Engineering case study format (Problem, ADRs, outcomes) | E07 | M5 | `packages/database/migrations/006_engineering_records.sql` |
-| `PRJ-003` | Project timeline events (milestones, ADRs, deployments) | E07 | M5 | `packages/database/migrations/006_engineering_records.sql` |
-| `PRJ-004` | Outcomes distinguish measured vs observed vs subjective | E07 | M5 | `packages/database/migrations/006_engineering_records.sql` |
-| `PRJ-005` | Role disclosure (solo vs team vs open source) | E07 | M5 | `packages/database/migrations/004_content_projects_activities.sql` |
-| `PRJ-006` | Dead demos / unavailable repos show clear status | E07 | M5 | `packages/database/migrations/004_content_projects_activities.sql` |
-| `ACT-001` | Heatmap shows public activity as chronology (not score) | E08 | M6 | `packages/database/migrations/004_content_projects_activities.sql` |
-| `ACT-002` | Accessible date-grouped list for screen readers | E08 | M6 | `packages/domain/src/entities/index.ts` (`ActivityEntity`) |
-| `SRC-001` | Public static search index from published fields | E09 | M6 | `docs/adrs/ADR-007-search-index-generation.md` |
-| `RES-001` | Résumé page exposes active approved variants | E10 | M7 | `packages/contracts/src/index.ts` |
+| PRD Req ID | Description                                                          | Backlog Epic | Target Milestone | Backing Implementation / Design                                             |
+| ---------- | -------------------------------------------------------------------- | ------------ | ---------------- | --------------------------------------------------------------------------- |
+| `PUB-001`  | Global accessible shell, search, mode switch, résumé/contact actions | E01          | M1               | `apps/web/src/pages/index.astro`, `packages/design-system`                  |
+| `PUB-002`  | Recruiter mode (<90 sec scan path)                                   | E10          | M7               | `packages/contracts/src/index.ts`, `apps/web` recruiter route               |
+| `PUB-003`  | Deep-dive mode (architecture, ADRs, experiments, failures)           | E10          | M7               | `packages/database/migrations/006_engineering_records.sql`                  |
+| `PUB-004`  | Mode as URL/cookie preference without altering visibility            | E01          | M1               | `packages/authorization/src/index.ts`                                       |
+| `PUB-005`  | "View evidence" link on public claims                                | E06          | M4               | `packages/domain/src/entities/index.ts` (`EvidenceLinkTarget`)              |
+| `HOME-001` | Display name, current focus, proof summary, primary actions          | E10          | M7               | `packages/contracts/src/index.ts` (`PublicProfileDto`)                      |
+| `HOME-002` | Featured capabilities with descriptive maturity (no percentages)     | E10          | M7               | `packages/domain/src/entities/index.ts` (`CapabilityMaturity`)              |
+| `HOME-003` | Featured projects, latest journey entries, activity summary          | E10          | M7               | `packages/database/migrations/004_content_projects_activities.sql`          |
+| `HOME-004` | Proof-at-a-glance bento grid                                         | E01, E10     | M7               | `packages/design-system/src/tokens/index.ts` (`layoutTokens`)               |
+| `HOME-005` | Empty modules collapse or display owner message                      | E01          | M1               | `packages/design-system` component states                                   |
+| `JRN-001`  | Journey index with year/month, topic, skill, project filters         | E04          | M2               | `packages/database/migrations/004_content_projects_activities.sql`          |
+| `JRN-002`  | Entry types: Note, Journal, Deep Dive, Retrospective                 | E04          | M2               | `packages/database/migrations/004_content_projects_activities.sql`          |
+| `JRN-003`  | Entry detail with code, diagrams, lessons, next steps                | E04          | M2               | `docs/adrs/ADR-005-content-block-format.md`                                 |
+| `JRN-004`  | Published/updated dates, reading time, revision indicator            | E04          | M2               | `packages/database/migrations/004_content_projects_activities.sql`          |
+| `JRN-005`  | GitHub/code references with commit SHA/path & link health            | E12          | M7               | `packages/domain/src/entities/index.ts` (`EvidenceItemEntity`)              |
+| `JRN-006`  | Draft, scheduled, archived, unlisted, public state enforcement       | E04          | M2               | `packages/domain/src/value-objects/index.ts` (`isPubliclyDiscoverable`)     |
+| `SKL-001`  | Taxonomy browsing, search, domains, capability filters               | E06          | M4               | `packages/database/migrations/002_skills_capabilities.sql`                  |
+| `SKL-002`  | Detail separates taxonomy from observable capabilities               | E06          | M4               | `packages/domain/src/entities/index.ts` (`SkillEntity`, `CapabilityEntity`) |
+| `SKL-003`  | Capability cards show descriptive maturity & rationale               | E06          | M4               | `packages/domain/src/entities/index.ts` (`CapabilityMaturity`)              |
+| `SKL-004`  | Capability ordering combines editorial priority + evidence           | E06          | M4               | `packages/domain/src/entities/index.ts`                                     |
+| `SKL-005`  | Dated supporting events history without mastery claims               | E06          | M4               | `packages/database/migrations/003_evidence_ledger.sql`                      |
+| `PRJ-001`  | Project cards: status, outcome, role, tech, proof links              | E07          | M5               | `packages/database/migrations/004_content_projects_activities.sql`          |
+| `PRJ-002`  | Engineering case study format (Problem, ADRs, outcomes)              | E07          | M5               | `packages/database/migrations/006_engineering_records.sql`                  |
+| `PRJ-003`  | Project timeline events (milestones, ADRs, deployments)              | E07          | M5               | `packages/database/migrations/006_engineering_records.sql`                  |
+| `PRJ-004`  | Outcomes distinguish measured vs observed vs subjective              | E07          | M5               | `packages/database/migrations/006_engineering_records.sql`                  |
+| `PRJ-005`  | Role disclosure (solo vs team vs open source)                        | E07          | M5               | `packages/database/migrations/004_content_projects_activities.sql`          |
+| `PRJ-006`  | Dead demos / unavailable repos show clear status                     | E07          | M5               | `packages/database/migrations/004_content_projects_activities.sql`          |
+| `ACT-001`  | Heatmap shows public activity as chronology (not score)              | E08          | M6               | `packages/database/migrations/004_content_projects_activities.sql`          |
+| `ACT-002`  | Accessible date-grouped list for screen readers                      | E08          | M6               | `packages/domain/src/entities/index.ts` (`ActivityEntity`)                  |
+| `SRC-001`  | Public static search index from published fields                     | E09          | M6               | `docs/adrs/ADR-007-search-index-generation.md`                              |
+| `RES-001`  | Résumé page exposes active approved variants                         | E10          | M7               | `packages/contracts/src/index.ts`                                           |
 
 ---
 
 ### Private Dashboard Functional Requirements (PRD §8)
 
-| PRD Req ID | Description | Backlog Epic | Target Milestone | Backing Implementation / Design |
-|---|---|---|---|---|
-| `ADM-001` | Dashboard overview: pending approvals, inbox, health | E01, E02 | M1 | `apps/worker/src/index.ts`, `apps/web` |
-| `ADM-002` | Quick capture (note, evidence URL, upload metadata) | E04, E05 | M2, M3 | `packages/contracts/src/index.ts` |
-| `ADM-003` | Autosave, optimistic concurrency (`version_no`), recovery | E04 | M2 | `packages/domain/src/entities/index.ts` (`versionNo`) |
-| `ADM-004` | Command/search palette for rapid dashboard navigation | E01, E09 | M1, M6 | `packages/contracts/src/index.ts` |
-| `EDT-001` | Structured JSON block editor with Markdown export | E04 | M2 | `docs/adrs/ADR-005-content-block-format.md` |
-| `EDT-002` | Relationship selectors (skills, capabilities, evidence) | E04 | M2 | `packages/database/migrations/004_content_projects_activities.sql` |
-| `EDT-003` | Exact public mode preview before publishing | E04 | M2 | `packages/domain/src/value-objects/index.ts` (`isPubliclyDiscoverable`) |
-| `EDT-004` | Publish validation (title, slug, metadata, sanitization) | E04 | M2 | `packages/domain/src/rules/index.ts` (`canTransitionToPublished`) |
-| `EDT-005` | Immutable revisions & rollback-as-new-revision | E04 | M2 | `packages/database/migrations/004_content_projects_activities.sql` (`content_revisions`) |
-| `EVD-001` | Evidence Ledger: manual creation, URL capture, file | E05 | M3 | `packages/database/migrations/003_evidence_ledger.sql`, `008_evidence_ledger_m3.sql` | ✅ **COMPLETED** (`database.test.ts`, `worker.test.ts`) |
-| `EVD-002` | Complete provenance metadata storage | E05 | M3 | `packages/domain/src/entities/index.ts`, `@usmanalii/evidence` | ✅ **COMPLETED** (`evidence.test.ts`) |
-| `EVD-003` | Duplicate detection by source ID, URL, checksum | E05 | M3 | `packages/database/migrations/009_evidence_constraints_m3.sql` (`idx_evidence_items_owner_provider_external`) | ✅ **COMPLETED** (`database.test.ts`) |
-| `EVD-004` | Evidence lifecycle (accept, edit, reject, archive) | E05 | M3 | `packages/domain/src/entities/index.ts`, `D1EvidenceRepository` | ✅ **COMPLETED** (`database.test.ts`) |
-| `EVD-005` | Verification states (unreviewed, owner_verified, etc.) | E05 | M3 | `packages/domain/src/entities/index.ts`, `evidence_verification_events` | ✅ **COMPLETED** (`database.test.ts`, `evidence.test.ts`) |
-| `EVD-006` | Typed evidence support edges with single target | E05 | M3 | `packages/database/migrations/003_evidence_ledger.sql` (`evidence_link_single_target`), `008_evidence_ledger_m3.sql` | ✅ **COMPLETED** (`database.test.ts`, `evidence.test.ts`) |
-| `CAP-001` | Skill taxonomy management (aliases, hierarchy) | E06 | M4 | `packages/database/migrations/002_skills_capabilities.sql` (`skills`) | ⏳ Pending M4 |
-| `CAP-002` | Bounded capability with qualifying evidence rules | E06 | M4 | `packages/database/migrations/002_skills_capabilities.sql` (`capabilities`) | ⏳ Pending M4 |
-| `CAP-003` | Descriptive maturity transitions with rationale | E06 | M4 | `packages/domain/src/entities/index.ts` (`CapabilityMaturity`) | ⏳ Pending M4 |
-| `CLM-001` | Claim library with wording, context, audience, expiry | E06 | M4 | `packages/database/migrations/005_claims_integrations_proposals.sql` (`claims`) | ⏳ Pending M4 |
-| `CLM-002` | Claim integrity validation (evidence edge required) | E06 | M4 | `packages/domain/src/value-objects/index.ts` (`validateClaimIntegrity`) | ⏳ Pending M4 |
-| `PRV-001` | Project workspace (milestones, ADRs, experiments) | E07 | M5 | `packages/database/migrations/006_engineering_records.sql` | ⏳ Pending M5 |
-| `APR-001` | Approval queue showing source material beside proposed diff | E02 | M1, M2 | `packages/database/migrations/005_claims_integrations_proposals.sql` | ✅ **VERIFIED** |
-| `APR-002` | Proposal envelope: model version, confidence, risk | E02 | M1, M2 | `packages/domain/src/entities/index.ts` (`AiProposalEntity`) | ✅ **VERIFIED** |
-| `APR-003` | Proposal actions (approve, edit, reject, defer) | E02 | M1, M2 | `packages/domain/src/rules/index.ts` (`AI_ALLOWED_PROPOSAL_TRANSITIONS`) | ✅ **VERIFIED** |
-| `APR-004` | Transactional approval (`db.batch()`) | E02 | M1 | `docs/adrs/ADR-004-d1-transaction-batch-strategy.md` | ✅ **VERIFIED** |
-| `APR-005` | Published surface changes require preview & confirmation | E04 | M2 | `packages/domain/src/rules/index.ts` | ✅ **VERIFIED** |
-| `APR-006` | Append-only security audit log | E02 | M1 | `packages/database/migrations/001_initial.sql` (`audit_events`) | ✅ **VERIFIED** |
+| PRD Req ID | Description                                                 | Backlog Epic | Target Milestone | Backing Implementation / Design                                                                                      |
+| ---------- | ----------------------------------------------------------- | ------------ | ---------------- | -------------------------------------------------------------------------------------------------------------------- |
+| `ADM-001`  | Dashboard overview: pending approvals, inbox, health        | E01, E02     | M1               | `apps/worker/src/index.ts`, `apps/web`                                                                               |
+| `ADM-002`  | Quick capture (note, evidence URL, upload metadata)         | E04, E05     | M2, M3           | `packages/contracts/src/index.ts`                                                                                    |
+| `ADM-003`  | Autosave, optimistic concurrency (`version_no`), recovery   | E04          | M2               | `packages/domain/src/entities/index.ts` (`versionNo`)                                                                |
+| `ADM-004`  | Command/search palette for rapid dashboard navigation       | E01, E09     | M1, M6           | `packages/contracts/src/index.ts`                                                                                    |
+| `EDT-001`  | Structured JSON block editor with Markdown export           | E04          | M2               | `docs/adrs/ADR-005-content-block-format.md`                                                                          |
+| `EDT-002`  | Relationship selectors (skills, capabilities, evidence)     | E04          | M2               | `packages/database/migrations/004_content_projects_activities.sql`                                                   |
+| `EDT-003`  | Exact public mode preview before publishing                 | E04          | M2               | `packages/domain/src/value-objects/index.ts` (`isPubliclyDiscoverable`)                                              |
+| `EDT-004`  | Publish validation (title, slug, metadata, sanitization)    | E04          | M2               | `packages/domain/src/rules/index.ts` (`canTransitionToPublished`)                                                    |
+| `EDT-005`  | Immutable revisions & rollback-as-new-revision              | E04          | M2               | `packages/database/migrations/004_content_projects_activities.sql` (`content_revisions`)                             |
+| `EVD-001`  | Evidence Ledger: manual creation, URL capture, file         | E05          | M3               | `packages/database/migrations/003_evidence_ledger.sql`, `008_evidence_ledger_m3.sql`                                 | ✅ **COMPLETED** (`database.test.ts`, `worker.test.ts`)   |
+| `EVD-002`  | Complete provenance metadata storage                        | E05          | M3               | `packages/domain/src/entities/index.ts`, `@usmanalii/evidence`                                                       | ✅ **COMPLETED** (`evidence.test.ts`)                     |
+| `EVD-003`  | Duplicate detection by source ID, URL, checksum             | E05          | M3               | `packages/database/migrations/009_evidence_constraints_m3.sql` (`idx_evidence_items_owner_provider_external`)        | ✅ **COMPLETED** (`database.test.ts`)                     |
+| `EVD-004`  | Evidence lifecycle (accept, edit, reject, archive)          | E05          | M3               | `packages/domain/src/entities/index.ts`, `D1EvidenceRepository`                                                      | ✅ **COMPLETED** (`database.test.ts`)                     |
+| `EVD-005`  | Verification states (unreviewed, owner_verified, etc.)      | E05          | M3               | `packages/domain/src/entities/index.ts`, `evidence_verification_events`                                              | ✅ **COMPLETED** (`database.test.ts`, `evidence.test.ts`) |
+| `EVD-006`  | Typed evidence support edges with single target             | E05          | M3               | `packages/database/migrations/003_evidence_ledger.sql` (`evidence_link_single_target`), `008_evidence_ledger_m3.sql` | ✅ **COMPLETED** (`database.test.ts`, `evidence.test.ts`) |
+| `CAP-001`  | Skill taxonomy management (aliases, hierarchy)              | E06          | M4               | `011_skills_capabilities_m4.sql`, `D1SkillRepository`, `graph-invariants.test.ts`, `database.test.ts`                | ✅ **COMPLETED**                                          |
+| `CAP-002`  | Bounded capability with qualifying evidence rules           | E06          | M4               | `D1CapabilityRepository`, `validateCapabilityWording`, `database.test.ts`, `worker.test.ts`                          | ✅ **COMPLETED**                                          |
+| `CAP-003`  | Descriptive maturity transitions with rationale             | E06          | M4               | `CapabilityMaturity`, `D1ProgressionRepository`, `012_m4_final_gate_closure.sql`, `graph-invariants.test.ts`         | ✅ **COMPLETED**                                          |
+| `CLM-001`  | Claim library with wording, context, audience, expiry       | E06          | M4               | `005_claims_integrations_proposals.sql`, `claims` repository boundary, `invariants.test.ts`                          | ✅ **COMPLETED**                                          |
+| `CLM-002`  | Claim integrity validation (evidence edge required)         | E06          | M4               | `validateClaimIntegrity`, evidence-link constraints, `invariants.test.ts`, `evidence.test.ts`                        | ✅ **COMPLETED**                                          |
+| `PRV-001`  | Project workspace (milestones, ADRs, experiments)           | E07          | M5               | `packages/database/migrations/006_engineering_records.sql`                                                           | ⏳ Pending M5                                             |
+| `APR-001`  | Approval queue showing source material beside proposed diff | E02          | M1, M2           | `packages/database/migrations/005_claims_integrations_proposals.sql`                                                 | ✅ **VERIFIED**                                           |
+| `APR-002`  | Proposal envelope: model version, confidence, risk          | E02          | M1, M2           | `packages/domain/src/entities/index.ts` (`AiProposalEntity`)                                                         | ✅ **VERIFIED**                                           |
+| `APR-003`  | Proposal actions (approve, edit, reject, defer)             | E02          | M1, M2           | `packages/domain/src/rules/index.ts` (`AI_ALLOWED_PROPOSAL_TRANSITIONS`)                                             | ✅ **VERIFIED**                                           |
+| `APR-004`  | Transactional approval (`db.batch()`)                       | E02          | M1               | `docs/adrs/ADR-004-d1-transaction-batch-strategy.md`                                                                 | ✅ **VERIFIED**                                           |
+| `APR-005`  | Published surface changes require preview & confirmation    | E04          | M2               | `packages/domain/src/rules/index.ts`                                                                                 | ✅ **VERIFIED**                                           |
+| `APR-006`  | Append-only security audit log                              | E02          | M1               | `packages/database/migrations/001_initial.sql` (`audit_events`)                                                      | ✅ **VERIFIED**                                           |
 
 ---
 
 ## 3. Security Threat Model 5B Acceptance Gates
 
-| Security Gate (5B §19) | Implementation Target | Code / Config Location | Status |
-|---|---|---|---|
-| **CRITICAL-01: Cryptographic JWT Verification** | Full RS256 signature verification via WebCrypto, JWKS fetching, key rotation cache, issuer/audience/expiry/OWNER_EMAIL validation | `packages/authorization/src/index.ts` | ✅ **VERIFIED** (`authorization.test.ts`, `worker.test.ts`) |
-| **CRITICAL-02: D1 IDOR Prevention** | `AuthorizationContext` required on all repository methods, parameterized queries | `packages/authorization/src/index.ts`, `D1EvidenceRepository`, `D1ArtifactRepository` | ✅ **VERIFIED** (`database.test.ts`, `worker.test.ts`) |
-| **CRITICAL-03: R2 Private Object Isolation** | Private-only buckets, randomized keys, Worker-mediated streaming, safe delivery headers | `apps/worker/src/routes/artifacts.ts`, `008_evidence_ledger_m3.sql` | ✅ **VERIFIED** (`worker.test.ts`) |
-| **CRITICAL-04: Publication Privacy** | Central effective-visibility resolver, public DTO allowlists | `packages/domain/src/value-objects/index.ts`, `@usmanalii/evidence` | ✅ **VERIFIED** (`evidence.test.ts`, `worker.test.ts`) |
-| **CRITICAL-05: Content Execution Isolation** | JSON block canonical format with schema versions, strict non-executable CSP | `docs/adrs/ADR-005-content-block-format.md`, `apps/worker/src/routes/artifacts.ts` | ✅ **VERIFIED** (`worker.test.ts`) |
-| **Secret Protection** | `OWNER_EMAIL` as Cloudflare secret, `verify-no-secrets.mjs`, `gitleaks` | `docs/adrs/ADR-003-cloudflare-access-owner-identity.md`, `verify-no-secrets.mjs` | ✅ **VERIFIED** (0 findings) |
-| **Encrypted Off-Provider Backups** | Client-side AES-256-GCM backup uploaded to Google Drive / OneDrive + local copy | `docs/adrs/ADR-008-backup-encryption.md` | ✅ **DECIDED** |
-| **Migration Determinism** | Reproduce empty DB, single-target CHECK, no proficiency | `infrastructure/scripts/verify-migrations.mjs`, `001..009` migrations | ✅ **VERIFIED** (all 9 migrations pass) |
+| Security Gate (5B §19)                          | Implementation Target                                                                                                             | Code / Config Location                                                                    | Status                                                      |
+| ----------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------- | ----------------------------------------------------------- |
+| **CRITICAL-01: Cryptographic JWT Verification** | Full RS256 signature verification via WebCrypto, JWKS fetching, key rotation cache, issuer/audience/expiry/OWNER_EMAIL validation | `packages/authorization/src/index.ts`                                                     | ✅ **VERIFIED** (`authorization.test.ts`, `worker.test.ts`) |
+| **CRITICAL-02: D1 IDOR Prevention**             | `AuthorizationContext` required on all repository methods, parameterized queries                                                  | `packages/authorization/src/index.ts`, `D1EvidenceRepository`, `D1ArtifactRepository`     | ✅ **VERIFIED** (`database.test.ts`, `worker.test.ts`)      |
+| **CRITICAL-03: R2 Private Object Isolation**    | Private-only buckets, randomized keys, Worker-mediated streaming, safe delivery headers                                           | `apps/worker/src/routes/artifacts.ts`, `008_evidence_ledger_m3.sql`                       | ✅ **VERIFIED** (`worker.test.ts`)                          |
+| **CRITICAL-04: Publication Privacy**            | Central effective-visibility resolver, public DTO allowlists                                                                      | `packages/domain/src/value-objects/index.ts`, `@usmanalii/evidence`                       | ✅ **VERIFIED** (`evidence.test.ts`, `worker.test.ts`)      |
+| **CRITICAL-05: Content Execution Isolation**    | JSON block canonical format with schema versions, strict non-executable CSP                                                       | `docs/adrs/ADR-005-content-block-format.md`, `apps/worker/src/routes/artifacts.ts`        | ✅ **VERIFIED** (`worker.test.ts`)                          |
+| **Secret Protection**                           | `OWNER_EMAIL` as Cloudflare secret, `verify-no-secrets.mjs`, `gitleaks`                                                           | `docs/adrs/ADR-003-cloudflare-access-owner-identity.md`, `verify-no-secrets.mjs`          | ✅ **VERIFIED** (0 findings)                                |
+| **Encrypted Off-Provider Backups**              | Client-side AES-256-GCM backup uploaded to Google Drive / OneDrive + local copy                                                   | `docs/adrs/ADR-008-backup-encryption.md`                                                  | ✅ **DECIDED**                                              |
+| **Migration Determinism**                       | Reproduce empty DB, detect checksum drift, and verify M3 upgrade path                                                             | `verify-migrations.mjs`, `verify-migration-checksums.mjs`, migrations `001..012`, ADR-011 | ✅ **VERIFIED** (all 12 migrations)                         |
