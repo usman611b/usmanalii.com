@@ -1090,4 +1090,46 @@ describe('Requirement 1 & 2: Database Integrity & Public Scheduling/Embargo Logi
     });
     expect(rel.relationshipType).toBe('uses_skill');
   });
+
+  it('15. M5 IDOR: every engineering child read is scoped by owner and project', async () => {
+    const { D1EngineeringRecordRepository } = await import('./repositories/engineering.js');
+    const { D1ProjectRelationshipRepository } =
+      await import('./repositories/project-relationships.js');
+    const calls: Array<{ sql: string; params: unknown[] }> = [];
+    const db = {
+      prepare(sql: string) {
+        return {
+          bind(...params: unknown[]) {
+            calls.push({ sql, params });
+            return {
+              async all() {
+                return { results: [] };
+              },
+              async first() {
+                return null;
+              },
+              async run() {
+                return { meta: { changes: 0 } };
+              },
+            };
+          },
+        };
+      },
+    };
+    const engineering = new D1EngineeringRecordRepository(db as any);
+    const relationships = new D1ProjectRelationshipRepository(db as any);
+    await engineering.listContributions('owner-a', 'project-a');
+    await engineering.listExperiments('owner-a', 'project-a');
+    await engineering.listAdrs('owner-a', 'project-a');
+    await engineering.listDebuggingLessons('owner-a', 'project-a');
+    await engineering.listDeployments('owner-a', 'project-a');
+    await engineering.listVersions('owner-a', 'project-a');
+    await relationships.listRelationships('owner-a', 'project-a');
+    expect(calls).toHaveLength(7);
+    for (const call of calls) {
+      expect(call.sql).toMatch(/owner_id\s*=\s*\?/i);
+      expect(call.params[0]).toBe('owner-a');
+      expect(call.params[1]).toBe('project-a');
+    }
+  });
 });

@@ -621,7 +621,6 @@ export interface ProjectEntity {
   readonly caseStudyFormat?: string | null;
   readonly caseStudySchemaVersion?: number | null;
   readonly editorialWarnings?: readonly string[];
-  readonly sensitiveOriginalText?: string | null;
   readonly provenance: string | null;
   readonly createdAt: ISODateTime;
   readonly updatedAt: ISODateTime;

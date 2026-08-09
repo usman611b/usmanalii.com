@@ -780,8 +780,12 @@ privateRoutes.post('/projects', async (c) => {
     scheduledFor: (body.scheduledFor as string) || null,
     embargoUntil: (body.embargoUntil as string) || null,
     provenance: (body.provenance as string) || '{}',
-    ...(body.lifecycleState ? { lifecycleState: body.lifecycleState as ProjectLifecycleState } : {}),
-    ...(body.publicationState ? { publicationState: body.publicationState as PublicationState } : {}),
+    ...(body.lifecycleState
+      ? { lifecycleState: body.lifecycleState as ProjectLifecycleState }
+      : {}),
+    ...(body.publicationState
+      ? { publicationState: body.publicationState as PublicationState }
+      : {}),
     ...(body.visibility ? { visibility: body.visibility as Visibility } : {}),
   });
 
@@ -851,28 +855,50 @@ privateRoutes.put('/projects/:id', async (c) => {
       ...(title ? { title } : {}),
       ...(body.slug ? { slug: body.slug as string } : {}),
       ...(body.shortSummary !== undefined ? { shortSummary: body.shortSummary as string } : {}),
-      ...(body.detailedContext !== undefined ? { detailedContext: body.detailedContext as string } : {}),
-      ...(body.problemStatement !== undefined ? { problemStatement: body.problemStatement as string } : {}),
+      ...(body.detailedContext !== undefined
+        ? { detailedContext: body.detailedContext as string }
+        : {}),
+      ...(body.problemStatement !== undefined
+        ? { problemStatement: body.problemStatement as string }
+        : {}),
       ...(body.goals ? { goals: body.goals as string[] } : {}),
       ...(body.nonGoals ? { nonGoals: body.nonGoals as string[] } : {}),
       ...(body.constraints ? { constraints: body.constraints as string[] } : {}),
       ...(body.role !== undefined ? { role: body.role as string } : {}),
-      ...(body.contributionStatement !== undefined ? { contributionStatement: body.contributionStatement as string } : {}),
-      ...(body.collaborationContext !== undefined ? { collaborationContext: body.collaborationContext as string } : {}),
+      ...(body.contributionStatement !== undefined
+        ? { contributionStatement: body.contributionStatement as string }
+        : {}),
+      ...(body.collaborationContext !== undefined
+        ? { collaborationContext: body.collaborationContext as string }
+        : {}),
       ...(body.startDate !== undefined ? { startDate: body.startDate as string } : {}),
       ...(body.endDate !== undefined ? { endDate: body.endDate as string } : {}),
       ...(body.ongoingStatus !== undefined ? { ongoingStatus: Boolean(body.ongoingStatus) } : {}),
-      ...(body.lifecycleState ? { lifecycleState: body.lifecycleState as ProjectLifecycleState } : {}),
-      ...(body.publicationState ? { publicationState: body.publicationState as PublicationState } : {}),
+      ...(body.lifecycleState
+        ? { lifecycleState: body.lifecycleState as ProjectLifecycleState }
+        : {}),
+      ...(body.publicationState
+        ? { publicationState: body.publicationState as PublicationState }
+        : {}),
       ...(body.visibility ? { visibility: body.visibility as Visibility } : {}),
       ...(body.scheduledFor !== undefined ? { scheduledFor: body.scheduledFor as string } : {}),
       ...(body.embargoUntil !== undefined ? { embargoUntil: body.embargoUntil as string } : {}),
       ...(body.isFeatured !== undefined ? { isFeatured: Boolean(body.isFeatured) } : {}),
-      ...(body.recruiterSummary !== undefined ? { recruiterSummary: body.recruiterSummary as string } : {}),
-      ...(body.deepDiveContent !== undefined ? { deepDiveContent: body.deepDiveContent as string } : {}),
-      ...(body.repositoryReferences ? { repositoryReferences: body.repositoryReferences as string[] } : {}),
-      ...(body.liveDemoReferences ? { liveDemoReferences: body.liveDemoReferences as string[] } : {}),
-      ...(body.heroArtifactId !== undefined ? { heroArtifactId: body.heroArtifactId as string } : {}),
+      ...(body.recruiterSummary !== undefined
+        ? { recruiterSummary: body.recruiterSummary as string }
+        : {}),
+      ...(body.deepDiveContent !== undefined
+        ? { deepDiveContent: body.deepDiveContent as string }
+        : {}),
+      ...(body.repositoryReferences
+        ? { repositoryReferences: body.repositoryReferences as string[] }
+        : {}),
+      ...(body.liveDemoReferences
+        ? { liveDemoReferences: body.liveDemoReferences as string[] }
+        : {}),
+      ...(body.heroArtifactId !== undefined
+        ? { heroArtifactId: body.heroArtifactId as string }
+        : {}),
       ...(body.caseStudyBody !== undefined ? { caseStudyBody: body.caseStudyBody as string } : {}),
       ...(body.expectedVersionNo ? { expectedVersionNo: body.expectedVersionNo as number } : {}),
     });
@@ -977,7 +1003,9 @@ privateRoutes.post('/projects/:id/contributions', async (c) => {
     collaborationContext: (body.collaborationContext as string) || null,
     supportingEvidenceIds: (body.supportingEvidenceIds as string[]) || [],
     ownerApproval: Boolean(body.ownerApproval),
-    ...(body.verificationState ? { verificationState: body.verificationState as EvidenceVerificationState } : {}),
+    ...(body.verificationState
+      ? { verificationState: body.verificationState as EvidenceVerificationState }
+      : {}),
     ...(body.visibility ? { visibility: body.visibility as Visibility } : {}),
   });
 
@@ -1197,7 +1225,9 @@ privateRoutes.post('/projects/:id/deployments', async (c) => {
     artifactIds: (body.artifactIds as string[]) || [],
     ...(body.status ? { status: body.status as DeploymentStatus } : {}),
     ...(body.visibility ? { visibility: body.visibility as Visibility } : {}),
-    ...(body.publicationState ? { publicationState: body.publicationState as PublicationState } : {}),
+    ...(body.publicationState
+      ? { publicationState: body.publicationState as PublicationState }
+      : {}),
   });
 
   return c.json({ deployment, requestId: c.get('requestId') }, 201);

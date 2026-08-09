@@ -31,6 +31,7 @@ const CANONICAL_ORDER = [
   '012_m4_final_gate_closure.sql',
   '013_projects_engineering_m5.sql',
   '014_m5_content_model_gate1.sql',
+  '015_m5_integrity_closure.sql',
 ];
 
 console.log('🔍 Checking migration file order and completeness...\n');
@@ -58,6 +59,7 @@ for (const diskFile of diskFiles) {
     console.warn(
       '    Add it to CANONICAL_ORDER in this script and packages/database/src/migrations/runner.ts',
     );
+    allPassed = false;
   }
 }
 

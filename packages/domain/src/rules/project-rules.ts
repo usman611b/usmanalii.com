@@ -38,6 +38,40 @@ export type UrlClassification =
   | 'preview_staging'
   | 'administrative';
 
+const SUPPORTED_PROJECT_BLOCK_TYPES = new Set([
+  'heading',
+  'paragraph',
+  'code_block',
+  'callout',
+  'image',
+  'embed_artifact',
+  'quote',
+  'list',
+  'relationship_tag',
+]);
+
+/** Strict ADR-005 boundary for authoritative project revision JSON. */
+export function parseCanonicalProjectBlocks(body: string, schemaVersion = 1): ContentBlockV1[] {
+  if (schemaVersion !== 1) throw new Error(`UNSUPPORTED_BODY_SCHEMA_VERSION: ${schemaVersion}`);
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(body);
+  } catch {
+    throw new Error('MALFORMED_CANONICAL_BODY');
+  }
+  if (!Array.isArray(parsed) || parsed.length > 500) throw new Error('INVALID_CANONICAL_BODY');
+  for (const block of parsed) {
+    if (!block || typeof block !== 'object' || !('type' in block)) {
+      throw new Error('INVALID_CANONICAL_BLOCK');
+    }
+    const type = (block as { type: unknown }).type;
+    if (typeof type !== 'string' || !SUPPORTED_PROJECT_BLOCK_TYPES.has(type)) {
+      throw new Error(`UNSUPPORTED_BLOCK_TYPE: ${String(type)}`);
+    }
+  }
+  return parsed as ContentBlockV1[];
+}
+
 // ---------------------------------------------------------------------------
 // Gate 1: Markdown to JSON Block Converter (ADR-005 Compliance)
 // ---------------------------------------------------------------------------
@@ -273,7 +307,12 @@ function parseIpHostToStandardQuad(hostname: string): string | null {
       });
       if (parts.length === 2 && nums[0] !== undefined && nums[1] !== undefined)
         return `${nums[0]}.${(nums[1] >> 16) & 255}.${(nums[1] >> 8) & 255}.${nums[1] & 255}`;
-      if (parts.length === 3 && nums[0] !== undefined && nums[1] !== undefined && nums[2] !== undefined)
+      if (
+        parts.length === 3 &&
+        nums[0] !== undefined &&
+        nums[1] !== undefined &&
+        nums[2] !== undefined
+      )
         return `${nums[0]}.${nums[1]}.${(nums[2] >> 8) & 255}.${nums[2] & 255}`;
       if (parts.length === 4) return nums.join('.');
     } catch {
@@ -287,7 +326,7 @@ function parseIpHostToStandardQuad(hostname: string): string | null {
 export function classifyAndValidateUrl(
   urlStr: string,
   intendedClassification: UrlClassification,
-): { valid: boolean; classification: UrlClassification; reason?: string } {
+): { valid: boolean; classification: UrlClassification; reason?: string; normalizedUrl?: string } {
   if (!urlStr || typeof urlStr !== 'string') {
     return {
       valid: false,
@@ -345,13 +384,14 @@ export function classifyAndValidateUrl(
     };
   }
 
-  // Private/staging/admin classifications are restricted from public display
+  // The application never fetches these URLs. This is public-link validation,
+  // not a claim of network-level SSRF prevention.
   if (
     intendedClassification === 'private_internal' ||
     intendedClassification === 'preview_staging' ||
     intendedClassification === 'administrative'
   ) {
-    return { valid: true, classification: intendedClassification };
+    return { valid: true, classification: intendedClassification, normalizedUrl: parsed.href };
   }
 
   // Public URL protocol check
@@ -377,6 +417,7 @@ export function classifyAndValidateUrl(
   // Reject loopback, localhost, and private networks (IPv4 & IPv6)
   if (
     hostname === 'localhost' ||
+    hostname.endsWith('.localhost') ||
     hostname === '127.0.0.1' ||
     hostname === '0.0.0.0' ||
     hostname === '::1' ||
@@ -389,9 +430,8 @@ export function classifyAndValidateUrl(
     /^172\.(1[6-9]|2[0-9]|3[01])\./.test(hostname) ||
     /^192\.168\./.test(hostname) ||
     /^169\.254\./.test(hostname) ||
-    hostname.startsWith('fc00:') ||
-    hostname.startsWith('fd00:') ||
-    hostname.startsWith('fe80:') ||
+    /^f[cd][0-9a-f]{2}:/.test(hostname) ||
+    /^fe[89ab][0-9a-f]:/.test(hostname) ||
     hostname.startsWith('::ffff:') ||
     hostname.includes('::ffff:')
   ) {
@@ -403,7 +443,15 @@ export function classifyAndValidateUrl(
     };
   }
 
-  return { valid: true, classification: intendedClassification };
+  if (parsed.port && parsed.port !== '443') {
+    return {
+      valid: false,
+      classification: intendedClassification,
+      reason: 'Public external project references must use the standard HTTPS port.',
+    };
+  }
+
+  return { valid: true, classification: intendedClassification, normalizedUrl: parsed.href };
 }
 
 // ---------------------------------------------------------------------------
@@ -698,9 +746,17 @@ export function getPublicProjectProjection(params: {
   deployments: readonly DeploymentEntity[];
   versions: readonly ProjectVersionEntity[];
   relationships: readonly ProjectRelationshipEntity[];
+  evidence?: readonly Record<string, unknown>[];
+  artifacts?: readonly Record<string, unknown>[];
+  skills?: readonly Record<string, unknown>[];
+  capabilities?: readonly Record<string, unknown>[];
+  journalLinks?: readonly Record<string, unknown>[];
+  relatedProjects?: readonly Record<string, unknown>[];
+  externalUrls?: readonly Record<string, unknown>[];
+  mode?: 'general' | 'recruiter' | 'deep_dive';
   nowIso?: string;
 }): {
-  project: ProjectEntity;
+  project: Record<string, unknown>;
   contributions: readonly ProjectContributionEntity[];
   experiments: readonly ExperimentEntity[];
   adrs: readonly ProjectAdrEntity[];
@@ -708,6 +764,13 @@ export function getPublicProjectProjection(params: {
   deployments: readonly DeploymentEntity[];
   versions: readonly ProjectVersionEntity[];
   relationships: readonly ProjectRelationshipEntity[];
+  evidence: readonly Record<string, unknown>[];
+  artifacts: readonly Record<string, unknown>[];
+  skills: readonly Record<string, unknown>[];
+  capabilities: readonly Record<string, unknown>[];
+  journalLinks: readonly Record<string, unknown>[];
+  relatedProjects: readonly Record<string, unknown>[];
+  externalUrls: readonly Record<string, unknown>[];
 } | null {
   const now = params.nowIso || new Date().toISOString();
   const proj = params.project;
@@ -760,8 +823,35 @@ export function getPublicProjectProjection(params: {
     (r) => r.approvalState === 'accepted' && r.archivedAt === null,
   );
 
+  const publicProject: Record<string, unknown> = { ...proj };
+  for (const privateField of ['ownerId', 'provenance', 'editorialWarnings']) {
+    delete publicProject[privateField];
+  }
+  publicProject.repositoryReferences = (proj.repositoryReferences ?? []).filter(
+    (url) => classifyAndValidateUrl(url, 'public_repository').valid,
+  );
+  publicProject.liveDemoReferences = (proj.liveDemoReferences ?? []).filter(
+    (url) => classifyAndValidateUrl(url, 'public_deployment').valid,
+  );
+
+  const eligibleGeneric = (items: readonly Record<string, unknown>[] = []) =>
+    items.filter((item) => {
+      if (item.visibility !== undefined && item.visibility !== 'public') return false;
+      if (item.state !== undefined && item.state !== 'published' && item.state !== 'approved')
+        return false;
+      if (item.publicationState !== undefined && item.publicationState !== 'published')
+        return false;
+      if (item.approvalState !== undefined && item.approvalState !== 'approved') return false;
+      if (item.ownerApproval !== undefined && item.ownerApproval !== true) return false;
+      if (item.deletedAt || item.archivedAt || item.disputedAt || item.revokedAt) return false;
+      if (typeof item.scheduledFor === 'string' && item.scheduledFor > now) return false;
+      if (typeof item.embargoUntil === 'string' && item.embargoUntil > now) return false;
+      if (item.parentProjectEligible === false || item.relationshipApproved === false) return false;
+      return true;
+    });
+
   return {
-    project: proj,
+    project: publicProject,
     contributions: eligibleContributions,
     experiments: eligibleExperiments,
     adrs: eligibleAdrs,
@@ -769,5 +859,15 @@ export function getPublicProjectProjection(params: {
     deployments: eligibleDeployments,
     versions: eligibleVersions,
     relationships: eligibleRelationships,
+    evidence: eligibleGeneric(params.evidence),
+    artifacts: eligibleGeneric(params.artifacts),
+    skills: eligibleGeneric(params.skills),
+    capabilities: eligibleGeneric(params.capabilities),
+    journalLinks: eligibleGeneric(params.journalLinks),
+    relatedProjects: eligibleGeneric(params.relatedProjects),
+    externalUrls: eligibleGeneric(params.externalUrls).filter(
+      (item) =>
+        typeof item.url === 'string' && classifyAndValidateUrl(item.url, 'documentation').valid,
+    ),
   };
 }

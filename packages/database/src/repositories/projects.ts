@@ -11,8 +11,39 @@ import {
   type ProjectLifecycleState,
   type EntityId,
   type ISODateTime,
-  convertMarkdownToJsonBlocks,
 } from '@usmanalii/domain';
+
+function parseCanonicalRevisionBody(body: string): unknown[] {
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(body);
+  } catch {
+    throw new Error('MALFORMED_CANONICAL_BODY');
+  }
+  if (!Array.isArray(parsed) || parsed.length > 500) throw new Error('INVALID_CANONICAL_BODY');
+  const supported = new Set([
+    'heading',
+    'paragraph',
+    'code_block',
+    'callout',
+    'image',
+    'embed_artifact',
+    'quote',
+    'list',
+    'relationship_tag',
+  ]);
+  if (
+    parsed.some(
+      (block) =>
+        !block ||
+        typeof block !== 'object' ||
+        !supported.has(String((block as { type?: unknown }).type)),
+    )
+  ) {
+    throw new Error('UNSUPPORTED_CANONICAL_BLOCK');
+  }
+  return parsed;
+}
 
 export interface CreateProjectInput {
   id: string;
@@ -127,7 +158,6 @@ function mapRowToProject(row: Record<string, unknown>): ProjectEntity {
     caseStudyFormat: (row.case_study_format as string) || 'json_blocks',
     caseStudySchemaVersion: Number(row.case_study_schema_version || 1),
     editorialWarnings: row.editorial_warnings ? JSON.parse(row.editorial_warnings as string) : [],
-    sensitiveOriginalText: (row.sensitive_original_text as string) || null,
     provenance: (row.provenance as string) || null,
     createdAt: row.created_at as ISODateTime,
     updatedAt: row.updated_at as ISODateTime,
@@ -328,14 +358,11 @@ export class D1ProjectRepository {
     const revNo = project.versionNo;
     const revId = `proj-rev-${projectId}-${revNo}-${Date.now()}`;
 
-    // Compile Markdown export from JSON blocks
-    let jsonBlocks: unknown[] = [];
-    try {
-      jsonBlocks = JSON.parse(snapshotBody);
-    } catch {
-      jsonBlocks = convertMarkdownToJsonBlocks(snapshotBody) as unknown[];
-    }
+    // ADR-005: JSON blocks are authoritative. Markdown may be imported, but
+    // is converted before persistence and never becomes authoritative content.
+    const jsonBlocks = parseCanonicalRevisionBody(snapshotBody);
 
+    const canonicalBodyJson = JSON.stringify(jsonBlocks);
     const markdownExport = compileJsonBlocksToMarkdown(
       {
         id: project.id,
@@ -351,9 +378,9 @@ export class D1ProjectRepository {
 
     const sql = `
       INSERT INTO project_revisions (
-        id, project_id, owner_id, revision_no, case_study_snapshot, body_format,
+        id, project_id, owner_id, revision_no, case_study_snapshot, canonical_body_json, body_format,
         body_schema_version, markdown_export, redaction_metadata, revision_note, created_at, created_by
-      ) VALUES (?, ?, ?, ?, ?, 'json_blocks', 1, ?, '[]', ?, ?, ?)
+      ) VALUES (?, ?, ?, ?, ?, ?, 'json_blocks', 1, ?, '[]', ?, ?, ?)
     `;
 
     await this.db
@@ -363,7 +390,8 @@ export class D1ProjectRepository {
         projectId,
         ownerId,
         revNo,
-        snapshotBody,
+        canonicalBodyJson,
+        canonicalBodyJson,
         markdownExport,
         note || null,
         now,
@@ -376,7 +404,7 @@ export class D1ProjectRepository {
       projectId: projectId as EntityId,
       ownerId: ownerId as EntityId,
       revisionNo: revNo,
-      caseStudySnapshot: snapshotBody,
+      caseStudySnapshot: canonicalBodyJson,
       bodyFormat: 'json_blocks',
       bodySchemaVersion: 1,
       markdownExport,
@@ -436,7 +464,7 @@ export class D1ProjectRepository {
       projectId: r.project_id as EntityId,
       ownerId: r.owner_id as EntityId,
       revisionNo: Number(r.revision_no),
-      caseStudySnapshot: r.case_study_snapshot as string,
+      caseStudySnapshot: (r.canonical_body_json || r.case_study_snapshot) as string,
       bodyFormat: (r.body_format as string) || 'json_blocks',
       bodySchemaVersion: Number(r.body_schema_version || 1),
       markdownExport: (r.markdown_export as string) || null,

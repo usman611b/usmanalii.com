@@ -69,12 +69,12 @@ try {
   executeD1(freshStore, ['--command=SELECT COUNT(*) AS version_count FROM schema_versions']);
   console.log(`Fresh D1 verification passed: ${files.length} migrations applied.`);
 
-  const upgradeStore = join(tempRoot, 'upgrade-from-m3');
-  await applyRange(upgradeStore, files.slice(0, 8));
-  await applyRange(upgradeStore, files.slice(8));
+  const upgradeStore = join(tempRoot, 'upgrade-from-m4');
+  await applyRange(upgradeStore, files.slice(0, 12));
+  await applyRange(upgradeStore, files.slice(12));
   executeD1(upgradeStore, ['--command=SELECT COUNT(*) AS version_count FROM schema_versions']);
   console.log(
-    'Upgrade-path verification passed: historical M3 baseline (001-008) upgraded through 012.',
+    `Upgrade-path verification passed: immutable M4 baseline (001-012) upgraded through ${files.at(-1)?.filename}.`,
   );
 } finally {
   await rm(tempRoot, { recursive: true, force: true });

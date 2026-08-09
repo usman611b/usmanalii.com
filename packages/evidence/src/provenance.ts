@@ -26,10 +26,7 @@ export async function computeContentHash(
     payload instanceof Uint8Array
       ? payload
       : new TextEncoder().encode(typeof payload === 'string' ? payload : JSON.stringify(payload));
-  const hashBuffer = await crypto.subtle.digest(
-    'SHA-256',
-    dataBuffer as unknown as BufferSource,
-  );
+  const hashBuffer = await crypto.subtle.digest('SHA-256', dataBuffer as unknown as BufferSource);
   const hashArray = Array.from(new Uint8Array(hashBuffer));
   return hashArray.map((b) => b.toString(16).padStart(2, '0')).join('');
 }

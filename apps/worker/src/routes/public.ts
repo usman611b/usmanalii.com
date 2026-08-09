@@ -334,6 +334,7 @@ publicRoutes.get('/capabilities/:slug', async (c) => {
 /** GET /api/v1/public/projects — List public eligible projects */
 publicRoutes.get('/projects', async (c) => {
   const { D1ProjectRepository } = await import('@usmanalii/database');
+  const { getPublicProjectProjection } = await import('@usmanalii/domain');
   const repo = new D1ProjectRepository(c.env.DB);
   const ownerId = '00000000-0000-0000-0000-000000000001';
 
@@ -341,14 +342,18 @@ publicRoutes.get('/projects', async (c) => {
     visibility: 'public',
     publicationState: 'published',
   });
-  const now = new Date().toISOString();
-
-  // Filter out scheduled, embargoed, archived, or deleted projects
-  const eligible = projects.filter((p) => {
-    if (p.archivedAt || p.deletedAt) return false;
-    if (p.scheduledFor && p.scheduledFor > now) return false;
-    if (p.embargoUntil && p.embargoUntil > now) return false;
-    return true;
+  const eligible = projects.flatMap((project) => {
+    const projection = getPublicProjectProjection({
+      project,
+      contributions: [],
+      experiments: [],
+      adrs: [],
+      debuggingLessons: [],
+      deployments: [],
+      versions: [],
+      relationships: [],
+    });
+    return projection ? [projection.project] : [];
   });
 
   return c.json({ data: eligible, count: eligible.length, requestId: c.get('requestId') });

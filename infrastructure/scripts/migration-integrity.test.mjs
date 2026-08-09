@@ -33,3 +33,12 @@ test('compatibility handling removes only known historical D1 defects', async ()
     /ADD COLUMN deleted_at/,
   );
 });
+
+test('M5 migration adds canonical JSON, immutable revisions, and denies sensitive originals', async () => {
+  const source = await readFile(join(migrationsDir, '015_m5_integrity_closure.sql'), 'utf8');
+  assert.match(source, /canonical_body_json TEXT NOT NULL/);
+  assert.match(source, /project_revisions_immutable_update/);
+  assert.match(source, /project_revisions_immutable_delete/);
+  assert.match(source, /projects_deny_sensitive_original_insert/);
+  assert.match(source, /projects_deny_sensitive_original_update/);
+});

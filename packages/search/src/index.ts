@@ -91,7 +91,8 @@ export function buildProjectSearchDocument(
         }
       }
     } catch {
-      textParts.push(project.caseStudyBody);
+      // Malformed canonical JSON fails closed; never index the raw payload.
+      return null;
     }
   }
 
@@ -154,4 +155,43 @@ export function generateProjectJsonLd(
   };
 
   return [creativeWork, breadcrumbs];
+}
+
+export interface ProjectSeoProjection {
+  canonicalUrl: string;
+  robots: 'index, follow';
+  openGraph: { title: string; description: string; url: string };
+  jsonLd: string;
+}
+
+/** SEO is derived from the same publication predicate as search and sitemap. */
+export function buildProjectSeoProjection(
+  project: SearchableProjectInput,
+  origin = 'https://usmanalii.com',
+): ProjectSeoProjection | null {
+  if (!isProjectEligibleForSearch(project)) return null;
+  const canonicalUrl = `${origin}/projects/${encodeURIComponent(project.slug)}`;
+  const jsonLd = JSON.stringify(generateProjectJsonLd(project, canonicalUrl))
+    .replace(/</g, '\\u003c')
+    .replace(/>/g, '\\u003e')
+    .replace(/&/g, '\\u0026');
+  return {
+    canonicalUrl,
+    robots: 'index, follow',
+    openGraph: {
+      title: project.title,
+      description: project.shortSummary || project.title,
+      url: canonicalUrl,
+    },
+    jsonLd,
+  };
+}
+
+export function generateProjectSitemapUrls(
+  projects: readonly SearchableProjectInput[],
+  origin = 'https://usmanalii.com',
+): readonly string[] {
+  return projects
+    .filter(isProjectEligibleForSearch)
+    .map((project) => `${origin}/projects/${encodeURIComponent(project.slug)}`);
 }

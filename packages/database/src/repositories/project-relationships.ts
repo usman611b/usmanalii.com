@@ -61,7 +61,9 @@ export class D1ProjectRelationshipRepository {
         input.displayOrder ?? 0,
         input.provenance || '{}',
         input.createdByClassification || 'owner_manual',
-        input.approvalState || 'accepted',
+        input.approvalState === 'accepted' || !input.approvalState
+          ? 'approved'
+          : input.approvalState,
         input.ownerNote || null,
         now,
       )
@@ -110,7 +112,9 @@ export class D1ProjectRelationshipRepository {
       displayOrder: Number(r.display_order || 0),
       provenance: (r.provenance as string) || null,
       createdByClassification: r.created_by_classification as CreatedByClassification,
-      approvalState: r.approval_state as ApprovalState,
+      approvalState: (r.approval_state === 'approved'
+        ? 'accepted'
+        : r.approval_state) as ApprovalState,
       ownerNote: (r.owner_note as string) || null,
       createdAt: r.created_at as ISODateTime,
       archivedAt: (r.archived_at as ISODateTime) || null,

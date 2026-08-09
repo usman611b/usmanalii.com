@@ -10,6 +10,7 @@ import {
   validateProjectCycle,
   validateVersionCycle,
   getPublicProjectProjection,
+  parseCanonicalProjectBlocks,
 } from './project-rules.js';
 import type { ProjectEntity, ProjectContributionEntity } from '../entities/index.js';
 
@@ -160,11 +161,15 @@ describe('Milestone M5 — Project Rules & URL Policy Tests', () => {
   it('13. Gate 4: getPublicProjectProjection filters ineligible children and ensures mode consistency', () => {
     const proj = {
       id: 'proj-1',
+      ownerId: 'private-owner',
+      provenance: 'private-provenance',
       publicationState: 'published',
       visibility: 'public',
       scheduledFor: null,
       embargoUntil: null,
       deletedAt: null,
+      repositoryReferences: ['https://github.com/example/project', 'https://localhost/private'],
+      liveDemoReferences: [],
     } as unknown as ProjectEntity;
 
     const contribs = [
@@ -186,5 +191,95 @@ describe('Milestone M5 — Project Rules & URL Policy Tests', () => {
     expect(result).not.toBeNull();
     expect(result!.contributions.length).toBe(1);
     expect(result!.contributions[0].id).toBe('c1');
+    expect(result!.project.ownerId).toBeUndefined();
+    expect(result!.project.provenance).toBeUndefined();
+    expect(result!.project.repositoryReferences).toEqual(['https://github.com/example/project']);
+  });
+
+  it('14. ADR-005 canonical JSON rejects malformed, unsupported versions and unsupported blocks', () => {
+    expect(parseCanonicalProjectBlocks('[{"type":"paragraph","text":"safe"}]')).toHaveLength(1);
+    expect(() => parseCanonicalProjectBlocks('not-json')).toThrow('MALFORMED_CANONICAL_BODY');
+    expect(() => parseCanonicalProjectBlocks('[]', 2)).toThrow('UNSUPPORTED_BODY_SCHEMA_VERSION');
+    expect(() => parseCanonicalProjectBlocks('[{"type":"script"}]')).toThrow(
+      'UNSUPPORTED_BLOCK_TYPE',
+    );
+  });
+
+  it.each([
+    ['link-local IPv4', 'https://169.254.1.2/a'],
+    ['IPv6 loopback', 'https://[::1]/a'],
+    ['IPv6 unique-local', 'https://[fc12::1]/a'],
+    ['IPv6 link-local', 'https://[fe9a::1]/a'],
+    ['IPv4-mapped IPv6', 'https://[::ffff:127.0.0.1]/a'],
+    ['decimal IPv4', 'https://2130706433/a'],
+    ['hex IPv4', 'https://0x7f000001/a'],
+    ['encoded credentials', 'https://user%3Apass@example.com/a'],
+    ['control character', 'https://example.com\n/a'],
+    ['scheme-relative URL', '//example.com/a'],
+    ['nonstandard port', 'https://example.com:8443/a'],
+    ['localhost subdomain', 'https://api.localhost/a'],
+  ])('15. public-link policy rejects %s', (_name, url) => {
+    expect(classifyAndValidateUrl(url, 'public_deployment').valid).toBe(false);
+  });
+
+  it('16. public-link policy normalizes trailing dots, Unicode and punycode without fetching', () => {
+    const dotted = classifyAndValidateUrl('https://example.com./a', 'documentation');
+    expect(dotted.valid).toBe(true);
+    expect(dotted.normalizedUrl).toBeDefined();
+    const unicode = classifyAndValidateUrl('https://bücher.example/a', 'documentation');
+    const punycode = classifyAndValidateUrl('https://xn--bcher-kva.example/a', 'documentation');
+    expect(unicode.valid).toBe(true);
+    expect(unicode.normalizedUrl).toBe(punycode.normalizedUrl);
+  });
+
+  it('17. every public child category uses identical privacy eligibility in all modes', () => {
+    const project = {
+      id: 'p',
+      publicationState: 'published',
+      visibility: 'public',
+      scheduledFor: null,
+      embargoUntil: null,
+      deletedAt: null,
+    } as unknown as ProjectEntity;
+    const categories = [
+      'evidence',
+      'artifacts',
+      'skills',
+      'capabilities',
+      'journalLinks',
+      'relatedProjects',
+    ] as const;
+    for (const mode of ['general', 'recruiter', 'deep_dive'] as const) {
+      const inputs = Object.fromEntries(
+        categories.map((key) => [
+          key,
+          [
+            { id: `${key}-public`, visibility: 'public', state: 'published' },
+            {
+              id: `${key}-private`,
+              visibility: 'private',
+              state: 'published',
+              privateIdentifier: 'secret',
+            },
+          ],
+        ]),
+      );
+      const result = getPublicProjectProjection({
+        project,
+        contributions: [],
+        experiments: [],
+        adrs: [],
+        debuggingLessons: [],
+        deployments: [],
+        versions: [],
+        relationships: [],
+        mode,
+        ...inputs,
+      });
+      for (const key of categories) {
+        expect(result?.[key]).toHaveLength(1);
+        expect(JSON.stringify(result?.[key])).not.toContain('secret');
+      }
+    }
   });
 });

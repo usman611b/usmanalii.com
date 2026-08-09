@@ -53,6 +53,7 @@ export const MIGRATION_FILES = [
   '012_m4_final_gate_closure.sql',
   '013_projects_engineering_m5.sql',
   '014_m5_content_model_gate1.sql',
+  '015_m5_integrity_closure.sql',
 ] as const;
 
 export type MigrationFile = (typeof MIGRATION_FILES)[number];
