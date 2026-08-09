@@ -28,6 +28,7 @@ const CANONICAL_ORDER = [
   '009_evidence_constraints_m3.sql',
   '010_reconciliation_queue_m3.sql',
   '011_skills_capabilities_m4.sql',
+  '012_m4_final_gate_closure.sql',
 ];
 
 console.log('🔍 Checking migration file order and completeness...\n');
@@ -52,7 +53,9 @@ const diskFiles = readdirSync(MIGRATIONS_DIR)
 for (const diskFile of diskFiles) {
   if (!CANONICAL_ORDER.includes(diskFile)) {
     console.warn(`  ⚠ Migration on disk not in canonical list: ${diskFile}`);
-    console.warn('    Add it to CANONICAL_ORDER in this script and packages/database/src/migrations/runner.ts');
+    console.warn(
+      '    Add it to CANONICAL_ORDER in this script and packages/database/src/migrations/runner.ts',
+    );
   }
 }
 

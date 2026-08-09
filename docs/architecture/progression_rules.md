@@ -18,8 +18,8 @@ This document specifies the rules governing progression events across skills and
    - Disputed, revoked, deleted, private, archived, or embargoed evidence cannot justify a public progression transition.
 
 4. **Legal Progression Transitions**:
-   - Supported stages: `observed`, `practiced`, `applied`, `delivered`.
-   - Stage skips (e.g., `observed` directly to `delivered`) require explicit owner-approved justification of at least 15 characters backed by evidence.
+   - Supported stages: `exploring`, `practicing`, `applying`, `demonstrated`, `sustained`, `leadership`.
+   - Stage skips (e.g., `exploring` directly to `demonstrated`) require explicit owner-approved justification of at least 15 characters backed by evidence.
    - Regressions, staleness, and corrections are recorded as new append-only events referencing superseding events (`supersedesEventId`).
 
 5. **No Synthetic Progression**:

@@ -54,11 +54,11 @@ export const profiles = {
   ownerProfile: {
     id: fid(100),
     ownerId: FIXTURE_OWNER_ID,
-    displayName: 'Fixture User',         // NOT Usman Ali
-    headline: 'Software Engineer',        // generic
-    bio: 'Works on software projects.',   // generic
-    currentFocus: 'Building things.',     // generic
-    contactEmail: null,                   // private — not in public DTOs
+    displayName: 'Fixture User', // NOT Usman Ali
+    headline: 'Software Engineer', // generic
+    bio: 'Works on software projects.', // generic
+    currentFocus: 'Building things.', // generic
+    contactEmail: null, // private — not in public DTOs
     contactUrl: null,
     timezone: 'UTC',
     visibility: 'public' as const,
@@ -77,7 +77,7 @@ export const profiles = {
     contactEmail: null,
     contactUrl: null,
     timezone: 'UTC',
-    visibility: DEFAULT_VISIBILITY,      // 'private' — default invariant test
+    visibility: DEFAULT_VISIBILITY, // 'private' — default invariant test
     createdAt: fts(2024, 1, 1),
     updatedAt: fts(2024, 1, 1),
   } satisfies ProfileEntity,
@@ -113,7 +113,7 @@ export const skills = {
     description: 'A private skill not yet disclosed.',
     parentId: null,
     aliases: [],
-    visibility: DEFAULT_VISIBILITY,      // 'private'
+    visibility: DEFAULT_VISIBILITY, // 'private'
     createdAt: fts(2024, 2, 1),
     updatedAt: fts(2024, 2, 1),
     archivedAt: null,
@@ -123,7 +123,7 @@ export const skills = {
   /** A different owner's skill — for IDOR tests. */
   differentOwnerSkill: {
     id: fid(202),
-    ownerId: DIFFERENT_OWNER_ID,         // different owner
+    ownerId: DIFFERENT_OWNER_ID, // different owner
     name: 'Other Owner Skill',
     slug: 'other-owner-skill',
     description: null,
@@ -172,27 +172,27 @@ export const capabilities = {
     maturityRationale: 'No qualifying evidence has been added yet.',
   } satisfies CapabilityEntity,
 
-  observed: {
+  exploring: {
     ...capabilityBase,
     id: fid(301),
-    title: 'Generic Task (observed)',
-    maturity: 'observed' as const,
+    title: 'Generic Task (exploring)',
+    maturity: 'exploring' as const,
     maturityRationale: 'Observed performing in a controlled context.',
   } satisfies CapabilityEntity,
 
-  applied: {
+  applying: {
     ...capabilityBase,
     id: fid(302),
-    title: 'Generic Task (applied)',
-    maturity: 'applied' as const,
+    title: 'Generic Task (applying)',
+    maturity: 'applying' as const,
     maturityRationale: 'Applied in a real project context with evidence.',
   } satisfies CapabilityEntity,
 
-  delivered: {
+  demonstrated: {
     ...capabilityBase,
     id: fid(303),
-    title: 'Generic Task (delivered)',
-    maturity: 'delivered' as const,
+    title: 'Generic Task (demonstrated)',
+    maturity: 'demonstrated' as const,
     maturityRationale: 'Delivered with measurable outcome and evidence.',
   } satisfies CapabilityEntity,
 
@@ -201,7 +201,7 @@ export const capabilities = {
     ...capabilityBase,
     id: fid(304),
     title: 'Private Generic Task',
-    maturity: 'practiced' as const,
+    maturity: 'practicing' as const,
     maturityRationale: 'Draft capability not yet published.',
     visibility: DEFAULT_VISIBILITY,
     state: 'draft' as const,
@@ -317,7 +317,7 @@ export const activities = {
     capturedAt: fts(2024, 2, 1),
     sourceIdentity: 'fixture-activity-002',
     dedupKey: 'fixture-dedup-002',
-    visibility: DEFAULT_VISIBILITY,     // private — must not leak in public aggregates
+    visibility: DEFAULT_VISIBILITY, // private — must not leak in public aggregates
     isExcluded: false,
     visualizationPoints: 1,
     entityRef: null,
@@ -332,7 +332,7 @@ export const activities = {
     sourceIdentity: null,
     dedupKey: null,
     visibility: 'public' as const,
-    isExcluded: true,                   // excluded — must not appear in public heatmap
+    isExcluded: true, // excluded — must not appear in public heatmap
     visualizationPoints: 0,
     entityRef: null,
   } satisfies ActivityEntity,

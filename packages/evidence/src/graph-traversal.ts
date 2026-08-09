@@ -21,6 +21,15 @@ export interface TraversalParams {
   cursor?: string | null;
 }
 
+interface TraversalCursorPayload {
+  readonly version: 1;
+  readonly offset: number;
+  readonly startNodeId: string;
+  readonly maxDepth: number;
+  readonly maxNodes: number;
+  readonly maxEdges: number;
+}
+
 export interface TraversalResult {
   nodes: readonly TraversalNode[];
   edges: readonly TraversalEdge[];
@@ -29,23 +38,48 @@ export interface TraversalResult {
 }
 
 /**
- * Encodes traversal cursor safely to prevent parameter tampering or forged cursors.
+ * Encodes an opaque (not integrity-protected) traversal cursor. Every field is
+ * validated and bound to the traversal context when decoded.
  */
-export function encodeCursor(offset: number): string {
-  return Buffer.from(JSON.stringify({ offset, ts: Date.now() })).toString('base64url');
+export function encodeCursor(
+  offset: number,
+  context: Omit<TraversalCursorPayload, 'version' | 'offset'>,
+): string {
+  if (!Number.isSafeInteger(offset) || offset < 0 || offset > 10_000)
+    throw new Error('INVALID_CURSOR');
+  return Buffer.from(
+    JSON.stringify({ version: 1, offset, ...context } satisfies TraversalCursorPayload),
+  ).toString('base64url');
 }
 
 /**
  * Decodes traversal cursor with strict parameter validation.
  */
-export function decodeCursor(cursor: string): number {
+export function decodeCursor(
+  cursor: string,
+  context: Omit<TraversalCursorPayload, 'version' | 'offset'>,
+): number {
   try {
+    if (!/^[A-Za-z0-9_-]{1,2048}$/.test(cursor)) throw new Error('INVALID_CURSOR');
     const raw = Buffer.from(cursor, 'base64url').toString('utf-8');
-    const parsed = JSON.parse(raw);
-    if (typeof parsed.offset !== 'number' || parsed.offset < 0) {
+    const parsed: unknown = JSON.parse(raw);
+    if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed))
       throw new Error('INVALID_CURSOR');
+    const value = parsed as Record<string, unknown>;
+    const expectedKeys = ['version', 'offset', 'startNodeId', 'maxDepth', 'maxNodes', 'maxEdges'];
+    if (Object.keys(value).sort().join(',') !== expectedKeys.sort().join(','))
+      throw new Error('INVALID_CURSOR');
+    if (
+      value.version !== 1 ||
+      !Number.isSafeInteger(value.offset) ||
+      Number(value.offset) < 0 ||
+      Number(value.offset) > 10_000
+    )
+      throw new Error('INVALID_CURSOR');
+    for (const key of ['startNodeId', 'maxDepth', 'maxNodes', 'maxEdges'] as const) {
+      if (value[key] !== context[key]) throw new Error('INVALID_CURSOR');
     }
-    return parsed.offset;
+    return Number(value.offset);
   } catch {
     throw new Error('INVALID_CURSOR: Malformed traversal cursor');
   }
@@ -62,7 +96,8 @@ export function traverseBoundedGraph(
   const maxDepth = Math.min(params.maxDepth || 3, 5);
   const maxNodes = Math.min(params.maxNodes || 50, 100);
   const maxEdges = Math.min(params.maxEdges || 100, 200);
-  const offset = params.cursor ? decodeCursor(params.cursor) : 0;
+  const cursorContext = { startNodeId: params.startNodeId, maxDepth, maxNodes, maxEdges };
+  const offset = params.cursor ? decodeCursor(params.cursor, cursorContext) : 0;
 
   const adj = new Map<string, TraversalEdge[]>();
   for (const edge of allEdges) {
@@ -108,7 +143,7 @@ export function traverseBoundedGraph(
   // Apply pagination offset
   const paginatedNodes = resultNodes.slice(offset, offset + maxNodes);
   const hasMore = offset + maxNodes < resultNodes.length;
-  const nextCursor = hasMore ? encodeCursor(offset + maxNodes) : null;
+  const nextCursor = hasMore ? encodeCursor(offset + maxNodes, cursorContext) : null;
 
   return {
     nodes: paginatedNodes,

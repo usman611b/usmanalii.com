@@ -11,7 +11,11 @@ export interface ReconciliationReport {
   succeededCount: number;
   failedCount: number;
   deadLetterCount: number;
-  details: readonly { id: string; status: 'completed' | 'failed' | 'dead_letter'; attempts: number }[];
+  details: readonly {
+    id: string;
+    status: 'completed' | 'failed' | 'dead_letter';
+    attempts: number;
+  }[];
 }
 
 /**
@@ -29,21 +33,58 @@ export async function processReconciliationQueue(
   const batchSize = options.batchSize ?? 50;
   const currentTime = options.now ?? new Date();
   const currentIso = currentTime.toISOString();
+  const staleClaimIso = new Date(currentTime.getTime() - 5 * 60 * 1000).toISOString();
+  const claimToken = crypto.randomUUID();
 
-  // Fetch queue items ready for processing
-  const { results } = await db.prepare(`
-    SELECT * FROM reconciliation_queue
+  // Claim due work with a unique lease. Conditional updates ensure concurrent
+  // scheduled invocations cannot process the same item.
+  const { results } = await db
+    .prepare(
+      `
+    SELECT id FROM artifact_reconciliation_queue
     WHERE status = 'pending'
        OR (status = 'failed' AND attempts < ? AND (next_attempt_at IS NULL OR next_attempt_at <= ?))
+       OR (status = 'processing' AND claimed_at <= ?)
     ORDER BY created_at ASC
     LIMIT ?
-  `).bind(maxRetries, currentIso, batchSize).all();
+  `,
+    )
+    .bind(maxRetries, currentIso, staleClaimIso, batchSize)
+    .all();
 
-  const items = results || [];
+  for (const candidate of results || []) {
+    await db
+      .prepare(
+        `
+      UPDATE artifact_reconciliation_queue
+      SET status = 'processing', claim_token = ?, claimed_at = ?, updated_at = ?
+      WHERE id = ? AND (status = 'pending'
+        OR (status = 'failed' AND attempts < ? AND (next_attempt_at IS NULL OR next_attempt_at <= ?))
+        OR (status = 'processing' AND claimed_at <= ?))
+    `,
+      )
+      .bind(claimToken, currentIso, currentIso, candidate.id, maxRetries, currentIso, staleClaimIso)
+      .run();
+  }
+
+  const claimed = await db
+    .prepare(
+      `
+    SELECT * FROM artifact_reconciliation_queue WHERE status = 'processing' AND claim_token = ?
+    ORDER BY created_at ASC
+  `,
+    )
+    .bind(claimToken)
+    .all();
+  const items = claimed.results || [];
   let succeededCount = 0;
   let failedCount = 0;
   let deadLetterCount = 0;
-  const details: { id: string; status: 'completed' | 'failed' | 'dead_letter'; attempts: number }[] = [];
+  const details: {
+    id: string;
+    status: 'completed' | 'failed' | 'dead_letter';
+    attempts: number;
+  }[] = [];
 
   for (const item of items) {
     const id = String(item.id);
@@ -57,11 +98,17 @@ export async function processReconciliationQueue(
       }
 
       // Mark completed
-      await db.prepare(`
-        UPDATE reconciliation_queue
-        SET status = 'completed', attempts = ?, processed_at = ?, error_message = NULL, updated_at = ?
-        WHERE id = ?
-      `).bind(currentAttempts, currentIso, currentIso, id).run();
+      await db
+        .prepare(
+          `
+        UPDATE artifact_reconciliation_queue
+        SET status = 'completed', attempts = ?, processed_at = ?, error_message = NULL,
+            claim_token = NULL, claimed_at = NULL, updated_at = ?
+        WHERE id = ? AND claim_token = ?
+      `,
+        )
+        .bind(currentAttempts, currentIso, currentIso, id, claimToken)
+        .run();
 
       succeededCount++;
       details.push({ id, status: 'completed', attempts: currentAttempts });
@@ -71,24 +118,38 @@ export async function processReconciliationQueue(
 
       if (currentAttempts >= maxRetries) {
         // Transition to dead-letter for manual review
-        await db.prepare(`
-          UPDATE reconciliation_queue
-          SET status = 'dead_letter', attempts = ?, error_message = ?, updated_at = ?
-          WHERE id = ?
-        `).bind(currentAttempts, `DEAD_LETTER: ${redactedMsg}`, currentIso, id).run();
+        await db
+          .prepare(
+            `
+          UPDATE artifact_reconciliation_queue
+          SET status = 'dead_letter', attempts = ?, error_message = ?, claim_token = NULL,
+              claimed_at = NULL, updated_at = ?
+          WHERE id = ? AND claim_token = ?
+        `,
+          )
+          .bind(currentAttempts, `DEAD_LETTER: ${redactedMsg}`, currentIso, id, claimToken)
+          .run();
 
         deadLetterCount++;
         details.push({ id, status: 'dead_letter', attempts: currentAttempts });
       } else {
         // Schedule retry with exponential backoff (2^attempts * 60s)
         const backoffSeconds = Math.pow(2, currentAttempts) * 60;
-        const nextAttemptTime = new Date(currentTime.getTime() + backoffSeconds * 1000).toISOString();
+        const nextAttemptTime = new Date(
+          currentTime.getTime() + backoffSeconds * 1000,
+        ).toISOString();
 
-        await db.prepare(`
-          UPDATE reconciliation_queue
-          SET status = 'failed', attempts = ?, next_attempt_at = ?, error_message = ?, updated_at = ?
-          WHERE id = ?
-        `).bind(currentAttempts, nextAttemptTime, redactedMsg, currentIso, id).run();
+        await db
+          .prepare(
+            `
+          UPDATE artifact_reconciliation_queue
+          SET status = 'failed', attempts = ?, next_attempt_at = ?, error_message = ?,
+              claim_token = NULL, claimed_at = NULL, updated_at = ?
+          WHERE id = ? AND claim_token = ?
+        `,
+          )
+          .bind(currentAttempts, nextAttemptTime, redactedMsg, currentIso, id, claimToken)
+          .run();
 
         failedCount++;
         details.push({ id, status: 'failed', attempts: currentAttempts });

@@ -36,6 +36,7 @@ const MIGRATION_FILES = [
   '009_evidence_constraints_m3.sql',
   '010_reconciliation_queue_m3.sql',
   '011_skills_capabilities_m4.sql',
+  '012_m4_final_gate_closure.sql',
 ];
 
 console.log('🔍 Verifying D1 migrations on fresh database...\n');
@@ -96,7 +97,9 @@ for (const file of MIGRATION_FILES) {
   const sql = readFileSync(filePath, 'utf8');
   for (const pattern of FORBIDDEN_FIELDS) {
     if (pattern.test(sql)) {
-      console.error(`❌ INVARIANT VIOLATION: ${file} contains a prohibited proficiency field matching ${pattern}`);
+      console.error(
+        `❌ INVARIANT VIOLATION: ${file} contains a prohibited proficiency field matching ${pattern}`,
+      );
       allPassed = false;
     }
   }
@@ -107,7 +110,9 @@ console.log('  ✓ No prohibited proficiency fields found');
 console.log('\n🔍 Checking evidence_link_single_target constraint...');
 const evidenceMigration = readFileSync(join(MIGRATIONS_DIR, '003_evidence_ledger.sql'), 'utf8');
 if (!evidenceMigration.includes('evidence_link_single_target')) {
-  console.error('❌ INVARIANT VIOLATION: evidence_links table missing single-target CHECK constraint');
+  console.error(
+    '❌ INVARIANT VIOLATION: evidence_links table missing single-target CHECK constraint',
+  );
   allPassed = false;
 } else {
   console.log('  ✓ evidence_link_single_target constraint present');

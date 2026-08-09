@@ -81,15 +81,6 @@ CREATE TABLE IF NOT EXISTS evidence_links (
   content_item_id       TEXT,   -- FK added in migration 004 (content)
   artifact_id           TEXT,   -- FK added in migration 004 (artifacts)
 
-  -- INVARIANT: Exactly one target (CHECK enforces sum = 1)
-  CONSTRAINT evidence_link_single_target CHECK (
-    (capability_id    IS NOT NULL) +
-    (claim_id         IS NOT NULL) +
-    (project_id       IS NOT NULL) +
-    (content_item_id  IS NOT NULL) +
-    (artifact_id      IS NOT NULL) = 1
-  ),
-
   support_type    TEXT    NOT NULL
                           CHECK (support_type IN (
                             'demonstrates', 'corroborates', 'historical', 'contradicts'
@@ -100,7 +91,14 @@ CREATE TABLE IF NOT EXISTS evidence_links (
   approved_by     TEXT,
   approved_at     TEXT,
   created_at      TEXT    NOT NULL,
-  updated_at      TEXT    NOT NULL
+  updated_at      TEXT    NOT NULL,
+
+  -- INVARIANT: table constraints follow all column definitions for D1/SQLite.
+  CONSTRAINT evidence_link_single_target CHECK (
+    (capability_id IS NOT NULL) + (claim_id IS NOT NULL) +
+    (project_id IS NOT NULL) + (content_item_id IS NOT NULL) +
+    (artifact_id IS NOT NULL) = 1
+  )
 );
 
 -- Evidence edges by target and approval state (Database Model §14)

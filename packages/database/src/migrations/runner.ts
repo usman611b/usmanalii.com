@@ -50,6 +50,7 @@ export const MIGRATION_FILES = [
   '009_evidence_constraints_m3.sql',
   '010_reconciliation_queue_m3.sql',
   '011_skills_capabilities_m4.sql',
+  '012_m4_final_gate_closure.sql',
 ] as const;
 
 export type MigrationFile = (typeof MIGRATION_FILES)[number];
@@ -58,10 +59,47 @@ export type MigrationFile = (typeof MIGRATION_FILES)[number];
  * Placeholder implementations — full D1-backed implementation in M3.
  * These stubs allow the migration runner script to work in M0.
  */
-export async function runMigrations(_db: unknown): Promise<readonly MigrationStatus[]> {
-  throw new Error('runMigrations: D1 implementation pending M3.');
+interface D1MigrationDatabase {
+  prepare(sql: string): { all<T>(): Promise<{ results?: T[] }> };
+  exec(sql: string): Promise<unknown>;
 }
 
-export async function getMigrationStatus(_db: unknown): Promise<readonly MigrationStatus[]> {
-  throw new Error('getMigrationStatus: D1 implementation pending M3.');
+export interface MigrationSource {
+  readonly filename: MigrationFile;
+  readonly sql: string;
+}
+
+export async function runMigrations(
+  db: D1MigrationDatabase,
+  sources: readonly MigrationSource[] = [],
+): Promise<readonly MigrationStatus[]> {
+  const supplied = new Map(sources.map((source) => [source.filename, source.sql]));
+  const applied = new Set((await getMigrationStatus(db)).map((status) => status.version));
+  for (const filename of MIGRATION_FILES) {
+    const version = Number(filename.slice(0, 3));
+    if (applied.has(version)) continue;
+    const sql = supplied.get(filename);
+    if (!sql) throw new Error(`MIGRATION_SOURCE_MISSING: ${filename}`);
+    await db.exec(sql);
+  }
+  return getMigrationStatus(db);
+}
+
+export async function getMigrationStatus(
+  db: D1MigrationDatabase,
+): Promise<readonly MigrationStatus[]> {
+  let result: { results?: Record<string, unknown>[] };
+  try {
+    result = await db
+      .prepare('SELECT version, description, applied_at FROM schema_versions ORDER BY version ASC')
+      .all<Record<string, unknown>>();
+  } catch (error) {
+    if (/no such table: schema_versions/i.test(String(error))) return [];
+    throw error;
+  }
+  return (result.results ?? []).map((row) => ({
+    version: Number(row.version),
+    description: String(row.description),
+    appliedAt: String(row.applied_at),
+  }));
 }

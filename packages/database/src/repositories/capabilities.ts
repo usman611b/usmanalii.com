@@ -36,22 +36,24 @@ export class D1CapabilityRepository {
         maturity_rationale, maturity_rule_version, qualifying_evidence_rules,
         visibility, state, lifecycle_state, owner_confirmed, provenance_metadata,
         created_at, updated_at, version_no
-      ) VALUES (?, ?, ?, ?, ?, ?, 'not_enough_evidence', 'Initial creation', 'v1.0', '{}', ?, ?, ?, 1, '{}', ?, ?, 1)
+      ) VALUES (?, ?, ?, ?, ?, ?, 'exploring', 'Initial creation', 'v2.0', '{}', ?, ?, ?, 1, '{}', ?, ?, 1)
     `);
 
-    await stmt.bind(
-      params.id,
-      params.ownerId,
-      params.title,
-      params.slug,
-      params.description,
-      params.outcomeStatement,
-      params.visibility || 'private',
-      params.state || 'draft',
-      params.lifecycleState || 'active',
-      now,
-      now,
-    ).run();
+    await stmt
+      .bind(
+        params.id,
+        params.ownerId,
+        params.title,
+        params.slug,
+        params.description,
+        params.outcomeStatement,
+        params.visibility || 'private',
+        params.state || 'draft',
+        params.lifecycleState || 'active',
+        now,
+        now,
+      )
+      .run();
 
     const created = await this.getCapabilityById(params.ownerId, params.id);
     if (!created) throw new Error('Capability creation failed');
@@ -59,18 +61,28 @@ export class D1CapabilityRepository {
   }
 
   async getCapabilityById(ownerId: EntityId, id: EntityId): Promise<CapabilityEntity | null> {
-    const row = await this.db.prepare(`
+    const row = await this.db
+      .prepare(
+        `
       SELECT * FROM capabilities WHERE id = ? AND owner_id = ?
-    `).bind(id, ownerId).first();
+    `,
+      )
+      .bind(id, ownerId)
+      .first();
 
     if (!row) return null;
     return this.mapRowToCapability(row);
   }
 
   async getCapabilityBySlug(ownerId: EntityId, slug: string): Promise<CapabilityEntity | null> {
-    const row = await this.db.prepare(`
+    const row = await this.db
+      .prepare(
+        `
       SELECT * FROM capabilities WHERE slug = ? AND owner_id = ?
-    `).bind(slug, ownerId).first();
+    `,
+      )
+      .bind(slug, ownerId)
+      .first();
 
     if (!row) return null;
     return this.mapRowToCapability(row);
@@ -95,11 +107,18 @@ export class D1CapabilityRepository {
     sql += ` ORDER BY title ASC LIMIT ?`;
     bindings.push(filters?.limit || 100);
 
-    const { results } = await this.db.prepare(sql).bind(...bindings).all();
+    const { results } = await this.db
+      .prepare(sql)
+      .bind(...bindings)
+      .all();
     return (results || []).map((r) => this.mapRowToCapability(r));
   }
 
-  async updateCapability(ownerId: EntityId, id: EntityId, params: UpdateCapabilityParams): Promise<CapabilityEntity> {
+  async updateCapability(
+    ownerId: EntityId,
+    id: EntityId,
+    params: UpdateCapabilityParams,
+  ): Promise<CapabilityEntity> {
     const existing = await this.getCapabilityById(ownerId, id);
     if (!existing) throw new Error('Capability not found');
 
@@ -110,7 +129,9 @@ export class D1CapabilityRepository {
     const now = new Date().toISOString() as ISODateTime;
     const newVersion = existing.versionNo + 1;
 
-    const res = await this.db.prepare(`
+    const res = await this.db
+      .prepare(
+        `
       UPDATE capabilities
       SET title = COALESCE(?, title),
           slug = COALESCE(?, slug),
@@ -123,21 +144,24 @@ export class D1CapabilityRepository {
           updated_at = ?,
           version_no = ?
       WHERE id = ? AND owner_id = ? AND version_no = ?
-    `).bind(
-      params.title || null,
-      params.slug || null,
-      params.description || null,
-      params.outcomeStatement || null,
-      params.visibility || null,
-      params.state || null,
-      params.lifecycleState || null,
-      params.archivedAt || null,
-      now,
-      newVersion,
-      id,
-      ownerId,
-      params.versionNo,
-    ).run();
+    `,
+      )
+      .bind(
+        params.title || null,
+        params.slug || null,
+        params.description || null,
+        params.outcomeStatement || null,
+        params.visibility || null,
+        params.state || null,
+        params.lifecycleState || null,
+        params.archivedAt || null,
+        now,
+        newVersion,
+        id,
+        ownerId,
+        params.versionNo,
+      )
+      .run();
 
     if (res.meta.changes === 0) {
       throw new Error('OPTIMISTIC_CONCURRENCY_CONFLICT: Concurrent edit detected');
@@ -156,9 +180,9 @@ export class D1CapabilityRepository {
       slug: row.slug as string,
       description: (row.description as string) || '',
       outcomeStatement: (row.outcome_statement as string) || '',
-      maturity: (row.maturity as CapabilityEntity['maturity']) || 'not_enough_evidence',
+      maturity: (row.maturity as CapabilityEntity['maturity']) || 'exploring',
       maturityRationale: (row.maturity_rationale as string) || '',
-      maturityRuleVersion: (row.maturity_rule_version as string) || 'v1.0',
+      maturityRuleVersion: (row.maturity_rule_version as string) || 'v2.0',
       qualifyingEvidenceRules: (row.qualifying_evidence_rules as string) || '{}',
       visibility: (row.visibility as CapabilityEntity['visibility']) || 'private',
       state: (row.state as CapabilityEntity['state']) || 'draft',

@@ -13,10 +13,9 @@ const FORBIDDEN_REAL_NAMES = [/\busman\b/i, /\bali\b/i, /\busmanalii\b/i];
 function assertNoRealPersonData(obj: unknown, path = ''): void {
   if (typeof obj === 'string') {
     for (const pattern of FORBIDDEN_REAL_NAMES) {
-      expect(
-        pattern.test(obj),
-        `Fixture field "${path}" contains real person data: "${obj}"`,
-      ).toBe(false);
+      expect(pattern.test(obj), `Fixture field "${path}" contains real person data: "${obj}"`).toBe(
+        false,
+      );
     }
   } else if (obj !== null && typeof obj === 'object') {
     for (const [key, value] of Object.entries(obj as Record<string, unknown>)) {
@@ -53,9 +52,9 @@ describe('Fixture coverage — all visibility states', () => {
   it('capabilities cover multiple maturity states', () => {
     const maturities = Object.values(capabilities).map((c) => c.maturity);
     expect(maturities).toContain('not_enough_evidence');
-    expect(maturities).toContain('observed');
-    expect(maturities).toContain('applied');
-    expect(maturities).toContain('delivered');
+    expect(maturities).toContain('exploring');
+    expect(maturities).toContain('applying');
+    expect(maturities).toContain('demonstrated');
   });
 
   it('evidence items cover multiple verification states', () => {

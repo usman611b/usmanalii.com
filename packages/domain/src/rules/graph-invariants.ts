@@ -84,14 +84,35 @@ export function validateSkillRelationship(params: {
     return { valid: false, reason: 'Relevance must be an integer between 1 and 5.' };
   }
 
-  const validTypes = ['parent_child', 'related', 'prerequisite', 'complementary', 'supersedes', 'applied_with'];
+  const validTypes = [
+    'parent_child',
+    'related',
+    'prerequisite',
+    'complementary',
+    'supersedes',
+    'applied_with',
+  ];
   if (!validTypes.includes(params.relationshipType)) {
-    return { valid: false, reason: `Unsupported skill relationship type: ${params.relationshipType}` };
+    return {
+      valid: false,
+      reason: `Unsupported skill relationship type: ${params.relationshipType}`,
+    };
   }
 
-  if ((params.relationshipType === 'parent_child' || params.relationshipType === 'prerequisite') && params.existingEdges) {
-    if (detectsCycle(params.existingEdges, { sourceId: params.sourceSkillId, targetId: params.targetSkillId })) {
-      return { valid: false, reason: `Adding ${params.relationshipType} relationship creates a graph cycle.` };
+  if (
+    (params.relationshipType === 'parent_child' || params.relationshipType === 'prerequisite') &&
+    params.existingEdges
+  ) {
+    if (
+      detectsCycle(params.existingEdges, {
+        sourceId: params.sourceSkillId,
+        targetId: params.targetSkillId,
+      })
+    ) {
+      return {
+        valid: false,
+        reason: `Adding ${params.relationshipType} relationship creates a graph cycle.`,
+      };
     }
   }
 
@@ -101,7 +122,10 @@ export function validateSkillRelationship(params: {
 /**
  * Structural validation for capability wording.
  */
-export function validateCapabilityWording(title: string, outcomeStatement: string): { valid: boolean; reason?: string } {
+export function validateCapabilityWording(
+  title: string,
+  outcomeStatement: string,
+): { valid: boolean; reason?: string } {
   if (!title || title.trim().length === 0) {
     return { valid: false, reason: 'Capability title cannot be empty.' };
   }
@@ -110,7 +134,10 @@ export function validateCapabilityWording(title: string, outcomeStatement: strin
   }
 
   if (!outcomeStatement || outcomeStatement.trim().length < 10) {
-    return { valid: false, reason: 'Outcome statement must be at least 10 characters describing a specific result.' };
+    return {
+      valid: false,
+      reason: 'Outcome statement must be at least 10 characters describing a specific result.',
+    };
   }
   if (outcomeStatement.length > 500) {
     return { valid: false, reason: 'Outcome statement must not exceed 500 characters.' };
@@ -118,8 +145,15 @@ export function validateCapabilityWording(title: string, outcomeStatement: strin
 
   // Reject numeric/percentage proficiency claims
   const combined = `${title} ${outcomeStatement}`.toLowerCase();
-  if (/\b\d{1,3}\s*%/.test(combined) || /\b(percentage|proficiency score|expert level \d|rating \d\/10)\b/.test(combined)) {
-    return { valid: false, reason: 'Capability wording must not include percentage scores or numeric proficiency ratings.' };
+  if (
+    /\b\d{1,3}\s*%/.test(combined) ||
+    /\b(percentage|proficiency score|expert level \d|rating \d\/10)\b/.test(combined)
+  ) {
+    return {
+      valid: false,
+      reason:
+        'Capability wording must not include percentage scores or numeric proficiency ratings.',
+    };
   }
 
   // Reject XSS / unsafe HTML markup
@@ -143,15 +177,24 @@ export function validateProgressionEventTarget(params: {
   const hasCap = Boolean(params.capabilityId && params.capabilityId.trim().length > 0);
 
   if ((hasSkill && hasCap) || (!hasSkill && !hasCap)) {
-    return { valid: false, reason: 'Progression event must explicitly target exactly ONE skill OR ONE capability.' };
+    return {
+      valid: false,
+      reason: 'Progression event must explicitly target exactly ONE skill OR ONE capability.',
+    };
   }
 
   if (!params.supportingEvidenceIds || params.supportingEvidenceIds.length === 0) {
-    return { valid: false, reason: 'Progression event requires at least one supporting evidence ID.' };
+    return {
+      valid: false,
+      reason: 'Progression event requires at least one supporting evidence ID.',
+    };
   }
 
   if (!params.reason || params.reason.trim().length < 5) {
-    return { valid: false, reason: 'Progression event requires a human-readable reason of at least 5 characters.' };
+    return {
+      valid: false,
+      reason: 'Progression event requires a human-readable reason of at least 5 characters.',
+    };
   }
 
   return { valid: true };
@@ -168,21 +211,37 @@ export function validateProgressionTransition(params: {
   hasOwnerSkipJustification?: boolean;
 }): { valid: boolean; reason?: string } {
   if (params.supportingEvidenceCount <= 0) {
-    return { valid: false, reason: 'Progression transition requires at least 1 eligible supporting evidence record.' };
+    return {
+      valid: false,
+      reason: 'Progression transition requires at least 1 eligible supporting evidence record.',
+    };
   }
 
-  const validStages = ['observed', 'practiced', 'applied', 'delivered'];
+  const validStages = [
+    'exploring',
+    'practicing',
+    'applying',
+    'demonstrated',
+    'sustained',
+    'leadership',
+  ];
   if (!validStages.includes(params.newStage)) {
     return { valid: false, reason: `Invalid progression stage: ${params.newStage}` };
   }
 
   // Handle stage skips
-  if (params.previousStage === 'observed' && params.newStage === 'delivered') {
+  const previousIndex =
+    params.previousStage === null ? -1 : validStages.indexOf(params.previousStage);
+  const newIndex = validStages.indexOf(params.newStage);
+  if (previousIndex >= 0 && newIndex > previousIndex + 1) {
     if (!params.reason || params.reason.length < 15) {
-      return { valid: false, reason: 'Skipping progression stages requires an explicit owner-approved justification of at least 15 characters.' };
+      return {
+        valid: false,
+        reason:
+          'Skipping progression stages requires an explicit owner-approved justification of at least 15 characters.',
+      };
     }
   }
 
   return { valid: true };
 }
-

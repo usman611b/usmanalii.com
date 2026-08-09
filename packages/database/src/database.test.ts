@@ -37,7 +37,11 @@ function createMockD1Database(options: { failBatch?: boolean } = {}) {
             }
             return null;
           }
-          if (sql.includes('SELECT * FROM content_revisions WHERE id = ? AND content_item_id = ? AND owner_id = ?')) {
+          if (
+            sql.includes(
+              'SELECT * FROM content_revisions WHERE id = ? AND content_item_id = ? AND owner_id = ?',
+            )
+          ) {
             const id = stmtObj.boundParams[0];
             const contentItemId = stmtObj.boundParams[1];
             const ownerId = stmtObj.boundParams[2];
@@ -83,7 +87,7 @@ function createMockD1Database(options: { failBatch?: boolean } = {}) {
           return null;
         },
         async all<T = unknown>(): Promise<{ results: T[] }> {
-          if (sql.includes('SELECT * FROM content_items WHERE state = \'published\'')) {
+          if (sql.includes("SELECT * FROM content_items WHERE state = 'published'")) {
             const now = stmtObj.boundParams[0];
             const now2 = stmtObj.boundParams[1] || now;
             const contentType = stmtObj.boundParams[2];
@@ -339,44 +343,79 @@ describe('Requirement 1 & 2: Database Integrity & Public Scheduling/Embargo Logi
 
     // 1. Normal published record with scheduled_for = NULL, embargo_until = NULL -> PUBLIC
     mockDb.itemsTable.set('normal-pub', {
-      id: 'normal-pub', owner_id: 'owner-1', state: 'published', visibility: 'public', slug: 'normal-pub',
-      scheduled_for: null, embargo_until: null,
+      id: 'normal-pub',
+      owner_id: 'owner-1',
+      state: 'published',
+      visibility: 'public',
+      slug: 'normal-pub',
+      scheduled_for: null,
+      embargo_until: null,
     });
 
     // 2. Scheduled_for in past -> PUBLIC
     mockDb.itemsTable.set('sched-past', {
-      id: 'sched-past', owner_id: 'owner-1', state: 'published', visibility: 'public', slug: 'sched-past',
-      scheduled_for: pastDate, embargo_until: null,
+      id: 'sched-past',
+      owner_id: 'owner-1',
+      state: 'published',
+      visibility: 'public',
+      slug: 'sched-past',
+      scheduled_for: pastDate,
+      embargo_until: null,
     });
 
     // 3. Scheduled_for at exact-now -> PUBLIC
     mockDb.itemsTable.set('sched-now', {
-      id: 'sched-now', owner_id: 'owner-1', state: 'published', visibility: 'public', slug: 'sched-now',
-      scheduled_for: exactNowDate, embargo_until: null,
+      id: 'sched-now',
+      owner_id: 'owner-1',
+      state: 'published',
+      visibility: 'public',
+      slug: 'sched-now',
+      scheduled_for: exactNowDate,
+      embargo_until: null,
     });
 
     // 4. Scheduled_for in future -> PRIVATE (EXCLUDED)
     mockDb.itemsTable.set('sched-future', {
-      id: 'sched-future', owner_id: 'owner-1', state: 'published', visibility: 'public', slug: 'sched-future',
-      scheduled_for: futureDate, embargo_until: null,
+      id: 'sched-future',
+      owner_id: 'owner-1',
+      state: 'published',
+      visibility: 'public',
+      slug: 'sched-future',
+      scheduled_for: futureDate,
+      embargo_until: null,
     });
 
     // 5. Embargo_until in past -> PUBLIC
     mockDb.itemsTable.set('embargo-past', {
-      id: 'embargo-past', owner_id: 'owner-1', state: 'published', visibility: 'public', slug: 'embargo-past',
-      scheduled_for: null, embargo_until: pastDate,
+      id: 'embargo-past',
+      owner_id: 'owner-1',
+      state: 'published',
+      visibility: 'public',
+      slug: 'embargo-past',
+      scheduled_for: null,
+      embargo_until: pastDate,
     });
 
     // 6. Embargo_until at exact-now -> PUBLIC
     mockDb.itemsTable.set('embargo-now', {
-      id: 'embargo-now', owner_id: 'owner-1', state: 'published', visibility: 'public', slug: 'embargo-now',
-      scheduled_for: null, embargo_until: exactNowDate,
+      id: 'embargo-now',
+      owner_id: 'owner-1',
+      state: 'published',
+      visibility: 'public',
+      slug: 'embargo-now',
+      scheduled_for: null,
+      embargo_until: exactNowDate,
     });
 
     // 7. Embargo_until in future -> PRIVATE (EXCLUDED)
     mockDb.itemsTable.set('embargo-future', {
-      id: 'embargo-future', owner_id: 'owner-1', state: 'published', visibility: 'public', slug: 'embargo-future',
-      scheduled_for: null, embargo_until: futureDate,
+      id: 'embargo-future',
+      owner_id: 'owner-1',
+      state: 'published',
+      visibility: 'public',
+      slug: 'embargo-future',
+      scheduled_for: null,
+      embargo_until: futureDate,
     });
 
     const entries = await repo.getPublicPublishedEntries();
@@ -611,13 +650,19 @@ describe('Requirement 1 & 2: Database Integrity & Public Scheduling/Embargo Logi
       prepare(sql: string) {
         const stmtObj: any = {
           params: [],
-          bind(...p: any[]) { stmtObj.params = p; return stmtObj; },
+          bind(...p: any[]) {
+            stmtObj.params = p;
+            return stmtObj;
+          },
           async first() {
             if (sql.includes('FROM skills WHERE id = ?')) return skillsMap.get(stmtObj.params[0]);
-            if (sql.includes('FROM capabilities WHERE id = ?')) return capsMap.get(stmtObj.params[0]);
+            if (sql.includes('FROM capabilities WHERE id = ?'))
+              return capsMap.get(stmtObj.params[0]);
             return null;
           },
-          async all() { return { results: Array.from(skillsMap.values()) }; },
+          async all() {
+            return { results: Array.from(skillsMap.values()) };
+          },
           async run() {
             if (sql.includes('INSERT INTO skills')) {
               skillsMap.set(stmtObj.params[0], {
@@ -681,22 +726,48 @@ describe('Requirement 1 & 2: Database Integrity & Public Scheduling/Embargo Logi
     const { processReconciliationQueue } = await import('./repositories/reconciliation.js');
 
     const queueItems: any[] = [
-      { id: 'q-1', owner_id: 'owner-1', r2_key: 'artifacts/owner-1/test.pdf', attempts: 0, status: 'pending', created_at: '2026-08-01T00:00:00Z' },
-      { id: 'q-2', owner_id: 'owner-1', r2_key: 'artifacts/owner-1/failed.pdf', attempts: 2, status: 'failed', next_attempt_at: '2026-08-01T00:00:00Z', created_at: '2026-08-01T00:00:00Z' },
+      {
+        id: 'q-1',
+        owner_id: 'owner-1',
+        r2_key: 'artifacts/owner-1/test.pdf',
+        attempts: 0,
+        status: 'pending',
+        created_at: '2026-08-01T00:00:00Z',
+      },
+      {
+        id: 'q-2',
+        owner_id: 'owner-1',
+        r2_key: 'artifacts/owner-1/failed.pdf',
+        attempts: 2,
+        status: 'failed',
+        next_attempt_at: '2026-08-01T00:00:00Z',
+        created_at: '2026-08-01T00:00:00Z',
+      },
     ];
 
     const mockDb: any = {
       prepare(sql: string) {
         const stmtObj: any = {
           params: [],
-          bind(...p: any[]) { stmtObj.params = p; return stmtObj; },
-          async all() { return { results: queueItems }; },
+          bind(...p: any[]) {
+            stmtObj.params = p;
+            return stmtObj;
+          },
+          async all() {
+            return { results: queueItems };
+          },
           async run() {
-            if (sql.includes('UPDATE reconciliation_queue SET status = \'completed\'')) {
+            if (
+              sql.includes('UPDATE artifact_reconciliation_queue') &&
+              sql.includes("status = 'completed'")
+            ) {
               const item = queueItems.find((i) => i.id === stmtObj.params[3]);
               if (item) item.status = 'completed';
             }
-            if (sql.includes('UPDATE reconciliation_queue SET status = \'dead_letter\'')) {
+            if (
+              sql.includes('UPDATE artifact_reconciliation_queue') &&
+              sql.includes("status = 'dead_letter'")
+            ) {
               const item = queueItems.find((i) => i.id === stmtObj.params[3]);
               if (item) item.status = 'dead_letter';
             }
@@ -727,9 +798,14 @@ describe('Requirement 1 & 2: Database Integrity & Public Scheduling/Embargo Logi
       prepare(sql: string) {
         const stmtObj: any = {
           params: [],
-          bind(...p: any[]) { stmtObj.params = p; return stmtObj; },
+          bind(...p: any[]) {
+            stmtObj.params = p;
+            return stmtObj;
+          },
           async first() {
-            const list = Array.from(eventsMap.values()).filter((e) => e.owner_id === stmtObj.params[0] && e.skill_id === stmtObj.params[1]);
+            const list = Array.from(eventsMap.values()).filter(
+              (e) => e.owner_id === stmtObj.params[0] && e.skill_id === stmtObj.params[1],
+            );
             return list.length > 0 ? list[list.length - 1] : null;
           },
           async all() {
@@ -763,15 +839,15 @@ describe('Requirement 1 & 2: Database Integrity & Public Scheduling/Embargo Logi
       id: 'pe-1' as any,
       ownerId: 'owner-1' as any,
       skillId: 'skill-1' as any,
-      previousStage: 'observed' as any,
-      newStage: 'applied' as any,
+      previousStage: 'exploring' as any,
+      newStage: 'applying' as any,
       supportingEvidenceIds: ['ev-1' as any],
       reason: 'Applied in project milestone',
     });
 
-    expect(event.newStage).toBe('applied');
+    expect(event.newStage).toBe('applying');
     const latest = await repo.getLatestStage('owner-1' as any, { skillId: 'skill-1' as any });
-    expect(latest).toBe('applied');
+    expect(latest).toBe('applying');
   });
 
   it('12. Milestone M4 Gate 4: D1SuggestionRepository handles fingerprint deduplication and atomic acceptance', async () => {
@@ -782,11 +858,18 @@ describe('Requirement 1 & 2: Database Integrity & Public Scheduling/Embargo Logi
       prepare(sql: string) {
         const stmtObj: any = {
           params: [],
-          bind(...p: any[]) { stmtObj.params = p; return stmtObj; },
+          bind(...p: any[]) {
+            stmtObj.params = p;
+            return stmtObj;
+          },
           async first() {
             if (sql.includes('FROM suggestions WHERE owner_id = ? AND fingerprint = ?')) {
               for (const s of sugMap.values()) {
-                if (s.owner_id === stmtObj.params[0] && s.fingerprint === stmtObj.params[1] && s.suggestion_state === 'rejected') {
+                if (
+                  s.owner_id === stmtObj.params[0] &&
+                  s.fingerprint === stmtObj.params[1] &&
+                  s.suggestion_state === 'rejected'
+                ) {
                   return s;
                 }
               }
@@ -846,13 +929,20 @@ describe('Requirement 1 & 2: Database Integrity & Public Scheduling/Embargo Logi
       prepare(sql: string) {
         const stmtObj: any = {
           params: [],
-          bind(...p: any[]) { stmtObj.params = p; return stmtObj; },
+          bind(...p: any[]) {
+            stmtObj.params = p;
+            return stmtObj;
+          },
           async all() {
-            if (sql.includes('FROM skills') && sql.includes('visibility = \'public\'')) {
+            if (sql.includes('FROM skills') && sql.includes("visibility = 'public'")) {
               return { results: [{ id: 's-1', name: 'TypeScript', visibility: 'public' }] };
             }
-            if (sql.includes('FROM capabilities') && sql.includes('visibility = \'public\'')) {
-              return { results: [{ id: 'c-1', title: 'API Design', visibility: 'public', state: 'published' }] };
+            if (sql.includes('FROM capabilities') && sql.includes("visibility = 'public'")) {
+              return {
+                results: [
+                  { id: 'c-1', title: 'API Design', visibility: 'public', state: 'published' },
+                ],
+              };
             }
             return { results: [] };
           },

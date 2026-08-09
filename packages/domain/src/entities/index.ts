@@ -37,13 +37,7 @@ export type ISODate = string & { readonly __brand: 'ISODate' };
 export type Visibility = 'private' | 'restricted' | 'unlisted' | 'public';
 
 export type PublicationState =
-  | 'draft'
-  | 'review'
-  | 'approved'
-  | 'scheduled'
-  | 'published'
-  | 'unlisted'
-  | 'archived';
+  'draft' | 'review' | 'approved' | 'scheduled' | 'published' | 'unlisted' | 'archived';
 
 // ---------------------------------------------------------------------------
 // Evidence — Section 3, 8, 9 of Database Model
@@ -74,12 +68,7 @@ export type EvidenceType =
   | 'other';
 
 export type EvidenceSourceType =
-  | 'github'
-  | 'url'
-  | 'file'
-  | 'manual'
-  | 'integration'
-  | 'owner_attested';
+  'github' | 'url' | 'file' | 'manual' | 'integration' | 'owner_attested';
 
 /**
  * Verification states for evidence.
@@ -115,7 +104,7 @@ export interface EvidenceVerificationEventEntity {
 export type EvidenceSupportType =
   | 'demonstrates' // direct evidence of implementation, delivery, explanation or outcome
   | 'corroborates' // supporting context — insufficient alone
-  | 'historical'   // proves past activity but may be stale
+  | 'historical' // proves past activity but may be stale
   | 'contradicts'; // invalidates or challenges an assertion
 
 // ---------------------------------------------------------------------------
@@ -154,11 +143,12 @@ export interface SkillEntity {
  */
 export type CapabilityMaturity =
   | 'not_enough_evidence'
-  | 'observed'
-  | 'practiced'
-  | 'applied'
-  | 'delivered'
-  | 'sustained';
+  | 'exploring'
+  | 'practicing'
+  | 'applying'
+  | 'demonstrated'
+  | 'sustained'
+  | 'leadership';
 
 export interface CapabilityEntity {
   readonly id: EntityId;
@@ -210,12 +200,7 @@ export type SkillType = 'technical' | 'domain' | 'methodology' | 'soft';
 export type SkillLifecycleState = 'draft' | 'active' | 'deprecated' | 'archived';
 
 export type SkillRelationshipType =
-  | 'parent_child'
-  | 'related'
-  | 'prerequisite'
-  | 'complementary'
-  | 'supersedes'
-  | 'applied_with';
+  'parent_child' | 'related' | 'prerequisite' | 'complementary' | 'supersedes' | 'applied_with';
 
 export type CapabilitySkillRelationshipType = 'required' | 'supporting' | 'complementary';
 
@@ -230,18 +215,10 @@ export type EvidenceSkillRelationshipType =
   | 'contradicts';
 
 export type EvidenceCapabilityRelationshipType =
-  | 'supports'
-  | 'demonstrates'
-  | 'validates'
-  | 'contradicts';
+  'supports' | 'demonstrates' | 'validates' | 'contradicts';
 
 export type ProgressionStage =
-  | 'exploring'
-  | 'practicing'
-  | 'applying'
-  | 'demonstrated'
-  | 'sustained'
-  | 'leadership';
+  'exploring' | 'practicing' | 'applying' | 'demonstrated' | 'sustained' | 'leadership';
 
 export type CreatedByClassification = 'owner' | 'system' | 'suggestion';
 
@@ -336,12 +313,7 @@ export type SuggestionType =
   | 'possible_related_skill';
 
 export type SuggestionState =
-  | 'pending'
-  | 'accepted'
-  | 'edited_and_accepted'
-  | 'rejected'
-  | 'superseded'
-  | 'expired';
+  'pending' | 'accepted' | 'edited_and_accepted' | 'rejected' | 'superseded' | 'expired';
 
 export type SuggestionOrigin = 'deterministic_rule' | 'system' | 'ai_model';
 
@@ -363,10 +335,7 @@ export interface SuggestionEntity {
 }
 
 export type EvidenceStrength =
-  | 'limited_evidence'
-  | 'emerging_evidence'
-  | 'established_evidence'
-  | 'strong_evidence';
+  'limited_evidence' | 'emerging_evidence' | 'established_evidence' | 'strong_evidence';
 
 // ---------------------------------------------------------------------------
 // Claim — Section 3, 11 of Database Model
@@ -549,12 +518,7 @@ export interface ProfileEntity {
 // ---------------------------------------------------------------------------
 
 export type ProposalState =
-  | 'pending'
-  | 'under_review'
-  | 'approved'
-  | 'rejected'
-  | 'superseded'
-  | 'expired';
+  'pending' | 'under_review' | 'approved' | 'rejected' | 'superseded' | 'expired';
 
 export type ProposalRiskLevel = 'low' | 'medium' | 'high' | 'critical';
 
@@ -617,4 +581,3 @@ export interface ContentRevisionEntity {
   readonly createdAt: ISODateTime;
   readonly createdBy: string;
 }
-

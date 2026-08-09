@@ -144,8 +144,8 @@ describe('Milestone M4 — Domain Invariant & Graph Rule Tests', () => {
     // Requires evidence
     expect(
       validateProgressionTransition({
-        previousStage: 'observed',
-        newStage: 'applied',
+        previousStage: 'exploring',
+        newStage: 'applying',
         supportingEvidenceCount: 0,
         reason: 'Valid reason string here',
       }).valid,
@@ -153,17 +153,19 @@ describe('Milestone M4 — Domain Invariant & Graph Rule Tests', () => {
 
     // Stage skip requires explicit owner justification
     const skipShort = validateProgressionTransition({
-      previousStage: 'observed',
-      newStage: 'delivered',
+      previousStage: 'exploring',
+      newStage: 'demonstrated',
       supportingEvidenceCount: 2,
       reason: 'Short reason',
     });
     expect(skipShort.valid).toBe(false);
-    expect(skipShort.reason).toContain('Skipping progression stages requires an explicit owner-approved justification');
+    expect(skipShort.reason).toContain(
+      'Skipping progression stages requires an explicit owner-approved justification',
+    );
 
     const skipLong = validateProgressionTransition({
-      previousStage: 'observed',
-      newStage: 'delivered',
+      previousStage: 'exploring',
+      newStage: 'demonstrated',
       supportingEvidenceCount: 2,
       reason: 'Explicit evidence-backed owner justification for skipping intermediate stage.',
     });

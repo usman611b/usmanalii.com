@@ -1,14 +1,22 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { describe, it, expect } from 'vitest';
-import worker from './index';
+import worker, { handleScheduledReconciliation } from './index';
 
 const mockDb = {
   prepare() {
     return {
-      bind() { return this; },
-      async first() { return null; },
-      async all() { return { results: [] }; },
-      async run() { return { meta: { changes: 1 } }; },
+      bind() {
+        return this;
+      },
+      async first() {
+        return null;
+      },
+      async all() {
+        return { results: [] };
+      },
+      async run() {
+        return { meta: { changes: 1 } };
+      },
     };
   },
 };
@@ -21,11 +29,22 @@ const env = {
 };
 
 describe('Worker API Integration & Security Tests', () => {
-  it('GET /api/v1/public/health — returns ok status', async () => {
-    const res = await worker.fetch(
-      new Request('http://localhost/api/v1/public/health'),
-      env,
+  it('M4 SCHEDULER: scheduled handler invokes reconciliation and registers the work with waitUntil', async () => {
+    const promises: Promise<unknown>[] = [];
+    handleScheduledReconciliation(
+      { ...env, DB: mockDb as any, R2_PRIVATE: { delete: async () => undefined } as any } as any,
+      {
+        waitUntil(promise: Promise<unknown>) {
+          promises.push(promise);
+        },
+      } as any,
     );
+    expect(promises).toHaveLength(1);
+    await expect(promises[0]).resolves.toMatchObject({ processedCount: 0 });
+  });
+
+  it('GET /api/v1/public/health — returns ok status', async () => {
+    const res = await worker.fetch(new Request('http://localhost/api/v1/public/health'), env);
 
     expect(res.status).toBe(200);
     const body = (await res.json()) as { status: string };
@@ -35,10 +54,7 @@ describe('Worker API Integration & Security Tests', () => {
   });
 
   it('GET /api/v1/public/profile — returns allowlisted DTO without owner_id', async () => {
-    const res = await worker.fetch(
-      new Request('http://localhost/api/v1/public/profile'),
-      env,
-    );
+    const res = await worker.fetch(new Request('http://localhost/api/v1/public/profile'), env);
 
     expect(res.status).toBe(200);
     const body = (await res.json()) as Record<string, unknown>;
@@ -176,7 +192,9 @@ describe('Worker API Integration & Security Tests', () => {
 
   it('SECURITY (Gate 1): GET /api/v1/private/content/item-1/preview WITHOUT Cloudflare Access JWT header fails closed with 401 AUTH_REQUIRED', async () => {
     const res = await worker.fetch(
-      new Request('http://localhost/api/v1/private/content/item-1/preview?token=item-1:owner-1:1:preview:1999999999999:sig'),
+      new Request(
+        'http://localhost/api/v1/private/content/item-1/preview?token=item-1:owner-1:1:preview:1999999999999:sig',
+      ),
       env,
     );
 
@@ -200,9 +218,12 @@ describe('Worker API Integration & Security Tests', () => {
 
     // 1. Malformed token structure (fewer than 6 parts)
     const malformedRes = await worker.fetch(
-      new Request('http://localhost/api/v1/private/content/item-1/preview?token=invalid:structure', {
-        headers: authHeaders,
-      }),
+      new Request(
+        'http://localhost/api/v1/private/content/item-1/preview?token=invalid:structure',
+        {
+          headers: authHeaders,
+        },
+      ),
       env,
     );
     expect(malformedRes.status).toBe(403);
@@ -211,9 +232,12 @@ describe('Worker API Integration & Security Tests', () => {
 
     // 2. Cross-record mismatch (token id != route id)
     const crossRecordRes = await worker.fetch(
-      new Request(`http://localhost/api/v1/private/content/item-1/preview?token=item-OTHER:${testOwnerId}:1:preview:1999999999999:sig`, {
-        headers: authHeaders,
-      }),
+      new Request(
+        `http://localhost/api/v1/private/content/item-1/preview?token=item-OTHER:${testOwnerId}:1:preview:1999999999999:sig`,
+        {
+          headers: authHeaders,
+        },
+      ),
       env,
     );
     expect(crossRecordRes.status).toBe(403);
@@ -222,9 +246,12 @@ describe('Worker API Integration & Security Tests', () => {
 
     // 3. Cross-purpose mismatch (purpose != 'preview')
     const crossPurposeRes = await worker.fetch(
-      new Request(`http://localhost/api/v1/private/content/item-1/preview?token=item-1:${testOwnerId}:1:export:1999999999999:sig`, {
-        headers: authHeaders,
-      }),
+      new Request(
+        `http://localhost/api/v1/private/content/item-1/preview?token=item-1:${testOwnerId}:1:export:1999999999999:sig`,
+        {
+          headers: authHeaders,
+        },
+      ),
       env,
     );
     expect(crossPurposeRes.status).toBe(403);
@@ -233,9 +260,12 @@ describe('Worker API Integration & Security Tests', () => {
 
     // 4. Expired token (expiresAt in past)
     const expiredRes = await worker.fetch(
-      new Request(`http://localhost/api/v1/private/content/item-1/preview?token=item-1:${testOwnerId}:1:preview:1000000000000:sig`, {
-        headers: authHeaders,
-      }),
+      new Request(
+        `http://localhost/api/v1/private/content/item-1/preview?token=item-1:${testOwnerId}:1:preview:1000000000000:sig`,
+        {
+          headers: authHeaders,
+        },
+      ),
       env,
     );
     expect(expiredRes.status).toBe(403);
@@ -244,29 +274,50 @@ describe('Worker API Integration & Security Tests', () => {
   });
 
   it('M3 SECURITY (Requirement 9): Private evidence & artifact APIs fail closed without auth (401 AUTH_REQUIRED)', async () => {
-    const unauthEv = await worker.fetch(new Request('http://localhost/api/v1/private/evidence'), env);
+    const unauthEv = await worker.fetch(
+      new Request('http://localhost/api/v1/private/evidence'),
+      env,
+    );
     expect(unauthEv.status).toBe(401);
 
-    const unauthArt = await worker.fetch(new Request('http://localhost/api/v1/private/artifacts'), env);
+    const unauthArt = await worker.fetch(
+      new Request('http://localhost/api/v1/private/artifacts'),
+      env,
+    );
     expect(unauthArt.status).toBe(401);
 
-    const unauthDl = await worker.fetch(new Request('http://localhost/api/v1/private/artifacts/art-1/download'), env);
+    const unauthDl = await worker.fetch(
+      new Request('http://localhost/api/v1/private/artifacts/art-1/download'),
+      env,
+    );
     expect(unauthDl.status).toBe(401);
   });
 
   it('M3 SECURITY (Gate 1 & 4): Zero existence leakage for private, uneligible, disputed, revoked, or archived evidence (404 RESOURCE_NOT_FOUND)', async () => {
-    const resPrivate = await worker.fetch(new Request('http://localhost/api/v1/public/evidence/ev-private'), env);
+    const resPrivate = await worker.fetch(
+      new Request('http://localhost/api/v1/public/evidence/ev-private'),
+      env,
+    );
     expect(resPrivate.status).toBe(404);
     const bodyPrivate = (await resPrivate.json()) as { code: string };
     expect(bodyPrivate.code).toBe('RESOURCE_NOT_FOUND');
 
-    const resDisputed = await worker.fetch(new Request('http://localhost/api/v1/public/evidence/ev-disputed'), env);
+    const resDisputed = await worker.fetch(
+      new Request('http://localhost/api/v1/public/evidence/ev-disputed'),
+      env,
+    );
     expect(resDisputed.status).toBe(404);
 
-    const resRevoked = await worker.fetch(new Request('http://localhost/api/v1/public/evidence/ev-revoked'), env);
+    const resRevoked = await worker.fetch(
+      new Request('http://localhost/api/v1/public/evidence/ev-revoked'),
+      env,
+    );
     expect(resRevoked.status).toBe(404);
 
-    const resArchived = await worker.fetch(new Request('http://localhost/api/v1/public/evidence/ev-archived'), env);
+    const resArchived = await worker.fetch(
+      new Request('http://localhost/api/v1/public/evidence/ev-archived'),
+      env,
+    );
     expect(resArchived.status).toBe(404);
   });
 
@@ -279,7 +330,9 @@ describe('Worker API Integration & Security Tests', () => {
     const mockDbPublic = {
       prepare() {
         return {
-          bind() { return this; },
+          bind() {
+            return this;
+          },
           async first() {
             return {
               id: 'art-1',
@@ -295,8 +348,12 @@ describe('Worker API Integration & Security Tests', () => {
               updated_at: new Date().toISOString(),
             };
           },
-          async all() { return { results: [] }; },
-          async run() { return { meta: { changes: 1 } }; },
+          async all() {
+            return { results: [] };
+          },
+          async run() {
+            return { meta: { changes: 1 } };
+          },
         };
       },
     };
@@ -324,7 +381,11 @@ describe('Worker API Integration & Security Tests', () => {
 
     // 1. HTML payload rejection
     const htmlForm = new FormData();
-    htmlForm.append('file', new Blob(['<html><script>alert(1)</script></html>'], { type: 'text/html' }), 'payload.html');
+    htmlForm.append(
+      'file',
+      new Blob(['<html><script>alert(1)</script></html>'], { type: 'text/html' }),
+      'payload.html',
+    );
     const htmlRes = await worker.fetch(
       new Request('http://localhost/api/v1/private/artifacts/upload', {
         method: 'POST',
@@ -337,7 +398,11 @@ describe('Worker API Integration & Security Tests', () => {
 
     // 2. Malicious SVG payload rejection
     const svgForm = new FormData();
-    svgForm.append('file', new Blob(['<svg><script>alert("xss")</script></svg>'], { type: 'image/svg+xml' }), 'image.svg');
+    svgForm.append(
+      'file',
+      new Blob(['<svg><script>alert("xss")</script></svg>'], { type: 'image/svg+xml' }),
+      'image.svg',
+    );
     const svgRes = await worker.fetch(
       new Request('http://localhost/api/v1/private/artifacts/upload', {
         method: 'POST',
@@ -350,7 +415,11 @@ describe('Worker API Integration & Security Tests', () => {
 
     // 3. JavaScript payload rejection
     const jsForm = new FormData();
-    jsForm.append('file', new Blob(['console.log("malicious")'], { type: 'application/javascript' }), 'script.js');
+    jsForm.append(
+      'file',
+      new Blob(['console.log("malicious")'], { type: 'application/javascript' }),
+      'script.js',
+    );
     const jsRes = await worker.fetch(
       new Request('http://localhost/api/v1/private/artifacts/upload', {
         method: 'POST',
@@ -383,11 +452,14 @@ describe('Worker API Integration & Security Tests', () => {
 
     // 1. Dry run report mode
     const dryRunRes = await worker.fetch(
-      new Request('http://localhost/api/v1/private/artifacts/reconcile?dryRun=true&limit=10&safetyAgeMinutes=15', {
-        method: 'POST',
-        headers: authHeaders,
-        body: JSON.stringify({ dryRun: true }),
-      }),
+      new Request(
+        'http://localhost/api/v1/private/artifacts/reconcile?dryRun=true&limit=10&safetyAgeMinutes=15',
+        {
+          method: 'POST',
+          headers: authHeaders,
+          body: JSON.stringify({ dryRun: true }),
+        },
+      ),
       { ...env, DB: mockDb as any },
     );
     expect(dryRunRes.status).toBe(200);
@@ -397,7 +469,10 @@ describe('Worker API Integration & Security Tests', () => {
   });
 
   it('M3 GATE 5: Publication eligibility boundary tests (future scheduled_for & embargo_until return 404)', async () => {
-    const resEmbargo = await worker.fetch(new Request('http://localhost/api/v1/public/evidence/ev-embargoed'), env);
+    const resEmbargo = await worker.fetch(
+      new Request('http://localhost/api/v1/public/evidence/ev-embargoed'),
+      env,
+    );
     expect(resEmbargo.status).toBe(404);
     const bodyEmbargo = (await resEmbargo.json()) as { code: string };
     expect(bodyEmbargo.code).toBe('RESOURCE_NOT_FOUND');

@@ -195,7 +195,9 @@ describe('validateEvidenceLinkHasSingleTarget', () => {
 // ---------------------------------------------------------------------------
 describe('assertNoNumericProficiency', () => {
   it('does not throw for safe objects', () => {
-    expect(() => assertNoNumericProficiency({ name: 'TypeScript', maturity: 'applied' })).not.toThrow();
+    expect(() =>
+      assertNoNumericProficiency({ name: 'TypeScript', maturity: 'applying' }),
+    ).not.toThrow();
   });
 
   it('throws for "proficiency" field', () => {
@@ -203,7 +205,9 @@ describe('assertNoNumericProficiency', () => {
   });
 
   it('throws for "proficiency_percent" field', () => {
-    expect(() => assertNoNumericProficiency({ proficiency_percent: 0.85 })).toThrow('INVARIANT VIOLATION');
+    expect(() => assertNoNumericProficiency({ proficiency_percent: 0.85 })).toThrow(
+      'INVARIANT VIOLATION',
+    );
   });
 
   it('throws for "score" field', () => {

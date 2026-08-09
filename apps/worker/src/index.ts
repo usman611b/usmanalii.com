@@ -18,6 +18,7 @@ import { globalErrorHandler } from './middleware/error-handler.js';
 import { authenticate, type AuthVariables } from './middleware/auth.js';
 import { publicRoutes } from './routes/public.js';
 import { privateRoutes } from './routes/private.js';
+import { processReconciliationQueue } from '@usmanalii/database';
 
 export interface WorkerEnv {
   DB: D1Database;
@@ -72,6 +73,13 @@ app.notFound((c) => {
 
 export { app };
 
+export function handleScheduledReconciliation(env: WorkerEnv, ctx: ExecutionContext): void {
+  ctx.waitUntil(processReconciliationQueue(env.DB, env.ARTIFACTS_BUCKET ?? env.R2_PRIVATE));
+}
+
 export default {
   fetch: app.fetch,
+  async scheduled(_controller: ScheduledController, env: WorkerEnv, ctx: ExecutionContext) {
+    handleScheduledReconciliation(env, ctx);
+  },
 } satisfies ExportedHandler<WorkerEnv>;

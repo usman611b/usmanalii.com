@@ -5,7 +5,12 @@ import { GraphVisualization } from '../../../components/GraphVisualization';
 const mockNodes: any[] = [
   { id: 'skill-1', name: 'TypeScript', type: 'skill', category: 'programming_language' },
   { id: 'skill-2', name: 'API Security & OAuth', type: 'skill', category: 'security' },
-  { id: 'cap-1', name: 'Design Secure Multi-Tenant APIs', type: 'capability', stage: 'delivered' },
+  {
+    id: 'cap-1',
+    name: 'Design Secure Multi-Tenant APIs',
+    type: 'capability',
+    stage: 'demonstrated',
+  },
 ];
 
 const mockEdges: any[] = [
@@ -19,7 +24,10 @@ const mockEdges: any[] = [
     <div class="flex items-center justify-between">
       <div>
         <h2 class="text-xl font-bold text-white">Skills & Capabilities Graph Engine</h2>
-        <p class="text-xs text-[#9CAAC1] mt-1">Explore typed graph relationships, evidence-backed capabilities, and progressive enhancement visualization.</p>
+        <p class="text-xs text-[#9CAAC1] mt-1">
+          Explore typed graph relationships, evidence-backed capabilities, and progressive
+          enhancement visualization.
+        </p>
       </div>
     </div>
 

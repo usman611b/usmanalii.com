@@ -44,7 +44,11 @@ describe('Milestone M3 — Evidence Ledger & Provenance Engine Tests', () => {
       canonicalLocator: 'https://github.com/repo/commit/123',
     };
 
-    const merged = mergeWithOwnerOverrideProtection(existing as EvidenceItemEntity, incomingSync, false);
+    const merged = mergeWithOwnerOverrideProtection(
+      existing as EvidenceItemEntity,
+      incomingSync,
+      false,
+    );
 
     expect(merged.title).toBe('Owner Authored Title');
     expect(merged.description).toBe('Owner Authored Description');
@@ -52,9 +56,15 @@ describe('Milestone M3 — Evidence Ledger & Provenance Engine Tests', () => {
   });
 
   it('4. validateEvidenceLinkTarget enforces single-target edge invariant', () => {
-    expect(validateEvidenceLinkTarget({ targetType: 'project', targetId: 'proj-1' as any }).valid).toBe(true);
-    expect(validateEvidenceLinkTarget({ targetType: 'claim', targetId: 'claim-1' as any }).valid).toBe(true);
-    expect(validateEvidenceLinkTarget({ targetType: 'invalid' as any, targetId: 'id' as any }).valid).toBe(false);
+    expect(
+      validateEvidenceLinkTarget({ targetType: 'project', targetId: 'proj-1' as any }).valid,
+    ).toBe(true);
+    expect(
+      validateEvidenceLinkTarget({ targetType: 'claim', targetId: 'claim-1' as any }).valid,
+    ).toBe(true);
+    expect(
+      validateEvidenceLinkTarget({ targetType: 'invalid' as any, targetId: 'id' as any }).valid,
+    ).toBe(false);
   });
 
   it('5. filterPublicEvidence excludes private, disputed, revoked, archived, and future embargoed items', () => {
@@ -69,13 +79,40 @@ describe('Milestone M3 — Evidence Ledger & Provenance Engine Tests', () => {
       embargoUntil: null,
     };
 
-    const privateItem: Partial<EvidenceItemEntity> = { ...publicItem, id: 'ev-2' as any, visibility: 'private' };
-    const disputedItem: Partial<EvidenceItemEntity> = { ...publicItem, id: 'ev-3' as any, verificationState: 'disputed' };
-    const revokedItem: Partial<EvidenceItemEntity> = { ...publicItem, id: 'ev-4' as any, verificationState: 'revoked' };
-    const archivedItem: Partial<EvidenceItemEntity> = { ...publicItem, id: 'ev-5' as any, archivedAt: new Date().toISOString() as any };
-    const embargoedItem: Partial<EvidenceItemEntity> = { ...publicItem, id: 'ev-6' as any, embargoUntil: futureEmbargo as any };
+    const privateItem: Partial<EvidenceItemEntity> = {
+      ...publicItem,
+      id: 'ev-2' as any,
+      visibility: 'private',
+    };
+    const disputedItem: Partial<EvidenceItemEntity> = {
+      ...publicItem,
+      id: 'ev-3' as any,
+      verificationState: 'disputed',
+    };
+    const revokedItem: Partial<EvidenceItemEntity> = {
+      ...publicItem,
+      id: 'ev-4' as any,
+      verificationState: 'revoked',
+    };
+    const archivedItem: Partial<EvidenceItemEntity> = {
+      ...publicItem,
+      id: 'ev-5' as any,
+      archivedAt: new Date().toISOString() as any,
+    };
+    const embargoedItem: Partial<EvidenceItemEntity> = {
+      ...publicItem,
+      id: 'ev-6' as any,
+      embargoUntil: futureEmbargo as any,
+    };
 
-    const items = [publicItem, privateItem, disputedItem, revokedItem, archivedItem, embargoedItem] as EvidenceItemEntity[];
+    const items = [
+      publicItem,
+      privateItem,
+      disputedItem,
+      revokedItem,
+      archivedItem,
+      embargoedItem,
+    ] as EvidenceItemEntity[];
 
     const publicEligible = filterPublicEvidence(items, now);
     expect(publicEligible).toHaveLength(1);
@@ -83,10 +120,27 @@ describe('Milestone M3 — Evidence Ledger & Provenance Engine Tests', () => {
   });
 
   it('6. filterPublicArtifacts excludes private, deleted, and archived artifacts', () => {
-    const publicArt: Partial<ArtifactEntity> = { id: 'art-1' as any, visibility: 'public', deletedAt: null, archivedAt: null };
-    const privateArt: Partial<ArtifactEntity> = { ...publicArt, id: 'art-2' as any, visibility: 'private' };
-    const deletedArt: Partial<ArtifactEntity> = { ...publicArt, id: 'art-3' as any, deletedAt: new Date().toISOString() as any };
-    const archivedArt: Partial<ArtifactEntity> = { ...publicArt, id: 'art-4' as any, archivedAt: new Date().toISOString() as any };
+    const publicArt: Partial<ArtifactEntity> = {
+      id: 'art-1' as any,
+      visibility: 'public',
+      deletedAt: null,
+      archivedAt: null,
+    };
+    const privateArt: Partial<ArtifactEntity> = {
+      ...publicArt,
+      id: 'art-2' as any,
+      visibility: 'private',
+    };
+    const deletedArt: Partial<ArtifactEntity> = {
+      ...publicArt,
+      id: 'art-3' as any,
+      deletedAt: new Date().toISOString() as any,
+    };
+    const archivedArt: Partial<ArtifactEntity> = {
+      ...publicArt,
+      id: 'art-4' as any,
+      archivedAt: new Date().toISOString() as any,
+    };
 
     const arts = [publicArt, privateArt, deletedArt, archivedArt] as ArtifactEntity[];
 
@@ -97,7 +151,9 @@ describe('Milestone M3 — Evidence Ledger & Provenance Engine Tests', () => {
 
   it('7. validateVerificationStateTransition disallows invalid transitions like revoked -> source_verified', () => {
     expect(validateVerificationStateTransition('revoked', 'source_verified').valid).toBe(false);
-    expect(validateVerificationStateTransition('archived', 'automatically_observed').valid).toBe(false);
+    expect(validateVerificationStateTransition('archived', 'automatically_observed').valid).toBe(
+      false,
+    );
   });
 
   it('8. validateEvidenceLinkTarget rejects null, empty, or invalid targets', () => {
@@ -150,7 +206,8 @@ describe('Milestone M3 — Evidence Ledger & Provenance Engine Tests', () => {
   });
 
   it('11. traverseBoundedGraph respects depth & node bounds and handles cycle safety', async () => {
-    const { traverseBoundedGraph, filterPublicGraphProjection } = await import('./graph-traversal.js');
+    const { traverseBoundedGraph, filterPublicGraphProjection } =
+      await import('./graph-traversal.js');
 
     const nodes: any[] = [
       { id: 'n1', name: 'Skill 1', type: 'skill', visibility: 'public' },
@@ -173,8 +230,16 @@ describe('Milestone M3 — Evidence Ledger & Provenance Engine Tests', () => {
   it('12. encodeCursor & decodeCursor format and validate pagination cursors safely', async () => {
     const { encodeCursor, decodeCursor } = await import('./graph-traversal.js');
 
-    const cursor = encodeCursor(10);
-    expect(decodeCursor(cursor)).toBe(10);
-    expect(() => decodeCursor('invalid-cursor!')).toThrow('INVALID_CURSOR');
+    const context = { startNodeId: 'n1', maxDepth: 3, maxNodes: 50, maxEdges: 100 };
+    const cursor = encodeCursor(10, context);
+    expect(decodeCursor(cursor, context)).toBe(10);
+    expect(() => decodeCursor('invalid-cursor!', context)).toThrow('INVALID_CURSOR');
+    expect(() => decodeCursor(cursor, { ...context, startNodeId: 'forged' })).toThrow(
+      'INVALID_CURSOR',
+    );
+    const forged = Buffer.from(JSON.stringify({ version: 1, offset: 10001, ...context })).toString(
+      'base64url',
+    );
+    expect(() => decodeCursor(forged, context)).toThrow('INVALID_CURSOR');
   });
 });
