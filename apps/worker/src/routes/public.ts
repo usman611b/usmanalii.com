@@ -17,7 +17,7 @@ import {
 } from '@usmanalii/database';
 import { filterPublicEvidence, filterPublicArtifacts } from '@usmanalii/evidence';
 import { formatContentDisposition } from './artifacts.js';
-import type { ContentType, EntityId } from '@usmanalii/domain';
+import { type ContentType, type EntityId, computeActivityHeatmap } from '@usmanalii/domain';
 
 export const publicRoutes = new Hono<{
   Bindings: WorkerEnv;
@@ -39,6 +39,41 @@ publicRoutes.get('/profile', (c) => {
     visibility: 'public',
     requestId: c.get('requestId'),
   });
+});
+
+// Public activity heatmap endpoint
+publicRoutes.get('/activity', async (c) => {
+  const timezone = c.req.query('timezone') || 'Asia/Karachi';
+  const now = new Date();
+  const oneYearAgo = new Date(now.getTime() - 365 * 86400 * 1000).toISOString();
+  const nowIso = now.toISOString();
+
+  // Query publicly eligible events from D1
+  const sql = `
+    SELECT id, captured_at as date_iso, evidence_type as type, visibility, 'published' as state
+    FROM evidence_items
+    WHERE visibility = 'public' AND archived_at IS NULL
+    UNION ALL
+    SELECT id, created_at as date_iso, 'journal_entry' as type, visibility, state
+    FROM content_items
+    WHERE visibility = 'public' AND state = 'published' AND deleted_at IS NULL
+    UNION ALL
+    SELECT id, deployed_at as date_iso, 'deployment' as type, visibility, publication_state as state
+    FROM deployments
+    WHERE visibility = 'public' AND publication_state = 'published' AND deleted_at IS NULL
+  `;
+
+  const { results } = await c.env.DB.prepare(sql).all<Record<string, unknown>>();
+  const events = (results ?? []).map((row) => ({
+    id: String(row.id),
+    dateIso: String(row.date_iso || new Date().toISOString()),
+    type: String(row.type),
+    visibility: String(row.visibility) as any,
+    isPublished: true,
+  }));
+
+  const projection = computeActivityHeatmap(events, oneYearAgo, nowIso, timezone, true);
+  return c.json({ projection, requestId: c.get('requestId') });
 });
 
 // Contact form mutation endpoint

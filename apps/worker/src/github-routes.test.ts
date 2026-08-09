@@ -1,0 +1,130 @@
+import { describe, expect, test } from 'vitest';
+import { app } from './index.js';
+
+describe('Cloudflare Worker GitHub API Routes & Security (M6)', () => {
+  const createMockEnv = (overrides: Record<string, unknown> = {}) => {
+    const repos = new Map<string, any>();
+    const candidates = new Map<string, any>();
+    const identities = new Map<string, any>();
+
+    const db: any = {
+      prepare(sql: string) {
+        const createQueryObj = (...params: any[]) => ({
+          async first() {
+            if (sql.includes('github_owner_identities')) {
+              return identities.get(params[0]) || null;
+            }
+            if (sql.includes('github_repositories')) {
+              return repos.get(params[1]) || null;
+            }
+            if (sql.includes('evidence_candidates')) {
+              return candidates.get(params[1]) || null;
+            }
+            return null;
+          },
+          async all() {
+            if (sql.includes('github_repositories')) {
+              return { results: Array.from(repos.values()) };
+            }
+            if (sql.includes('evidence_candidates')) {
+              return { results: Array.from(candidates.values()) };
+            }
+            return { results: [] };
+          },
+          async run() {
+            if (sql.includes('INSERT INTO github_owner_identities')) {
+              identities.set(params[1], {
+                id: params[0],
+                owner_id: params[1],
+                github_user_id: params[2],
+                github_login: params[3],
+                commit_emails_json: params[4],
+                verification_status: params[5],
+                owner_approval: params[6],
+              });
+              return { meta: { rows_written: 1 } };
+            }
+            if (sql.includes('UPDATE github_repositories SET selected_for_sync')) {
+              const r = repos.get(params[3]);
+              if (r) r.selected_for_sync = params[0];
+              return { meta: { rows_written: 1 } };
+            }
+            return { meta: { rows_written: 1 } };
+          },
+          bind(...newParams: any[]) {
+            return createQueryObj(...newParams);
+          },
+        });
+
+        return createQueryObj();
+      },
+      async batch() {
+        return [];
+      },
+    };
+
+    return {
+      DB: db,
+      R2_PRIVATE: {} as any,
+      R2_PUBLIC: {} as any,
+      PUBLICATION_QUEUE: {} as any,
+      OWNER_EMAIL: 'usman@example.com',
+      CF_ACCESS_TEAM_DOMAIN: 'usmanalii.cloudflareaccess.com',
+      CF_ACCESS_AUD_TAG: 'test-aud',
+      ENVIRONMENT: 'test',
+      GITHUB_TOKEN: 'secret-token-xyz-never-leak',
+      ...overrides,
+    };
+  };
+
+  test('GET /api/v1/private/integrations/github/status requires auth and returns active status without leaking token', async () => {
+    const env = createMockEnv();
+    const req = new Request('http://localhost/api/v1/private/integrations/github/status', {
+      headers: {
+        Authorization: 'Bearer test-jwt-token',
+      },
+    });
+
+    const res = await app.fetch(req, env);
+    expect(res.status).toBe(200);
+
+    const body = (await res.json()) as any;
+    expect(body.status).toBe('inactive'); // Identity not set yet
+    expect(body.hasToken).toBe(true);
+    expect(JSON.stringify(body)).not.toContain('secret-token-xyz-never-leak');
+  });
+
+  test('PUT /api/v1/private/integrations/github/identity updates owner identity', async () => {
+    const env = createMockEnv();
+    const req = new Request('http://localhost/api/v1/private/integrations/github/identity', {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        Origin: 'http://localhost:4321',
+        Authorization: 'Bearer test-jwt-token',
+      },
+      body: JSON.stringify({
+        githubUserId: 998877,
+        githubLogin: 'usmanalii',
+        commitEmails: ['usman@example.com'],
+      }),
+    });
+
+    const res = await app.fetch(req, env);
+    expect(res.status).toBe(200);
+    const body = (await res.json()) as any;
+    expect(body.identity.githubLogin).toBe('usmanalii');
+  });
+
+  test('GET /api/v1/public/activity returns public heatmap projection', async () => {
+    const env = createMockEnv();
+    const req = new Request('http://localhost/api/v1/public/activity?timezone=UTC');
+    const res = await app.fetch(req, env);
+
+    expect(res.status).toBe(200);
+    const body = (await res.json()) as any;
+    expect(body.projection).toBeDefined();
+    expect(body.projection.timezone).toBe('UTC');
+    expect(body.projection.cells).toBeDefined();
+  });
+});

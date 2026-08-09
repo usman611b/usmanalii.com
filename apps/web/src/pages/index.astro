@@ -1,6 +1,7 @@
 ---
 import BaseLayout from '../layouts/BaseLayout.astro';
 import { ModeSwitcher } from '../components/ModeSwitcher';
+import { ActivityHeatmap } from '../components/ActivityHeatmap';
 ---
 
 <BaseLayout title="usmanalii.com — Personal Career OS" currentPath="/">
@@ -39,6 +40,11 @@ import { ModeSwitcher } from '../components/ModeSwitcher';
         </a>
       </div>
     </div>
+  </section>
+
+  <!-- Engineering Activity Heatmap -->
+  <section class="py-8 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto border-t border-white/10">
+    <ActivityHeatmap client:load />
   </section>
 
   <!-- Proof At A Glance Bento Grid -->

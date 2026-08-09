@@ -39,7 +39,9 @@ import {
   classifyAndValidateUrl,
   validateAdrSupersession,
   validateProjectRelationship,
+  computeActivityHeatmap,
 } from '@usmanalii/domain';
+import { githubRoutes } from './github.js';
 
 type OwnedLinkKind = 'project' | 'evidence' | 'artifact' | 'skill' | 'capability';
 
@@ -1505,4 +1507,43 @@ privateRoutes.post('/projects/:id/relationships', async (c) => {
     }
     throw err;
   }
+});
+
+/** Mount GitHub integration routes (`/api/v1/private/integrations/github/*`) */
+privateRoutes.route('/integrations/github', githubRoutes);
+
+/** GET /api/v1/private/activity — Private activity ledger & heatmap projection */
+privateRoutes.get('/activity', async (c) => {
+  const authContext = c.get('authContext')!;
+  const timezone = c.req.query('timezone') || 'Asia/Karachi';
+  const now = new Date();
+  const oneYearAgo = new Date(now.getTime() - 365 * 86400 * 1000).toISOString();
+  const nowIso = now.toISOString();
+
+  // Query ALL owner activity events from D1 (including private)
+  const sql = `
+    SELECT id, captured_at as date_iso, evidence_type as type, visibility, 'published' as state
+    FROM evidence_items
+    WHERE owner_id = ? AND archived_at IS NULL
+    UNION ALL
+    SELECT id, created_at as date_iso, 'journal_entry' as type, visibility, state
+    FROM content_items
+    WHERE owner_id = ? AND deleted_at IS NULL
+    UNION ALL
+    SELECT id, deployed_at as date_iso, 'deployment' as type, visibility, publication_state as state
+    FROM deployments
+    WHERE owner_id = ? AND deleted_at IS NULL
+  `;
+
+  const { results } = await c.env.DB.prepare(sql).bind(authContext.ownerId, authContext.ownerId, authContext.ownerId).all<Record<string, unknown>>();
+  const events = (results ?? []).map((row) => ({
+    id: String(row.id),
+    dateIso: String(row.date_iso || new Date().toISOString()),
+    type: String(row.type),
+    visibility: String(row.visibility) as Visibility,
+    isPublished: row.state === 'published',
+  }));
+
+  const projection = computeActivityHeatmap(events, oneYearAgo, nowIso, timezone, false);
+  return c.json({ projection, requestId: c.get('requestId') });
 });

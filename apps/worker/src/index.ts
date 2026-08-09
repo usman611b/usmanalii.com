@@ -18,7 +18,8 @@ import { globalErrorHandler } from './middleware/error-handler.js';
 import { authenticate, type AuthVariables } from './middleware/auth.js';
 import { publicRoutes } from './routes/public.js';
 import { privateRoutes } from './routes/private.js';
-import { processReconciliationQueue } from '@usmanalii/database';
+import { processReconciliationQueue, D1GitHubRepository } from '@usmanalii/database';
+import { GitHubClient, GitHubSyncService } from '@usmanalii/evidence';
 
 export interface WorkerEnv {
   DB: D1Database;
@@ -31,6 +32,7 @@ export interface WorkerEnv {
   CF_ACCESS_AUD_TAG: string;
   PREVIEW_SECRET?: string;
   ENVIRONMENT: string;
+  GITHUB_TOKEN?: string;
 }
 
 const app = new Hono<{ Bindings: WorkerEnv; Variables: AuthVariables }>();
@@ -75,6 +77,12 @@ export { app };
 
 export function handleScheduledReconciliation(env: WorkerEnv, ctx: ExecutionContext): void {
   ctx.waitUntil(processReconciliationQueue(env.DB, env.ARTIFACTS_BUCKET ?? env.R2_PRIVATE));
+  if (env.GITHUB_TOKEN) {
+    const repo = new D1GitHubRepository(env.DB);
+    const client = new GitHubClient({ token: env.GITHUB_TOKEN });
+    const service = new GitHubSyncService(repo);
+    ctx.waitUntil(service.syncSelectedRepositories('owner-1', client));
+  }
 }
 
 export default {

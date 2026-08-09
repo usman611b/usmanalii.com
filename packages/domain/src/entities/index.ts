@@ -1,16 +1,8 @@
 /**
  * @file Domain entity types for usmanalii.com
- *
- * These types encode the MANDATORY product invariants from the approved documents:
- *  - Evidence, skills, capabilities and claims are SEPARATE domain concepts.
- *  - No numeric or percentage skill proficiency field is permitted.
- *  - AI may propose but cannot approve or publish professional facts.
- *  - Every published claim requires approved evidence support.
- *  - All new records default to private.
- *
- * This file is pure TypeScript. It imports nothing from Cloudflare, application
- * adapters, or any package outside this domain package.
  */
+
+export * from './github-types.js';
 
 // ---------------------------------------------------------------------------
 // Shared primitives

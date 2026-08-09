@@ -2,6 +2,7 @@
 import { describe, it, expect } from 'vitest';
 import { D1ContentRepository } from './repositories/content.js';
 import { D1EvidenceRepository, D1ArtifactRepository } from './repositories/evidence.js';
+import { D1GitHubRepository } from './repositories/github.js';
 
 function createMockD1Database(options: { failBatch?: boolean } = {}) {
   const itemsTable = new Map<string, Record<string, unknown>>();
@@ -1134,5 +1135,197 @@ describe('Requirement 1 & 2: Database Integrity & Public Scheduling/Embargo Logi
       expect(call.params[0]).toBe('owner-a');
       expect(call.params[1]).toBe('project-a');
     }
+  });
+
+  it('15. Milestone M6: D1GitHubRepository identity, repos, candidate review and accept', async () => {
+    const identities = new Map<string, any>();
+    const repos = new Map<string, any>();
+    const candidates = new Map<string, any>();
+    const evidenceItems = new Map<string, any>();
+    const evidenceLinks = new Map<string, any>();
+
+    const mockDb: any = {
+      prepare(sql: string) {
+        return {
+          sql,
+          boundParams: [] as any[],
+          bind(...params: any[]) {
+            return {
+              sql,
+              boundParams: params,
+              async first() {
+                if (sql.includes('github_owner_identities')) {
+                  return Array.from(identities.values()).find((i) => i.owner_id === params[0]) || null;
+                }
+                if (sql.includes('github_repositories')) {
+                  return Array.from(repos.values()).find((r) => r.owner_id === params[0] && (r.id === params[1] || r.github_repo_id === params[2])) || null;
+                }
+                if (sql.includes('evidence_candidates')) {
+                  return Array.from(candidates.values()).find((c) => c.owner_id === params[0] && c.id === params[1]) || null;
+                }
+                return null;
+              },
+              async all() {
+                if (sql.includes('github_repositories')) {
+                  return { results: Array.from(repos.values()).filter((r) => r.owner_id === params[0]) };
+                }
+                if (sql.includes('evidence_candidates')) {
+                  return { results: Array.from(candidates.values()).filter((c) => c.owner_id === params[0]) };
+                }
+                return { results: [] };
+              },
+              async run() {
+                if (sql.includes('INSERT INTO github_owner_identities')) {
+                  identities.set(params[0], {
+                    id: params[0],
+                    owner_id: params[1],
+                    github_user_id: params[2],
+                    github_login: params[3],
+                    commit_emails_json: params[4],
+                    verification_status: params[5],
+                    owner_approval: params[6],
+                    last_verified_at: params[7],
+                    created_at: params[8],
+                    updated_at: params[9],
+                  });
+                  return { meta: { rows_written: 1 } };
+                }
+                if (sql.includes('UPDATE github_repositories SET selected_for_sync')) {
+                  const repo = repos.get(params[3]);
+                  if (repo) repo.selected_for_sync = params[0];
+                  return { meta: { rows_written: 1 } };
+                }
+                if (sql.includes('UPDATE github_repositories SET linked_project_id')) {
+                  const repo = repos.get(params[3]);
+                  if (repo) repo.linked_project_id = params[0];
+                  return { meta: { rows_written: 1 } };
+                }
+                if (sql.includes('UPDATE evidence_candidates SET review_state = \'rejected\'')) {
+                  const cand = candidates.get(params[3]);
+                  if (cand) {
+                    cand.review_state = 'rejected';
+                    cand.rejection_reason = params[0];
+                  }
+                  return { meta: { rows_written: 1 } };
+                }
+                return { meta: { rows_written: 1 } };
+              },
+            };
+          },
+        };
+      },
+      async batch(stmts: any[]) {
+        for (const s of stmts) {
+          const params = s.boundParams || s.params || [];
+          const sql = s.sql || '';
+          if (sql.includes('INSERT INTO github_repositories')) {
+            repos.set(params[0], {
+              id: params[0],
+              owner_id: params[1],
+              github_repo_id: params[2],
+              owner_login: params[3],
+              name: params[4],
+              full_name: params[5],
+              description: params[6],
+              is_private: params[7],
+              selected_for_sync: params[20],
+              linked_project_id: null,
+            });
+          }
+          if (sql.includes('INSERT INTO evidence_candidates')) {
+            candidates.set(params[0], {
+              id: params[0],
+              owner_id: params[1],
+              provider: params[2],
+              external_type: params[3],
+              external_id: params[4],
+              repository_id: params[5],
+              source_url: params[6],
+              candidate_type: params[11],
+              candidate_title: params[12],
+              candidate_description: params[13],
+              review_state: 'pending_review',
+              fingerprint: params[17],
+            });
+          }
+          if (sql.includes('INSERT INTO evidence_items')) {
+            evidenceItems.set(params[0], { id: params[0], title: params[7] });
+          }
+          if (/UPDATE\s+evidence_candidates[\s\S]*SET\s+review_state\s*=\s*\?/i.test(sql)) {
+            const cand = candidates.get(params[4]);
+            if (cand) {
+              cand.review_state = params[0];
+              cand.accepted_evidence_item_id = params[1];
+            }
+          }
+          if (sql.includes('INSERT INTO evidence_links')) {
+            evidenceLinks.set(params[0], { id: params[0], target_id: params[2] });
+          }
+        }
+        return [];
+      },
+    };
+
+    const ghRepo = new D1GitHubRepository(mockDb);
+
+    // 1. Identity
+    const ident = await ghRepo.upsertOwnerIdentity('owner-1', {
+      githubUserId: 123,
+      githubLogin: 'usmanalii',
+      commitEmails: ['usman@example.com'],
+    });
+    expect(ident.githubLogin).toBe('usmanalii');
+
+    // 2. Repositories
+    await ghRepo.upsertRepositories('owner-1', [
+      { githubRepoId: 555, ownerLogin: 'usmanalii', name: 'repo-1', fullName: 'usmanalii/repo-1', htmlUrl: 'https://github.com/usmanalii/repo-1' },
+    ]);
+    const repoList = await ghRepo.listRepositories('owner-1');
+    expect(repoList).toHaveLength(1);
+    expect(repoList[0].name).toBe('repo-1');
+
+    // 3. Link Project & Toggle Sync
+    await ghRepo.linkRepositoryToProject('owner-1', 'gh-repo-555', 'proj-100');
+    expect(repos.get('gh-repo-555').linked_project_id).toBe('proj-100');
+
+    await ghRepo.toggleRepositorySync('owner-1', 'gh-repo-555', false);
+    expect(repos.get('gh-repo-555').selected_for_sync).toBe(0);
+
+    // 4. Create Candidates
+    await ghRepo.createCandidates('owner-1', [
+      {
+        provider: 'github',
+        externalType: 'commit',
+        externalId: 'c-1',
+        repositoryId: 'gh-repo-555',
+        sourceUrl: 'https://github.com/usmanalii/repo-1/commit/c-1',
+        sourceCreatedAt: '2026-08-01T00:00:00Z',
+        capturedAt: '2026-08-01T01:00:00Z',
+        contentHash: 'hash-1',
+        attributionStatus: 'verified_owner',
+        candidateType: 'commit',
+        candidateTitle: 'feat: add security middleware',
+        candidateDescription: 'Added CSP headers',
+        fingerprint: 'github:commit:c-1',
+      },
+    ]);
+
+    const candList = await ghRepo.listCandidates('owner-1');
+    expect(candList).toHaveLength(1);
+    expect(candList[0].candidateTitle).toBe('feat: add security middleware');
+
+    // 5. Accept Candidate
+    const { evidenceItemId } = await ghRepo.acceptCandidate('owner-1', candList[0].id, {
+      linkProjectId: 'proj-100',
+    });
+    expect(evidenceItemId).toMatch(/^ev-/);
+    expect(evidenceItems.size).toBe(1);
+    expect(evidenceLinks.size).toBe(1);
+    expect(candidates.get(candList[0].id).review_state).toBe('accepted');
+
+    // 6. Reject Candidate
+    candidates.get(candList[0].id).review_state = 'pending_review';
+    await ghRepo.rejectCandidate('owner-1', candList[0].id, 'Not relevant to portfolio');
+    expect(candidates.get(candList[0].id).review_state).toBe('rejected');
   });
 });
