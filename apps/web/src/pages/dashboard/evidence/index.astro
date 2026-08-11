@@ -3,7 +3,6 @@ import DashboardLayout from '../../../layouts/DashboardLayout.astro';
 import EvidenceBadge from '../../../components/EvidenceBadge.astro';
 import VerificationStatusBadge from '../../../components/VerificationStatusBadge.astro';
 
-// Fictional synthetic fixture evidence items for owner dashboard presentation
 const mockEvidenceItems = [
   {
     id: 'ev-1',
@@ -41,29 +40,31 @@ const mockEvidenceItems = [
 ];
 ---
 
-<DashboardLayout title="Evidence Ledger — Private Dashboard" activeSection="evidence">
-  <div class="space-y-6">
+<DashboardLayout title="Evidence Ledger — Command Center" activeSection="evidence">
+  <div class="space-y-6 font-mono-tech">
     <div class="flex items-center justify-between">
       <div>
-        <h2 class="text-xl font-bold text-white">Evidence Ledger</h2>
+        <h2 class="text-sm font-bold text-white tracking-wide">Evidence Ledger</h2>
         <p class="text-xs text-[#9CAAC1] mt-1">
           Verifiable proof and supporting material for claims, capabilities, and projects.
         </p>
       </div>
       <a
         href="/dashboard/evidence/new"
-        class="px-3 py-1.5 bg-[#22D3EE] text-[#050509] font-bold text-xs rounded-lg hover:opacity-90 transition-opacity flex items-center gap-1"
+        class="px-4 py-2 bg-[#45F3FF] text-[#05060A] font-bold text-xs rounded-lg uppercase tracking-wider hover:opacity-90 transition-opacity flex items-center gap-1"
       >
         + Add Evidence
       </a>
     </div>
 
     <!-- Filters -->
-    <div class="p-4 rounded-xl glass-panel flex flex-wrap items-center justify-between gap-3">
+    <div
+      class="p-4 rounded-xl glass-panel flex flex-wrap items-center justify-between gap-3 text-xs"
+    >
       <div class="flex items-center gap-2 flex-wrap">
         <select
           aria-label="Filter by Evidence Type"
-          class="bg-[#101A31] text-xs text-white border border-white/10 rounded-lg px-2.5 py-1.5"
+          class="bg-[#070A11] text-xs text-white border border-white/10 rounded-lg px-2.5 py-1.5 focus:outline-none focus:border-[#45F3FF]"
         >
           <option value="">All Evidence Types</option>
           <option value="commit">Commit</option>
@@ -75,18 +76,17 @@ const mockEvidenceItems = [
 
         <select
           aria-label="Filter by Verification State"
-          class="bg-[#101A31] text-xs text-white border border-white/10 rounded-lg px-2.5 py-1.5"
+          class="bg-[#070A11] text-xs text-white border border-white/10 rounded-lg px-2.5 py-1.5 focus:outline-none focus:border-[#45F3FF]"
         >
           <option value="">All Verification States</option>
           <option value="owner_verified">Owner Verified</option>
           <option value="source_verified">Source Verified</option>
           <option value="unverified">Unverified</option>
-          <option value="disputed">Disputed</option>
         </select>
 
         <select
           aria-label="Filter by Visibility"
-          class="bg-[#101A31] text-xs text-white border border-white/10 rounded-lg px-2.5 py-1.5"
+          class="bg-[#070A11] text-xs text-white border border-white/10 rounded-lg px-2.5 py-1.5 focus:outline-none focus:border-[#45F3FF]"
         >
           <option value="">All Visibilities</option>
           <option value="private">Private</option>
@@ -98,21 +98,21 @@ const mockEvidenceItems = [
         type="search"
         placeholder="Filter evidence items..."
         aria-label="Filter evidence items"
-        class="bg-[#101A31] text-xs text-white border border-white/10 rounded-lg px-3 py-1.5 w-48 focus:outline-none focus:border-[#22D3EE]"
+        class="bg-[#070A11] text-xs text-white border border-white/10 rounded-lg px-3 py-1.5 w-48 focus:outline-none focus:border-[#45F3FF]"
       />
     </div>
 
     <!-- Evidence Table -->
-    <div class="rounded-xl glass-panel overflow-hidden border border-white/10">
+    <div class="rounded-2xl glass-panel overflow-hidden border border-white/10">
       <table class="w-full text-left border-collapse text-xs">
         <thead>
-          <tr class="bg-[#101A31] border-b border-white/10 text-[#9CAAC1]">
-            <th class="p-3 font-semibold">Title & Type</th>
-            <th class="p-3 font-semibold">Source</th>
-            <th class="p-3 font-semibold">Verification</th>
-            <th class="p-3 font-semibold">Visibility</th>
-            <th class="p-3 font-semibold">Date</th>
-            <th class="p-3 font-semibold text-right">Actions</th>
+          <tr class="bg-[#070A11] border-b border-white/10 text-[10px] text-[#9CAAC1] uppercase">
+            <th class="p-3 font-medium">Title &amp; Type</th>
+            <th class="p-3 font-medium">Source</th>
+            <th class="p-3 font-medium">Verification</th>
+            <th class="p-3 font-medium">Visibility</th>
+            <th class="p-3 font-medium">Date</th>
+            <th class="p-3 font-medium text-right">Actions</th>
           </tr>
         </thead>
         <tbody class="divide-y divide-white/5 text-white">
@@ -120,23 +120,22 @@ const mockEvidenceItems = [
             mockEvidenceItems.map((item) => (
               <tr class="hover:bg-white/5 transition-colors">
                 <td class="p-3">
-                  <div class="font-medium">{item.title}</div>
+                  <div class="font-bold text-white">{item.title}</div>
                   <div class="mt-1 flex items-center gap-1.5">
                     <EvidenceBadge evidenceType={item.evidenceType} />
                   </div>
                 </td>
-                <td class="p-3 font-mono text-[11px] text-[#9CAAC1]">
-                  {item.provider || item.sourceType}
-                </td>
+                <td class="p-3 text-[11px] text-[#9CAAC1]">{item.provider || item.sourceType}</td>
                 <td class="p-3">
                   <VerificationStatusBadge status={item.verificationState} />
                 </td>
-                <td class="p-3 capitalize font-mono text-[11px] text-[#9CAAC1]">
-                  {item.visibility}
-                </td>
-                <td class="p-3 font-mono text-[11px] text-[#9CAAC1]">{item.occurredAt}</td>
+                <td class="p-3 uppercase text-[10px] text-[#9CAAC1]">{item.visibility}</td>
+                <td class="p-3 text-[11px] text-[#9CAAC1]">{item.occurredAt}</td>
                 <td class="p-3 text-right space-x-2">
-                  <a href={`/dashboard/evidence/${item.id}`} class="text-[#22D3EE] hover:underline">
+                  <a
+                    href={`/dashboard/evidence/${item.id}`}
+                    class="text-[#45F3FF] hover:underline font-bold"
+                  >
                     View
                   </a>
                   <a

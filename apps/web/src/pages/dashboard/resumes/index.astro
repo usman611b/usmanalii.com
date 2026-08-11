@@ -1,0 +1,58 @@
+---
+import DashboardLayout from '../../../layouts/DashboardLayout.astro';
+---
+
+<DashboardLayout
+  title="Résumé Variants — Dashboard"
+  description="Manage résumé projections, section ordering, item selection, version history, and exports."
+  currentPath="/dashboard/resumes"
+>
+  <div class="space-y-8 font-mono-tech">
+    <div class="flex items-center justify-between border-b border-white/10 pb-6">
+      <div>
+        <span class="text-xs font-bold text-[#8B5CFF] uppercase tracking-wider"
+          >CURATED PRESENTATIONS</span
+        >
+        <h1 class="text-3xl font-display font-bold text-white uppercase tracking-wide">
+          Résumé Composer
+        </h1>
+        <p class="text-xs text-[#9CAAC1]">
+          Build tailored résumé projections from canonical professional records without fact
+          duplication.
+        </p>
+      </div>
+
+      <button
+        class="px-5 py-2.5 bg-[#45F3FF] text-[#05060A] font-bold text-xs rounded-lg uppercase tracking-wider hover:opacity-90 transition-opacity"
+      >
+        + New Variant
+      </button>
+    </div>
+
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <div class="p-6 rounded-xl glass-panel space-y-4 border border-white/10">
+        <div class="flex items-center justify-between">
+          <h2 class="text-sm font-bold text-white uppercase tracking-wider">
+            General Software Engineering
+          </h2>
+          <span class="px-2 py-0.5 bg-[#45F3FF]/10 text-[#45F3FF] text-[10px] font-bold rounded"
+            >PRIMARY</span
+          >
+        </div>
+        <p class="text-xs text-[#9CAAC1]">Target Audience: General | Version 1</p>
+        <div class="flex gap-2 pt-2">
+          <a
+            href="/dashboard/resumes/general"
+            class="px-3 py-1.5 bg-[#45F3FF] text-[#05060A] text-xs font-bold rounded"
+            >Edit &amp; Compose →</a
+          >
+          <a
+            href="/resume/general"
+            class="px-3 py-1.5 bg-white/10 text-white text-xs font-bold rounded hover:bg-white/20"
+            >Preview</a
+          >
+        </div>
+      </div>
+    </div>
+  </div>
+</DashboardLayout>

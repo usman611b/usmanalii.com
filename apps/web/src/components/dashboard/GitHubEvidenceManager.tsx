@@ -253,15 +253,17 @@ export const GitHubEvidenceManager: React.FC = () => {
       )}
 
       {/* Top Status & Sync Action Bar */}
-      <div className="p-6 rounded-2xl glass-panel flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+      <div className="p-6 rounded-2xl glass-panel flex flex-col md:flex-row items-start md:items-center justify-between gap-4 font-mono-tech">
         <div>
           <div className="flex items-center space-x-3">
-            <h2 className="text-xl font-bold text-white">GitHub Integration Status</h2>
+            <h2 className="text-lg font-bold text-white tracking-wide">
+              GitHub Integration Status
+            </h2>
             <span
-              className={`px-2.5 py-0.5 rounded-full text-xs font-semibold uppercase ${
+              className={`px-2.5 py-0.5 rounded-md text-xs font-bold uppercase ${
                 status?.status === 'active'
-                  ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'
-                  : 'bg-amber-500/10 text-amber-400 border border-amber-500/20'
+                  ? 'bg-[#B8FF5A]/15 text-[#B8FF5A] border border-[#B8FF5A]/30'
+                  : 'bg-[#F59E0B]/15 text-[#F59E0B] border border-[#F59E0B]/30'
               }`}
             >
               ● {status?.status || 'inactive'}
@@ -274,12 +276,12 @@ export const GitHubEvidenceManager: React.FC = () => {
           </p>
         </div>
 
-        <div className="flex items-center space-x-3">
+        <div className="flex items-center space-x-3 text-xs">
           <button
             type="button"
             disabled={syncing || !status?.hasToken}
             onClick={handleDiscover}
-            className="px-4 py-2 bg-white/10 text-white font-semibold text-xs rounded-xl hover:bg-white/20 transition-all disabled:opacity-50"
+            className="px-4 py-2 bg-white/10 text-white font-semibold rounded-lg hover:bg-white/20 transition-all disabled:opacity-50"
           >
             {syncing ? 'Processing...' : 'Discover Repos'}
           </button>
@@ -287,7 +289,7 @@ export const GitHubEvidenceManager: React.FC = () => {
             type="button"
             disabled={syncing || !status?.hasToken}
             onClick={handleSyncNow}
-            className="px-4 py-2 bg-[#22D3EE] text-[#050509] font-bold text-xs rounded-xl hover:opacity-90 transition-opacity disabled:opacity-50"
+            className="px-4 py-2 bg-[#45F3FF] text-[#05060A] font-bold rounded-lg uppercase tracking-wider hover:opacity-90 transition-opacity disabled:opacity-50"
           >
             {syncing ? 'Syncing...' : 'Sync Now'}
           </button>

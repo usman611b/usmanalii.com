@@ -3,17 +3,69 @@ import BaseLayout from '../layouts/BaseLayout.astro';
 ---
 
 <BaseLayout
-  title="About — usmanalii.com"
-  description="Professional narrative and biography of Usman Ali"
+  title="About & Professional History — USMAN ALI"
+  description="Professional narrative, systems engineering philosophy, work experience, education, and background of Usman Ali."
   currentPath="/about"
 >
-  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-    <div class="max-w-3xl space-y-6">
-      <h1 class="text-3xl font-bold text-white tracking-tight">About Usman Ali</h1>
-      <p class="text-base text-[#9CAAC1] leading-relaxed">
-        Systems architect and software engineer focusing on low-latency edge architectures,
-        verifiable evidence models, and clean software design.
-      </p>
+  <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-12 space-y-8">
+    <div class="p-8 rounded-2xl glass-panel space-y-6 font-mono-tech">
+      <div class="space-y-2 border-b border-white/10 pb-6">
+        <div
+          class="inline-flex items-center space-x-2 px-3 py-1 rounded-md bg-[#08111F] border border-[#45F3FF]/30 text-xs text-[#45F3FF]"
+        >
+          <span class="w-2 h-2 rounded-full bg-[#45F3FF] animate-pulse"></span>
+          <span>SYSTEMS ARCHITECT &amp; SOFTWARE ENGINEER</span>
+        </div>
+        <h1 class="text-4xl font-display font-bold text-white uppercase tracking-wide mt-2">
+          ABOUT USMAN ALI
+        </h1>
+      </div>
+
+      <div class="space-y-4 text-sm text-[#9CAAC1] leading-relaxed">
+        <p>
+          Systems architect and software engineer focusing on low-latency edge architectures,
+          distributed storage engines, verifiable evidence models, and clean monorepo software
+          design.
+        </p>
+        <p>
+          Dedicated to building transparent, evidence-backed software systems where every
+          architectural decision, performance experiment, and production deployment is immutably
+          documented and verified.
+        </p>
+      </div>
+
+      <div class="space-y-6 pt-4 border-t border-white/10">
+        <h2 class="text-lg font-bold text-white uppercase tracking-wider">Work Experience</h2>
+        <div class="space-y-4 text-xs text-[#9CAAC1]">
+          <div class="p-4 bg-white/5 rounded-xl border border-white/10 space-y-2">
+            <div class="flex items-center justify-between text-white font-bold">
+              <span>Senior Systems Engineer &amp; Architect</span>
+              <span>2022 — Present</span>
+            </div>
+            <p>Designed and built the Personal Career OS monorepo on Cloudflare Workers and D1.</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="space-y-6 pt-4 border-t border-white/10">
+        <h2 class="text-lg font-bold text-white uppercase tracking-wider">
+          Education &amp; Credentials
+        </h2>
+        <div class="space-y-4 text-xs text-[#9CAAC1]">
+          <div class="p-4 bg-white/5 rounded-xl border border-white/10 space-y-2">
+            <div class="flex items-center justify-between text-white font-bold">
+              <span>B.S. Computer Science / Software Engineering</span>
+              <span>2018 — 2022</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="pt-4 border-t border-white/10 flex flex-wrap gap-4 text-xs">
+        <a href="/resume" class="text-[#45F3FF] hover:underline font-bold">Approved Résumés →</a>
+        <a href="/recruiter" class="text-[#8B5CFF] hover:underline font-bold">Recruiter Mode →</a>
+        <a href="/evidence" class="text-[#FF66BC] hover:underline font-bold">Inspect Evidence →</a>
+      </div>
     </div>
   </div>
 </BaseLayout>

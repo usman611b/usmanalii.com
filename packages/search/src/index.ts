@@ -195,3 +195,78 @@ export function generateProjectSitemapUrls(
     .filter(isProjectEligibleForSearch)
     .map((project) => `${origin}/projects/${encodeURIComponent(project.slug)}`);
 }
+
+// ---------------------------------------------------------------------------
+// Milestone M7 Search Integration — Claims, Experience, Education, Credentials
+// ---------------------------------------------------------------------------
+
+export interface SearchableClaimInput {
+  id: string;
+  wording: string;
+  approvedWording?: string | null;
+  audience: string;
+  context?: string | null;
+  approvalState: string;
+  visibility: string;
+  state: string;
+  archivedAt?: string | null;
+  isEligible: boolean; // Computed by ClaimEligibilityEngine
+}
+
+export interface SearchableRecordInput {
+  id: string;
+  title: string; // company + role or institution + degree
+  description?: string | null;
+  visibility: string;
+  state: string;
+  archivedAt?: string | null;
+}
+
+export function isClaimEligibleForSearch(claim: SearchableClaimInput): boolean {
+  if (claim.visibility !== 'public' || claim.state !== 'published') return false;
+  if (claim.approvalState !== 'approved' || !claim.isEligible) return false;
+  if (claim.archivedAt) return false;
+  return true;
+}
+
+export function isRecordEligibleForSearch(rec: SearchableRecordInput): boolean {
+  if (rec.visibility !== 'public' || rec.state !== 'published') return false;
+  if (rec.archivedAt) return false;
+  return true;
+}
+
+export interface PublicGenericSearchDocument {
+  id: string;
+  type: 'claim' | 'experience' | 'education' | 'credential';
+  title: string;
+  searchableContent: string;
+  indexedAt: string;
+}
+
+export function buildClaimSearchDocument(
+  claim: SearchableClaimInput,
+): PublicGenericSearchDocument | null {
+  if (!isClaimEligibleForSearch(claim)) return null;
+  const wording = claim.approvedWording || claim.wording;
+  return {
+    id: claim.id,
+    type: 'claim',
+    title: wording.slice(0, 100),
+    searchableContent: `${wording} ${claim.context || ''}`.trim(),
+    indexedAt: new Date().toISOString(),
+  };
+}
+
+export function buildRecordSearchDocument(
+  rec: SearchableRecordInput,
+  type: 'experience' | 'education' | 'credential',
+): PublicGenericSearchDocument | null {
+  if (!isRecordEligibleForSearch(rec)) return null;
+  return {
+    id: rec.id,
+    type,
+    title: rec.title,
+    searchableContent: `${rec.title} ${rec.description || ''}`.trim(),
+    indexedAt: new Date().toISOString(),
+  };
+}

@@ -3,15 +3,15 @@ import { colorTokens, typographyTokens, layoutTokens, gradientTokens } from './i
 
 describe('Design System Tokens', () => {
   it('defines required obsidian color foundation', () => {
-    expect(colorTokens.obsidian).toBe('#050509');
-    expect(colorTokens.midnight).toBe('#080D1A');
+    expect(colorTokens.obsidian).toBe('#05060A');
+    expect(colorTokens.midnight).toBe('#08111F');
   });
 
   it('defines required semantic accent colors', () => {
-    expect(colorTokens.cyberCyan).toBe('#22D3EE');
-    expect(colorTokens.electricViolet).toBe('#8B5CF6');
-    expect(colorTokens.hotMagenta).toBe('#EC4899');
-    expect(colorTokens.acidLime).toBe('#B6F43A');
+    expect(colorTokens.cyberCyan).toBe('#45F3FF');
+    expect(colorTokens.electricViolet).toBe('#8B5CFF');
+    expect(colorTokens.hotMagenta).toBe('#FF3DA4');
+    expect(colorTokens.acidLime).toBe('#B8FF5A');
   });
 
   it('defines typography clamp sizes and 65ch measure', () => {

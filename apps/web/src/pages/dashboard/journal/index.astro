@@ -2,101 +2,109 @@
 import DashboardLayout from '../../../layouts/DashboardLayout.astro';
 ---
 
-<DashboardLayout title="Journal & Content Engine — Private Dashboard" activeSection="journal">
-  <div class="space-y-6">
+<DashboardLayout title="Journal & Content Engine — Command Center" activeSection="journal">
+  <div class="space-y-6 font-mono-tech">
     <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
       <div>
-        <h2 class="text-xl font-bold text-white">Journal & Content Engine</h2>
+        <h2 class="text-sm font-bold text-white tracking-wide">Journal &amp; Content Engine</h2>
         <p class="text-xs text-[#9CAAC1] mt-1">
-          Manage notes, journals, deep dives, retrospectives, and revision history.
+          Manage notes, journals, deep dives, retrospectives, and versioned JSON content blocks.
         </p>
       </div>
       <a
         href="/dashboard/journal/new"
-        class="px-4 py-2 bg-[#22D3EE] text-[#050509] font-bold text-xs rounded-xl hover:opacity-90 transition-all flex items-center gap-1.5"
+        class="px-4 py-2 bg-[#45F3FF] text-[#05060A] font-bold text-xs rounded-lg uppercase tracking-wider hover:opacity-90 transition-opacity flex items-center gap-1.5"
       >
         <span>+ New Entry</span>
       </a>
     </div>
 
     <!-- Filters & State Bar -->
-    <div class="flex flex-wrap items-center justify-between gap-4 p-4 rounded-xl glass-panel">
+    <div
+      class="flex flex-wrap items-center justify-between gap-4 p-4 rounded-xl glass-panel text-xs"
+    >
       <div class="flex flex-wrap gap-2">
         <button
           type="button"
-          class="px-3 py-1 text-xs rounded-lg bg-[#22D3EE]/20 text-[#22D3EE] font-semibold"
-          >All (4)</button
+          class="px-3 py-1 text-xs rounded-lg bg-[#45F3FF]/15 text-[#45F3FF] border border-[#45F3FF]/30 font-bold uppercase"
         >
+          All (4)
+        </button>
         <button
           type="button"
-          class="px-3 py-1 text-xs rounded-lg text-[#9CAAC1] hover:text-white transition-colors"
-          >Drafts (1)</button
+          class="px-3 py-1 text-xs rounded-lg text-[#9CAAC1] hover:text-white transition-colors uppercase"
         >
+          Drafts (1)
+        </button>
         <button
           type="button"
-          class="px-3 py-1 text-xs rounded-lg text-[#9CAAC1] hover:text-white transition-colors"
-          >Approved (1)</button
+          class="px-3 py-1 text-xs rounded-lg text-[#9CAAC1] hover:text-white transition-colors uppercase"
         >
+          Approved (1)
+        </button>
         <button
           type="button"
-          class="px-3 py-1 text-xs rounded-lg text-[#9CAAC1] hover:text-white transition-colors"
-          >Published (2)</button
+          class="px-3 py-1 text-xs rounded-lg text-[#9CAAC1] hover:text-white transition-colors uppercase"
         >
+          Published (2)
+        </button>
       </div>
       <input
         type="search"
         placeholder="Filter by title or tag..."
-        class="px-3 py-1.5 bg-[#0B101F] border border-white/10 rounded-lg text-xs text-white placeholder-[#9CAAC1] focus:outline-none focus:border-[#22D3EE]"
+        class="px-3 py-1.5 bg-[#070A11] border border-white/10 rounded-lg text-xs text-white placeholder-[#9CAAC1] focus:outline-none focus:border-[#45F3FF]"
       />
     </div>
 
     <!-- Content Items List -->
     <div class="space-y-4">
       <div
-        class="p-5 rounded-2xl glass-panel flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4"
+        class="p-5 rounded-2xl glass-panel flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border border-white/10"
       >
         <div class="space-y-1">
-          <div class="flex items-center gap-2">
+          <div class="flex items-center gap-2 text-xs">
             <span
-              class="px-2 py-0.5 text-[10px] font-mono rounded bg-emerald-500/20 text-emerald-400 font-semibold"
-              >PUBLISHED</span
+              class="px-2 py-0.5 text-[10px] rounded bg-[#B8FF5A]/15 text-[#B8FF5A] border border-[#B8FF5A]/30 font-bold uppercase"
             >
-            <span class="text-xs text-[#A78BFA] font-mono">Deep Dive</span>
-            <span class="text-xs text-[#9CAAC1]">· 2026-08-08</span>
+              PUBLISHED
+            </span>
+            <span class="text-[#8B5CFF]">Deep Dive</span>
+            <span class="text-[#9CAAC1]">· 2026-08-08</span>
           </div>
-          <h3 class="text-base font-bold text-white">
-            Monorepo Security Architecture & WebCrypto JWT Pipeline
+          <h3 class="text-base font-bold text-white font-display uppercase tracking-wide">
+            Monorepo Security Architecture &amp; WebCrypto JWT Pipeline
           </h3>
           <p class="text-xs text-[#9CAAC1]">
             Canonical post documenting RS256 authorization, CSP headers, and fail-closed D1 models.
           </p>
         </div>
-        <div class="flex items-center gap-2">
+        <div class="flex items-center gap-2 text-xs">
           <a
             href="/journey/monorepo-security-architecture"
-            class="px-3 py-1.5 text-xs text-[#22D3EE] hover:underline">View Public</a
+            class="px-3 py-1.5 text-[#45F3FF] hover:underline">View Public</a
           >
           <a
             href="/dashboard/journal/edit-1?id=entry-1"
-            class="px-3 py-1.5 bg-white/10 text-white text-xs font-semibold rounded-lg hover:bg-white/20 transition-colors"
+            class="px-3 py-1.5 bg-white/10 text-white font-semibold rounded-lg hover:bg-white/20 transition-colors"
             >Edit</a
           >
         </div>
       </div>
 
       <div
-        class="p-5 rounded-2xl glass-panel flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4"
+        class="p-5 rounded-2xl glass-panel flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border border-white/10"
       >
         <div class="space-y-1">
-          <div class="flex items-center gap-2">
+          <div class="flex items-center gap-2 text-xs">
             <span
-              class="px-2 py-0.5 text-[10px] font-mono rounded bg-amber-500/20 text-amber-300 font-semibold"
-              >DRAFT</span
+              class="px-2 py-0.5 text-[10px] rounded bg-[#F59E0B]/15 text-[#F59E0B] border border-[#F59E0B]/30 font-bold uppercase"
             >
-            <span class="text-xs text-[#22D3EE] font-mono">Journal Entry</span>
-            <span class="text-xs text-[#9CAAC1]">· 2026-08-08</span>
+              DRAFT
+            </span>
+            <span class="text-[#45F3FF]">Journal Entry</span>
+            <span class="text-[#9CAAC1]">· 2026-08-08</span>
           </div>
-          <h3 class="text-base font-bold text-white">
+          <h3 class="text-base font-bold text-white font-display uppercase tracking-wide">
             Building the Versioned JSON-Block Content Engine
           </h3>
           <p class="text-xs text-[#9CAAC1]">
@@ -104,10 +112,10 @@ import DashboardLayout from '../../../layouts/DashboardLayout.astro';
             validation.
           </p>
         </div>
-        <div class="flex items-center gap-2">
+        <div class="flex items-center gap-2 text-xs">
           <a
             href="/dashboard/journal/edit-2?id=entry-2"
-            class="px-3 py-1.5 bg-[#22D3EE] text-[#050509] text-xs font-bold rounded-lg hover:opacity-90 transition-opacity"
+            class="px-3 py-1.5 bg-[#45F3FF] text-[#05060A] font-bold rounded-lg hover:opacity-90 transition-opacity"
             >Continue Edit</a
           >
         </div>

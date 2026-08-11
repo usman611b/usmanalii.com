@@ -9,7 +9,10 @@
  */
 
 // Repository interfaces (implementations in M3)
-export type { ProfileRepository } from './repositories/profile.js';
+export { type ProfileRepository, D1ProfileRepository } from './repositories/profile.js';
+export * from './repositories/professional-records.js';
+export * from './repositories/claims.js';
+export * from './repositories/resume.js';
 export { D1ContentRepository } from './repositories/content.js';
 export * from './repositories/evidence.js';
 export * from './repositories/skills.js';

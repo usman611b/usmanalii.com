@@ -1,48 +1,213 @@
 ---
 import DashboardLayout from '../../layouts/DashboardLayout.astro';
+import { ActivityHeatmap } from '../../components/ActivityHeatmap';
+import { ProjectStateTimeline } from '../../components/ProjectStateTimeline';
+import { SkillsEvidenceGraph } from '../../components/SkillsEvidenceGraph';
+
+// Real Data Projections or Honest Empty States
+const pendingInboxCandidates: Array<{
+  id: string;
+  source: string;
+  candidateTitle: string;
+  capturedAt: string;
+  tag: string;
+}> = [];
+
+const activeProjects: Array<{
+  id: string;
+  title: string;
+  slug: string;
+  status: string;
+}> = [];
 ---
 
-<DashboardLayout title="Overview — Private Dashboard" activeSection="overview">
-  <div class="space-y-6">
-    <div class="flex items-center justify-between">
-      <div>
-        <h2 class="text-xl font-bold text-white">System Overview & Health</h2>
-        <p class="text-xs text-[#9CAAC1] mt-1">
-          Single-owner private management dashboard baseline (M1).
-        </p>
+<DashboardLayout title="Overview — Command Center" activeSection="overview">
+  <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start font-mono-tech">
+    <!-- Main Operations (8 Cols) -->
+    <div class="lg:col-span-8 space-y-6">
+      <!-- Workflow 1: Evidence Inbox Table -->
+      <div class="rounded-2xl glass-panel p-5 space-y-4">
+        <div class="flex items-center justify-between text-xs">
+          <div>
+            <h2 class="text-sm font-bold text-white tracking-wide uppercase">Evidence Inbox</h2>
+            <p class="text-[11px] text-[#9CAAC1] font-sans mt-0.5">
+              Review source-backed candidates before they become professional facts.
+            </p>
+          </div>
+          <div class="flex items-center gap-2">
+            <span
+              class="px-2 py-0.5 rounded bg-[#45F3FF]/15 text-[#45F3FF] border border-[#45F3FF]/30 text-[10px] font-bold"
+            >
+              {pendingInboxCandidates.length} pending
+            </span>
+          </div>
+        </div>
+
+        {
+          pendingInboxCandidates.length > 0 ? (
+            <div class="overflow-x-auto">
+              <table class="w-full text-left text-xs text-[#9CAAC1]">
+                <thead>
+                  <tr class="border-b border-white/10 text-[10px] uppercase text-[#9CAAC1]">
+                    <th class="pb-2 font-medium">Source</th>
+                    <th class="pb-2 font-medium">Evidence Candidate</th>
+                    <th class="pb-2 font-medium">Captured</th>
+                    <th class="pb-2 font-medium">Tag</th>
+                    <th class="pb-2 text-right font-medium">Action</th>
+                  </tr>
+                </thead>
+                <tbody class="divide-y divide-white/5 text-[11px]">
+                  {pendingInboxCandidates.map((item) => (
+                    <tr>
+                      <td class="py-2.5 font-bold text-white flex items-center gap-1.5">
+                        <span>{item.source}</span>
+                      </td>
+                      <td class="py-2.5 text-white font-medium">{item.candidateTitle}</td>
+                      <td class="py-2.5 whitespace-nowrap">{item.capturedAt}</td>
+                      <td class="py-2.5">
+                        <span class="px-1.5 py-0.5 rounded bg-white/5 text-[10px] text-[#45F3FF]">
+                          {item.tag}
+                        </span>
+                      </td>
+                      <td class="py-2.5 text-right whitespace-nowrap space-x-2">
+                        <button type="button" class="text-[#B8FF5A] hover:underline font-bold">
+                          Accept
+                        </button>
+                        <button type="button" class="text-[#9CAAC1] hover:underline">
+                          Edit
+                        </button>
+                        <button type="button" class="text-[#F43F5E] hover:underline">
+                          Reject
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          ) : (
+            <div class="p-8 text-center space-y-2 border border-white/5 rounded-xl bg-[#070A11]/60 font-sans">
+              <div class="text-[#45F3FF] font-bold text-xs uppercase font-mono-tech">
+                Review Queue Clear
+              </div>
+              <p class="text-xs text-[#9CAAC1] max-w-sm mx-auto">
+                0 pending candidates in review queue. Trigger GitHub sync to discover new repository
+                commits and pull requests.
+              </p>
+            </div>
+          )
+        }
       </div>
-      <button
-        type="button"
-        class="px-3 py-1.5 bg-[#22D3EE] text-[#050509] font-bold text-xs rounded-lg hover:opacity-90 transition-opacity"
-      >
-        Sync Cloudflare D1
-      </button>
+
+      <!-- Workflow 2 & 3: GitHub Sync & Activity Heatmap -->
+      <div class="grid grid-cols-1 sm:grid-cols-12 gap-6">
+        <!-- Sync Status Card (5 Cols) -->
+        <div
+          class="sm:col-span-5 rounded-2xl glass-panel p-5 space-y-4 text-xs flex flex-col justify-between"
+        >
+          <div>
+            <div class="flex items-center justify-between mb-2">
+              <span class="text-white font-bold tracking-wide flex items-center gap-2">
+                <span>GitHub Sync</span>
+              </span>
+              <span
+                class="px-2 py-0.5 rounded bg-[#B8FF5A]/15 text-[#B8FF5A] border border-[#B8FF5A]/30 text-[10px] font-bold"
+              >
+                Ready ●
+              </span>
+            </div>
+            <p class="text-[11px] text-[#9CAAC1] font-sans">Read-only GITHUB_TOKEN integration.</p>
+          </div>
+
+          <div class="space-y-2 text-[11px]">
+            <div class="flex justify-between border-b border-white/5 pb-1">
+              <span>Status:</span>
+              <span class="text-[#B8FF5A] font-bold">Connected</span>
+            </div>
+            <div class="flex justify-between border-b border-white/5 pb-1">
+              <span>Sync Mode:</span>
+              <span class="text-white font-bold">Incremental</span>
+            </div>
+          </div>
+
+          <a
+            href="/dashboard/integrations/github"
+            class="w-full py-2 bg-[#45F3FF] text-[#05060A] font-bold rounded-lg hover:opacity-90 transition-opacity uppercase tracking-wider text-[11px] text-center block"
+          >
+            Manage GitHub Sync
+          </a>
+        </div>
+
+        <!-- Activity Signal Heatmap (7 Cols) -->
+        <div class="sm:col-span-7 rounded-2xl glass-panel p-5 space-y-3">
+          <div class="flex items-center justify-between text-xs">
+            <span class="text-white font-bold tracking-wider uppercase">Activity Signal</span>
+            <span class="text-[10px] text-[#9CAAC1]">365 Days</span>
+          </div>
+          <ActivityHeatmap isPrivateView={true} client:load />
+        </div>
+      </div>
+
+      <!-- Project State Timeline & Skills Evidence Graph Grid -->
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <ProjectStateTimeline client:load />
+        <SkillsEvidenceGraph client:load />
+      </div>
     </div>
 
-    <!-- Health Metrics Grid -->
-    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-      <div class="p-4 rounded-xl glass-panel">
-        <span class="text-xs text-[#9CAAC1]">Pending Approvals</span>
-        <p class="text-2xl font-bold text-white mt-1">0</p>
-        <span class="text-[10px] text-emerald-400 mt-1 inline-block">● Up to date</span>
+    <!-- Active Workflows Sidebar (4 Cols) -->
+    <div class="lg:col-span-4 space-y-6">
+      <!-- Workflow 4: Active Projects -->
+      <div class="rounded-2xl glass-panel p-5 space-y-4">
+        <div class="flex items-center justify-between text-xs border-b border-white/10 pb-3">
+          <h3 class="font-bold text-white uppercase tracking-wide">Active Projects</h3>
+          <a href="/dashboard/projects/new" class="text-[#45F3FF] hover:underline">+ New</a>
+        </div>
+
+        {
+          activeProjects.length > 0 ? (
+            <div class="space-y-3">
+              {activeProjects.map((p) => (
+                <div class="p-3 rounded-xl bg-white/5 border border-white/5 flex items-center justify-between text-xs">
+                  <span class="font-bold text-white">{p.title}</span>
+                  <span class="text-[#45F3FF] text-[10px] uppercase font-bold">{p.status}</span>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div class="p-4 rounded-xl border border-white/5 bg-[#070A11]/60 text-xs text-[#9CAAC1] space-y-2 font-sans">
+              <div class="font-bold text-white font-mono-tech uppercase">Projects Directory</div>
+              <p>No active projects created in local database.</p>
+            </div>
+          )
+        }
       </div>
 
-      <div class="p-4 rounded-xl glass-panel">
-        <span class="text-xs text-[#9CAAC1]">Unreviewed Evidence</span>
-        <p class="text-2xl font-bold text-white mt-1">0</p>
-        <span class="text-[10px] text-[#9CAAC1] mt-1 inline-block">Ledger active</span>
-      </div>
-
-      <div class="p-4 rounded-xl glass-panel">
-        <span class="text-xs text-[#9CAAC1]">Published Records</span>
-        <p class="text-2xl font-bold text-white mt-1">6</p>
-        <span class="text-[10px] text-emerald-400 mt-1 inline-block">● Projections synced</span>
-      </div>
-
-      <div class="p-4 rounded-xl glass-panel">
-        <span class="text-xs text-[#9CAAC1]">Security System</span>
-        <p class="text-2xl font-bold text-[#22D3EE] mt-1">RS256 Auth</p>
-        <span class="text-[10px] text-emerald-400 mt-1 inline-block">● Fail-closed active</span>
+      <!-- Workflow 5: Quick Management Links -->
+      <div class="rounded-2xl glass-panel p-5 space-y-3 text-xs">
+        <h3 class="font-bold text-white uppercase tracking-wide border-b border-white/10 pb-3">
+          Command Operations
+        </h3>
+        <div class="space-y-2">
+          <a
+            href="/dashboard/journal"
+            class="block p-3 rounded-xl bg-white/5 border border-white/5 text-[#45F3FF] font-bold hover:border-[#45F3FF]/30 transition-all"
+          >
+            📝 Journal &amp; Content Engine →
+          </a>
+          <a
+            href="/dashboard/evidence"
+            class="block p-3 rounded-xl bg-white/5 border border-white/5 text-[#8B5CFF] font-bold hover:border-[#8B5CFF]/30 transition-all"
+          >
+            🔗 Evidence Ledger →
+          </a>
+          <a
+            href="/dashboard/skills"
+            class="block p-3 rounded-xl bg-white/5 border border-white/5 text-[#FF3DA4] font-bold hover:border-[#FF3DA4]/30 transition-all"
+          >
+            🎯 Skills Taxonomy →
+          </a>
+        </div>
       </div>
     </div>
   </div>

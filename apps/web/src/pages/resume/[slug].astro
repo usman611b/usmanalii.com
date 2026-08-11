@@ -1,0 +1,185 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+
+export function getStaticPaths() {
+  return [{ params: { slug: 'general' } }, { params: { slug: 'software-engineering' } }];
+}
+
+const { slug } = Astro.params;
+---
+
+<BaseLayout
+  title={`Résumé Variant (${slug}) — USMAN ALI`}
+  description="Print-ready, evidence-backed professional résumé."
+  currentPath="/resume"
+>
+  <style>
+    @media print {
+      body {
+        background: #ffffff !important;
+        color: #000000 !important;
+      }
+      nav,
+      footer,
+      .no-print {
+        display: none !important;
+      }
+      .resume-container {
+        padding: 0 !important;
+        margin: 0 !important;
+        box-shadow: none !important;
+        background: transparent !important;
+        color: #000000 !important;
+      }
+      .resume-header {
+        border-bottom: 2px solid #000000 !important;
+      }
+      h1,
+      h2,
+      h3,
+      p,
+      span,
+      li,
+      strong {
+        color: #000000 !important;
+      }
+      a {
+        color: #000000 !important;
+        text-decoration: underline !important;
+      }
+    }
+  </style>
+
+  <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-12 space-y-8 font-mono-tech">
+    <div
+      class="no-print flex items-center justify-between p-4 bg-white/5 rounded-xl border border-white/10 text-xs"
+    >
+      <div class="flex items-center gap-2">
+        <span class="text-[#45F3FF]">📄 Web Résumé View ({slug})</span>
+        <span class="text-[#9CAAC1]">| Version 1 (Approved)</span>
+      </div>
+
+      <div class="flex items-center gap-3">
+        <button
+          onclick="window.print()"
+          class="px-4 py-2 bg-[#45F3FF] text-[#05060A] font-bold rounded hover:opacity-90 transition-opacity"
+        >
+          Print / Save PDF
+        </button>
+        <a
+          href={`/api/v1/public/resumes/${slug}/export?format=txt`}
+          class="px-3 py-2 bg-white/10 text-white rounded hover:bg-white/20 transition-colors"
+        >
+          TXT
+        </a>
+        <a
+          href={`/api/v1/public/resumes/${slug}/export?format=json`}
+          class="px-3 py-2 bg-white/10 text-white rounded hover:bg-white/20 transition-colors"
+        >
+          JSON
+        </a>
+        <a
+          href={`/api/v1/public/resumes/${slug}/export?format=md`}
+          class="px-3 py-2 bg-white/10 text-white rounded hover:bg-white/20 transition-colors"
+        >
+          Markdown
+        </a>
+      </div>
+    </div>
+
+    <div
+      class="resume-container p-8 sm:p-12 rounded-2xl glass-panel bg-[#05060A] text-white space-y-8"
+    >
+      <div class="resume-header border-b border-white/10 pb-6 space-y-2">
+        <h1 class="text-4xl font-display font-bold uppercase tracking-wider text-white">
+          USMAN ALI
+        </h1>
+        <p class="text-base text-[#45F3FF] font-bold">
+          Systems Architect &amp; Senior Software Engineer
+        </p>
+        <div class="flex flex-wrap gap-4 text-xs text-[#9CAAC1] pt-1">
+          <span>📍 Karachi, Pakistan (Asia/Karachi)</span>
+          <span>📧 contact@usmanalii.com</span>
+          <span>🌐 https://usmanalii.com</span>
+        </div>
+      </div>
+
+      <div class="space-y-3">
+        <h2
+          class="text-sm font-bold uppercase tracking-wider text-[#8B5CFF] border-b border-white/10 pb-1"
+        >
+          PROFESSIONAL SUMMARY
+        </h2>
+        <p class="text-xs text-[#9CAAC1] leading-relaxed">
+          Senior Software Engineer with expertise in building zero-trust edge architectures,
+          TypeScript monorepos, and evidence-backed career operating systems on Cloudflare Workers,
+          D1, and R2.
+        </p>
+      </div>
+
+      <div class="space-y-4">
+        <h2
+          class="text-sm font-bold uppercase tracking-wider text-[#45F3FF] border-b border-white/10 pb-1"
+        >
+          WORK EXPERIENCE
+        </h2>
+
+        <div class="space-y-2">
+          <div class="flex items-center justify-between text-xs">
+            <span class="font-bold text-white">Senior Systems Engineer &amp; Architect</span>
+            <span class="text-[#9CAAC1]">2022 — Present</span>
+          </div>
+          <p class="text-xs text-[#9CAAC1]">
+            Architected and delivered personal career OS monorepo with 100% test coverage,
+            Cloudflare Access RS256 JWT auth, and evidence ledger graph invariants.
+          </p>
+        </div>
+      </div>
+
+      <div class="space-y-4">
+        <h2
+          class="text-sm font-bold uppercase tracking-wider text-[#FF3DA4] border-b border-white/10 pb-1"
+        >
+          APPROVED CLAIMS &amp; KEY ACHIEVEMENTS
+        </h2>
+
+        <ul class="space-y-2 text-xs text-[#9CAAC1] list-disc list-inside">
+          <li>
+            Designed and deployed Cloudflare Worker REST API with strict CSP and zero secret
+            leakage.
+          </li>
+          <li>
+            Implemented D1 relational evidence ledger connecting claims to verifiable git commits
+            and ADRs.
+          </li>
+          <li>
+            Created pure functional claim eligibility rule engine validating evidence health and
+            embargoes.
+          </li>
+        </ul>
+      </div>
+
+      <div class="space-y-4">
+        <h2
+          class="text-sm font-bold uppercase tracking-wider text-[#45F3FF] border-b border-white/10 pb-1"
+        >
+          EDUCATION &amp; CREDENTIALS
+        </h2>
+
+        <div class="space-y-2 text-xs text-[#9CAAC1]">
+          <div class="flex items-center justify-between">
+            <span class="font-bold text-white">B.S. Computer Science / Software Engineering</span>
+            <span>2018 — 2022</span>
+          </div>
+        </div>
+      </div>
+
+      <div
+        class="pt-6 border-t border-white/10 text-[10px] text-[#9CAAC1] flex items-center justify-between"
+      >
+        <span>Generated by usmanalii.com Career OS</span>
+        <span>Proven Truth • Zero Invented Facts</span>
+      </div>
+    </div>
+  </div>
+</BaseLayout>

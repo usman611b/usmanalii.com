@@ -1,0 +1,28 @@
+# Gate 2 Audit — Data-Model Reuse & Authority Proof
+
+This document audits the repository for pre-existing entities and proves that Milestone M7 introduces no duplicate claim authority, no duplicate profile source of truth, and no mutable copies of canonical evidence or professional records.
+
+---
+
+## 1. Audit of Pre-existing Entities & Reused Abstractions
+
+| Domain Concept           | Pre-existing Entity / File                                                                                                         | Reused in M7                             | Rationale & Responsibility                                                                                                                                                                                            |
+| :----------------------- | :--------------------------------------------------------------------------------------------------------------------------------- | :--------------------------------------- | :-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Profile & Identity**   | `ProfileEntity` ([domain/entities/index.ts](file:///f:/Portfolio_project/packages/domain/src/entities/index.ts#L494))              | **Reused & Extended**                    | Extended canonical `profiles` table in Migration 017 with non-breaking columns (`availability_state`, `preferred_roles`, `profile_image_url`, `resume_asset_url`, `location`). No secondary profile table introduced. |
+| **Professional Claims**  | `ClaimEntity` ([domain/entities/index.ts](file:///f:/Portfolio_project/packages/domain/src/entities/index.ts))                     | **Reused**                               | Reused existing `claims` table from Migration 005. Claims remain the single authority for proved professional assertions.                                                                                             |
+| **Claim Relationships**  | `ClaimSupportEntity` ([domain/entities/m7-entities.ts](file:///f:/Portfolio_project/packages/domain/src/entities/index.ts#L901))   | **Created (New Table `claim_supports`)** | Normalized support graph connecting claims to evidence, projects, experience, education, and credentials without duplicating target content.                                                                          |
+| **Professional Records** | `ExperienceRecordEntity`, `EducationRecordEntity`, `CredentialRecordEntity`                                                        | **Created (New Tables)**                 | `experience_records`, `education_records`, and `credential_records` added in Migration 017 to store canonical employment, academic, and credential history.                                                           |
+| **Résumé Entities**      | `ResumeVariantEntity`, `ResumeVariantSectionEntity`, `ResumeVariantItemEntity`, `ResumeVariantVersionEntity`                       | **Created (New Projection Tables)**      | `resume_variants`, `resume_variant_sections`, `resume_variant_items`, and `resume_variant_versions` store presentation ordering and immutable snapshot history.                                                       |
+| **Public Projections**   | `PublicProfileDto`, `PublicExperienceDto`, `PublicEducationDto`, `PublicCredentialDto`, `PublicClaimDto`, `PublicResumeVariantDto` | **Reused Contracts Pattern**             | Defined in `packages/contracts` using strict Zod schemas. Private fields (`contactEmail`, `ownerId`, internal IDs) fail closed.                                                                                       |
+| **Export Utilities**     | `publicRoutes.get('/resumes/:slug/export')`, `privateRoutes.get('/export/m7')`                                                     | **Structured Format Renderers**          | Render plain text, JSON, Markdown, and HTML directly from DB queries without external rendering APIs.                                                                                                                 |
+| **Versioning Utilities** | `version_no` Optimistic Concurrency                                                                                                | **Reused Standard Monorepo Pattern**     | All updates require matching `version_no`. Résumé publishing appends immutable snapshots to `resume_variant_versions`.                                                                                                |
+
+---
+
+## 2. Proof of Single Source of Truth & Zero Fact Duplication
+
+1. **No Duplicate Claim Authority**: Professional assertions are created and approved exclusively in `claims`. Résumés reference claims by `item_id` in `resume_variant_items`. Résumé items do not store alternative claim wording.
+2. **No Duplicate Profile Source of Truth**: The owner's identity is defined exclusively in `profiles`. Résumés project the single profile bio and headline.
+3. **Immutable Résumé Snapshots**: Résumé versions stored in `resume_variant_versions` are immutable JSON snapshots generated at publish time. Rollbacks fetch historical `snapshot_json` and append a **NEW** version row with an incremented `version_no`. History is never mutated or overwritten.
+4. **Canonical References**: Canonical evidence, projects, capabilities, skills, experience, education, and credentials are referenced by foreign key (`item_id` / `target_id`) rather than copied into mutable résumé records.
+5. **Migration 017 Compatibility**: Migration 017 is a forward-only addition appended to `manifest.json` (hash `744e266a8f...`) without modifying historical migrations 001–016.

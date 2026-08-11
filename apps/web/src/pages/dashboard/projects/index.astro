@@ -1,99 +1,94 @@
 ---
-import BaseLayout from '../../../layouts/BaseLayout.astro';
+import DashboardLayout from '../../../layouts/DashboardLayout.astro';
 
 const mockDashboardProjects = [
   {
     id: 'proj-1',
     title: 'Secure Multi-Tenant Monorepo Platform',
     slug: 'secure-multi-tenant-monorepo',
-    lifecycleState: 'active',
-    publicationState: 'published',
-    visibility: 'public',
+    lifecycleState: 'Active',
+    publicationState: 'Published',
+    visibility: 'Public',
     updatedAt: '2026-08-09T05:48:52Z',
   },
   {
     id: 'proj-2',
     title: 'Distributed Cache Invalidation Engine',
     slug: 'distributed-cache-engine',
-    lifecycleState: 'completed',
-    publicationState: 'draft',
-    visibility: 'private',
+    lifecycleState: 'Completed',
+    publicationState: 'Draft',
+    visibility: 'Private',
     updatedAt: '2026-08-08T12:00:00Z',
   },
 ];
 ---
 
-<BaseLayout
-  title="Manage Projects — Dashboard"
-  description="Manage engineering project records and case studies"
-  currentPath="/dashboard/projects"
->
-  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-    <!-- Dashboard Header -->
+<DashboardLayout title="Projects Management — Command Center" activeSection="projects">
+  <div class="space-y-6 font-mono-tech">
     <div
-      class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-[#1E3A5F] pb-6"
+      class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-white/10 pb-6"
     >
       <div>
-        <h1 class="text-2xl font-bold text-white tracking-tight">Projects Management</h1>
+        <h1 class="text-sm font-bold text-white tracking-wide">Projects Management</h1>
         <p class="text-xs text-[#9CAAC1] mt-1">
           Manage evidence-backed project records, engineering details, and case study revisions.
         </p>
       </div>
       <a
         href="/dashboard/projects/new"
-        class="inline-flex items-center px-4 py-2 rounded-xl bg-[#22D3EE] text-[#0B1528] text-xs font-semibold hover:bg-[#67E8F9] transition-colors"
+        class="inline-flex items-center px-4 py-2 rounded-lg bg-[#45F3FF] text-[#05060A] text-xs font-bold uppercase tracking-wider hover:opacity-90 transition-opacity"
       >
         + Create Project
       </a>
     </div>
 
-    <!-- Projects Table / Grid -->
-    <div class="mt-8 overflow-hidden rounded-2xl glass-panel border border-[#1E3A5F]">
-      <table class="w-full text-left border-collapse">
+    <!-- Projects Table -->
+    <div class="overflow-x-auto rounded-2xl glass-panel border border-white/10">
+      <table class="w-full text-left border-collapse text-xs">
         <thead>
-          <tr
-            class="bg-[#0B1528] border-b border-[#1E3A5F] text-[11px] font-mono text-[#9CAAC1] uppercase"
-          >
-            <th class="p-4">Title / Slug</th>
-            <th class="p-4">Lifecycle</th>
-            <th class="p-4">State</th>
-            <th class="p-4">Visibility</th>
-            <th class="p-4">Last Updated</th>
-            <th class="p-4 text-right">Actions</th>
+          <tr class="bg-[#070A11] border-b border-white/10 text-[10px] text-[#9CAAC1] uppercase">
+            <th class="p-4 font-medium">Title / Slug</th>
+            <th class="p-4 font-medium">Lifecycle</th>
+            <th class="p-4 font-medium">State</th>
+            <th class="p-4 font-medium">Visibility</th>
+            <th class="p-4 font-medium">Last Updated</th>
+            <th class="p-4 text-right font-medium">Actions</th>
           </tr>
         </thead>
-        <tbody class="divide-y divide-[#1E3A5F]/50 text-xs">
+        <tbody class="divide-y divide-white/5 text-xs">
           {
             mockDashboardProjects.map((p) => (
-              <tr class="hover:bg-[#112338]/50 transition-colors">
+              <tr class="hover:bg-white/5 transition-colors">
                 <td class="p-4">
-                  <div class="font-bold text-white">{p.title}</div>
-                  <div class="text-[10px] font-mono text-[#22D3EE]">{p.slug}</div>
+                  <div class="font-bold text-white font-display text-lg uppercase tracking-wide">
+                    {p.title}
+                  </div>
+                  <div class="text-[10px] text-[#45F3FF]">{p.slug}</div>
                 </td>
                 <td class="p-4">
-                  <span class="px-2 py-0.5 rounded text-[10px] font-mono uppercase bg-[#112338] text-[#22D3EE] border border-[#1E3A5F]">
+                  <span class="px-2 py-0.5 rounded text-[10px] uppercase bg-[#45F3FF]/15 text-[#45F3FF] border border-[#45F3FF]/30 font-bold">
                     {p.lifecycleState}
                   </span>
                 </td>
                 <td class="p-4">
-                  <span class="px-2 py-0.5 rounded text-[10px] font-mono uppercase bg-[#112338] text-[#B6F43A] border border-[#1E3A5F]">
+                  <span class="px-2 py-0.5 rounded text-[10px] uppercase bg-[#B8FF5A]/15 text-[#B8FF5A] border border-[#B8FF5A]/30 font-bold">
                     {p.publicationState}
                   </span>
                 </td>
                 <td class="p-4">
-                  <span class="px-2 py-0.5 rounded text-[10px] font-mono uppercase bg-[#112338] text-white border border-[#1E3A5F]">
+                  <span class="px-2 py-0.5 rounded text-[10px] uppercase bg-white/10 text-white border border-white/10 font-bold">
                     {p.visibility}
                   </span>
                 </td>
-                <td class="p-4 text-[#9CAAC1] font-mono text-[10px]">{p.updatedAt}</td>
+                <td class="p-4 text-[#9CAAC1] text-[10px]">{p.updatedAt}</td>
                 <td class="p-4 text-right space-x-2">
-                  <a href={`/projects/${p.slug}`} class="text-[#22D3EE] hover:underline">
+                  <a href={`/projects/${p.slug}`} class="text-[#45F3FF] hover:underline font-bold">
                     View
                   </a>
-                  <span class="text-[#1E3A5F]">|</span>
-                  <button type="button" class="text-white hover:underline">
-                    Edit
-                  </button>
+                  <span class="text-white/20">|</span>
+                  <a href={`/dashboard/projects/${p.id}`} class="text-white hover:underline">
+                    Manage
+                  </a>
                 </td>
               </tr>
             ))
@@ -102,4 +97,4 @@ const mockDashboardProjects = [
       </table>
     </div>
   </div>
-</BaseLayout>
+</DashboardLayout>

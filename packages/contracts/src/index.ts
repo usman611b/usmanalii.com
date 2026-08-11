@@ -149,14 +149,261 @@ export interface PublicProfileDto {
   readonly headline: string | null;
   readonly bio: string | null;
   readonly currentFocus: string | null;
+  readonly availabilityState: string;
+  readonly preferredRoles: string | null;
+  readonly profileImageUrl: string | null;
+  readonly resumeAssetUrl: string | null;
+  readonly location: string | null;
+  readonly timezone: string;
+  readonly contactUrl: string | null;
   // SECURITY: contactEmail NOT included (served separately via contact endpoint)
   // SECURITY: ownerId NOT included
+}
+
+export interface PublicExperienceDto {
+  readonly id: string;
+  readonly company: string;
+  readonly roleTitle: string;
+  readonly location: string | null;
+  readonly startDate: string;
+  readonly endDate: string | null;
+  readonly isCurrent: boolean;
+  readonly description: string | null;
+  readonly keyAchievements: readonly string[];
+  readonly ordering: number;
+}
+
+export interface PublicEducationDto {
+  readonly id: string;
+  readonly institution: string;
+  readonly degree: string;
+  readonly fieldOfStudy: string | null;
+  readonly startDate: string;
+  readonly endDate: string | null;
+  readonly isCurrent: boolean;
+  readonly gradeOrHonors: string | null;
+  readonly description: string | null;
+  readonly ordering: number;
+}
+
+export interface PublicCredentialDto {
+  readonly id: string;
+  readonly name: string;
+  readonly issuingOrganization: string;
+  readonly credentialId: string | null;
+  readonly credentialUrl: string | null;
+  readonly issueDate: string;
+  readonly expirationDate: string | null;
+  readonly ordering: number;
+}
+
+export interface PublicClaimDto {
+  readonly id: string;
+  readonly wording: string;
+  readonly audience: string;
+  readonly context: string | null;
+  readonly isBackgroundStatementException: boolean;
+  readonly healthySupportCount: number;
+  readonly supports: readonly {
+    readonly targetType: string;
+    readonly targetId: string;
+  }[];
+}
+
+export interface PublicResumeVariantDto {
+  readonly id: string;
+  readonly title: string;
+  readonly slug: string;
+  readonly targetAudience: string;
+  readonly template: string;
+  readonly state: string;
+  readonly versionNo: number;
+  readonly sections: readonly {
+    readonly id: string;
+    readonly sectionKey: string;
+    readonly title: string;
+    readonly customHeading: string | null;
+    readonly ordering: number;
+    readonly items: readonly {
+      readonly id: string;
+      readonly itemType: string;
+      readonly itemId: string;
+      readonly customWording: string | null;
+      readonly ordering: number;
+      readonly recordDetails?: unknown;
+    }[];
+  }[];
+}
+
+export interface PublicRecruiterProjectionDto {
+  readonly profile: PublicProfileDto | null;
+  readonly summary: string | null;
+  readonly featuredExperience: readonly PublicExperienceDto[];
+  readonly featuredEducation: readonly PublicEducationDto[];
+  readonly featuredCredentials: readonly PublicCredentialDto[];
+  readonly featuredCapabilities: readonly PublicCapabilityDto[];
+  readonly featuredSkills: readonly PublicSkillDto[];
+  readonly featuredProjects: readonly unknown[];
+  readonly approvedClaims: readonly PublicClaimDto[];
+  readonly resumeAssetUrl: string | null;
+  readonly contactUrl: string | null;
 }
 
 // ---------------------------------------------------------------------------
 // Request schemas (validated at Worker boundary)
 // SECURITY: None of these accept owner_id from client
 // ---------------------------------------------------------------------------
+
+export const UpdateProfileRequestSchema = z.object({
+  displayName: z.string().min(1).max(100).optional(),
+  headline: z.string().max(250).nullable().optional(),
+  bio: z.string().max(2000).nullable().optional(),
+  currentFocus: z.string().max(500).nullable().optional(),
+  availabilityState: z.enum(['available', 'open', 'unavailable', 'busy']).optional(),
+  preferredRoles: z.string().max(500).nullable().optional(),
+  profileImageUrl: z.string().url().max(500).nullable().optional(),
+  resumeAssetUrl: z.string().url().max(500).nullable().optional(),
+  location: z.string().max(150).nullable().optional(),
+  timezone: z.string().max(50).optional(),
+  contactEmail: z.string().email().max(254).nullable().optional(),
+  contactUrl: z.string().url().max(500).nullable().optional(),
+  visibility: VisibilitySchema.optional(),
+  versionNo: z.number().int().min(1),
+});
+
+export type UpdateProfileRequest = z.infer<typeof UpdateProfileRequestSchema>;
+
+export const CreateExperienceRequestSchema = z.object({
+  company: z.string().min(1).max(150),
+  roleTitle: z.string().min(1).max(150),
+  location: z.string().max(150).nullable().optional(),
+  startDate: ISODateSchema,
+  endDate: ISODateSchema.nullable().optional(),
+  isCurrent: z.boolean().default(false),
+  description: z.string().max(2000).nullable().optional(),
+  keyAchievements: z.array(z.string().max(500)).default([]),
+  visibility: VisibilitySchema.default('private'),
+  ordering: z.number().int().default(0),
+});
+
+export type CreateExperienceRequest = z.infer<typeof CreateExperienceRequestSchema>;
+
+export const UpdateExperienceRequestSchema = CreateExperienceRequestSchema.partial().extend({
+  versionNo: z.number().int().min(1),
+  state: PublicationStateSchema.optional(),
+});
+
+export type UpdateExperienceRequest = z.infer<typeof UpdateExperienceRequestSchema>;
+
+export const CreateEducationRequestSchema = z.object({
+  institution: z.string().min(1).max(150),
+  degree: z.string().min(1).max(150),
+  fieldOfStudy: z.string().max(150).nullable().optional(),
+  startDate: ISODateSchema,
+  endDate: ISODateSchema.nullable().optional(),
+  isCurrent: z.boolean().default(false),
+  gradeOrHonors: z.string().max(100).nullable().optional(),
+  description: z.string().max(2000).nullable().optional(),
+  visibility: VisibilitySchema.default('private'),
+  ordering: z.number().int().default(0),
+});
+
+export type CreateEducationRequest = z.infer<typeof CreateEducationRequestSchema>;
+
+export const UpdateEducationRequestSchema = CreateEducationRequestSchema.partial().extend({
+  versionNo: z.number().int().min(1),
+  state: PublicationStateSchema.optional(),
+});
+
+export type UpdateEducationRequest = z.infer<typeof UpdateEducationRequestSchema>;
+
+export const CreateCredentialRequestSchema = z.object({
+  name: z.string().min(1).max(150),
+  issuingOrganization: z.string().min(1).max(150),
+  credentialId: z.string().max(150).nullable().optional(),
+  credentialUrl: z.string().url().max(500).nullable().optional(),
+  issueDate: ISODateSchema,
+  expirationDate: ISODateSchema.nullable().optional(),
+  visibility: VisibilitySchema.default('private'),
+  ordering: z.number().int().default(0),
+});
+
+export type CreateCredentialRequest = z.infer<typeof CreateCredentialRequestSchema>;
+
+export const UpdateCredentialRequestSchema = CreateCredentialRequestSchema.partial().extend({
+  versionNo: z.number().int().min(1),
+  state: PublicationStateSchema.optional(),
+});
+
+export type UpdateCredentialRequest = z.infer<typeof UpdateCredentialRequestSchema>;
+
+export const CreateClaimRequestSchema = z.object({
+  wording: z.string().min(1).max(500),
+  audience: z.enum(['recruiter', 'technical', 'general', 'resume']),
+  context: z.string().max(500).nullable().optional(),
+  isBackgroundStatementException: z.boolean().default(false),
+  backgroundStatementExceptionReason: z.string().max(500).nullable().optional(),
+  visibility: VisibilitySchema.default('private'),
+});
+
+export type CreateClaimRequest = z.infer<typeof CreateClaimRequestSchema>;
+
+export const UpdateClaimRequestSchema = CreateClaimRequestSchema.partial().extend({
+  versionNo: z.number().int().min(1),
+  approvalState: z.enum(['draft', 'pending', 'approved', 'rejected', 'expired']).optional(),
+  state: PublicationStateSchema.optional(),
+  reviewDate: ISODateSchema.nullable().optional(),
+});
+
+export type UpdateClaimRequest = z.infer<typeof UpdateClaimRequestSchema>;
+
+export const ClaimSupportRequestSchema = z.object({
+  targetType: z.enum([
+    'evidence',
+    'capability',
+    'skill',
+    'project',
+    'engineering_record',
+    'experience',
+    'education',
+    'credential',
+  ]),
+  targetId: z.string().min(1).max(100),
+});
+
+export type ClaimSupportRequest = z.infer<typeof ClaimSupportRequestSchema>;
+
+export const CreateResumeVariantRequestSchema = z.object({
+  title: z.string().min(1).max(150),
+  slug: z
+    .string()
+    .min(1)
+    .max(150)
+    .regex(/^[a-z0-9-]+$/),
+  privateDescription: z.string().max(1000).nullable().optional(),
+  targetAudience: z
+    .enum([
+      'general',
+      'software_engineering',
+      'recruiter_summary',
+      'project_focused',
+      'job_specific',
+    ])
+    .default('general'),
+  template: z.string().max(50).default('classic'),
+  visibility: VisibilitySchema.default('private'),
+});
+
+export type CreateResumeVariantRequest = z.infer<typeof CreateResumeVariantRequestSchema>;
+
+export const UpdateResumeVariantRequestSchema = CreateResumeVariantRequestSchema.partial().extend({
+  versionNo: z.number().int().min(1),
+  state: z.enum(['draft', 'preview', 'published', 'archived']).optional(),
+  isPrimary: z.boolean().optional(),
+  presentationConfig: z.string().max(5000).optional(),
+});
+
+export type UpdateResumeVariantRequest = z.infer<typeof UpdateResumeVariantRequestSchema>;
 
 export const ContactFormSchema = z.object({
   name: z.string().min(1).max(100),
@@ -292,3 +539,10 @@ export const CreateArtifactMetadataSchema = z.object({
 });
 
 export type CreateArtifactMetadataRequest = z.infer<typeof CreateArtifactMetadataSchema>;
+
+// ---------------------------------------------------------------------------
+// Milestone M7 — Professional Identity & Résumé Engine Contracts & DTOs
+// ---------------------------------------------------------------------------
+
+export const AvailabilityStateSchema = z.enum(['available', 'open', 'unavailable', 'busy']);
+export type AvailabilityState = z.infer<typeof AvailabilityStateSchema>;

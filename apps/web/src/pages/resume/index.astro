@@ -1,0 +1,92 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+---
+
+<BaseLayout
+  title="Approved Résumé Variants — USMAN ALI"
+  description="Evidence-backed professional résumé variants with HTML, PDF print, Plain Text, JSON, and Markdown exports."
+  currentPath="/resume"
+>
+  <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-12 space-y-8 font-mono-tech">
+    <div class="p-8 rounded-2xl glass-panel space-y-6">
+      <div
+        class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-b border-white/10 pb-6"
+      >
+        <div>
+          <span class="text-xs font-bold text-[#8B5CFF] uppercase tracking-wider"
+            >CANONICAL PROFILE PROJECTION</span
+          >
+          <h1 class="text-4xl font-display font-bold text-white uppercase tracking-wide">
+            Approved Résumé Variants
+          </h1>
+          <p class="text-sm text-[#9CAAC1]">
+            Select a curated projection of owner-approved professional records and claims.
+          </p>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div class="p-6 rounded-xl bg-white/5 border border-white/10 space-y-4">
+          <div class="flex items-center justify-between">
+            <h2 class="text-lg font-bold text-white">General Software Engineering Résumé</h2>
+            <span
+              class="px-2.5 py-1 bg-[#45F3FF]/10 text-[#45F3FF] text-[10px] font-bold rounded uppercase"
+              >PRIMARY</span
+            >
+          </div>
+          <p class="text-xs text-[#9CAAC1]">
+            Curated presentation of systems architecture, full-stack Cloudflare edge development,
+            and evidence-backed claims.
+          </p>
+          <div class="flex flex-wrap gap-2 pt-2">
+            <a
+              href="/resume/general"
+              class="px-4 py-2 bg-[#45F3FF] text-[#05060A] font-bold text-xs rounded hover:opacity-90 transition-opacity"
+            >
+              View Web Résumé →
+            </a>
+            <a
+              href="/api/v1/public/resumes/general/export?format=txt"
+              class="px-3 py-2 bg-white/10 text-white text-xs rounded hover:bg-white/20 transition-colors"
+            >
+              TXT Export
+            </a>
+            <a
+              href="/api/v1/public/resumes/general/export?format=json"
+              class="px-3 py-2 bg-white/10 text-white text-xs rounded hover:bg-white/20 transition-colors"
+            >
+              JSON Export
+            </a>
+            <a
+              href="/api/v1/public/resumes/general/export?format=md"
+              class="px-3 py-2 bg-white/10 text-white text-xs rounded hover:bg-white/20 transition-colors"
+            >
+              Markdown
+            </a>
+          </div>
+        </div>
+
+        <div class="p-6 rounded-xl bg-white/5 border border-white/10 space-y-4">
+          <div class="flex items-center justify-between">
+            <h2 class="text-lg font-bold text-white">Recruiter Executive Summary</h2>
+            <span
+              class="px-2.5 py-1 bg-white/10 text-[#9CAAC1] text-[10px] font-bold rounded uppercase"
+              >CONCISE</span
+            >
+          </div>
+          <p class="text-xs text-[#9CAAC1]">
+            Fast 90-second scan focusing on core capabilities, featured outcomes, and proof links.
+          </p>
+          <div class="flex flex-wrap gap-2 pt-2">
+            <a
+              href="/recruiter"
+              class="px-4 py-2 bg-[#FF3DA4] text-[#05060A] font-bold text-xs rounded hover:opacity-90 transition-opacity"
+            >
+              Recruiter Mode →
+            </a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</BaseLayout>

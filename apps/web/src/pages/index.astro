@@ -1,109 +1,262 @@
 ---
 import BaseLayout from '../layouts/BaseLayout.astro';
-import { ModeSwitcher } from '../components/ModeSwitcher';
+import { PortraitHero } from '../components/PortraitHero';
 import { ActivityHeatmap } from '../components/ActivityHeatmap';
+import EvidenceBadge from '../components/EvidenceBadge.astro';
+import VerificationStatusBadge from '../components/VerificationStatusBadge.astro';
+
+// Real Data Projections or Honest Empty States
+const publicEvidenceList: Array<{
+  id: string;
+  title: string;
+  evidenceType: string;
+  provider: string;
+  verificationState: string;
+  occurredAt: string;
+  canonicalLocator?: string | null;
+}> = [];
+
+const publicJourneyList: Array<{
+  id: string;
+  slug: string;
+  title: string;
+  summary: string;
+  publishedAt: string;
+  contentType: string;
+}> = [];
+
+interface FeaturedProject {
+  id: string;
+  title: string;
+  slug: string;
+  summary: string;
+  architectureNotes?: string;
+  publicationState: string;
+}
+
+const publicFeaturedProject = null as unknown as FeaturedProject | null;
 ---
 
-<BaseLayout title="usmanalii.com — Personal Career OS" currentPath="/">
-  <!-- Hero Section -->
-  <section class="relative pt-20 pb-16 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto">
-    <div class="space-y-6 max-w-3xl">
-      <div
-        class="inline-flex items-center space-x-2 px-3 py-1 rounded-full bg-[#101A31] border border-white/10 text-xs font-medium text-[#22D3EE]"
-      >
-        <span class="w-2 h-2 rounded-full bg-[#22D3EE] animate-pulse"></span>
-        <span>Canonical Evidence-Backed Record</span>
-      </div>
-
-      <h1 class="text-4xl sm:text-6xl font-bold tracking-tight text-white leading-tight">
-        Usman Ali
-        <span class="block text-gradient-hero mt-2">Systems Architect & Software Engineer</span>
-      </h1>
-
-      <p class="text-lg text-[#9CAAC1] leading-relaxed">
-        A personal Career Operating System recording learning history, verifiable work evidence,
-        capabilities, and engineering case studies from one approved source of truth.
-      </p>
-
-      <div class="flex flex-wrap items-center gap-4 pt-4">
-        <a
-          href="/journey"
-          class="px-6 py-3 rounded-xl bg-[#22D3EE] text-[#050509] font-bold text-sm hover:opacity-90 transition-opacity shadow-lg shadow-[#22D3EE]/20"
-        >
-          Explore Journey →
-        </a>
-        <a
-          href="/recruiter"
-          class="px-6 py-3 rounded-xl border border-white/15 bg-[#0D1528] text-white font-semibold text-sm hover:border-white/30 transition-all"
-        >
-          Recruiter View (90s)
-        </a>
-      </div>
-    </div>
+<BaseLayout
+  title="USMAN ALI — Engineering, evidenced."
+  description="Personal Career OS and evidence-backed engineering archive of Usman Ali."
+  currentPath="/"
+>
+  <!-- Stage 1 — Identity (Portrait-Led 3D Hero) -->
+  <section class="relative w-full">
+    <PortraitHero client:load />
   </section>
 
-  <!-- Engineering Activity Heatmap -->
-  <section class="py-8 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto border-t border-white/10">
-    <ActivityHeatmap client:load />
-  </section>
-
-  <!-- Proof At A Glance Bento Grid -->
-  <section class="py-16 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto border-t border-white/10">
-    <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-8 gap-4">
-      <div>
-        <h2 class="text-2xl font-bold text-white tracking-tight">Proof at a Glance</h2>
-        <p class="text-xs text-[#9CAAC1] mt-1">Verified capabilities and project deliverables.</p>
-      </div>
-      <ModeSwitcher client:load />
-    </div>
-
-    <!-- Bento Grid Container -->
-    <div class="grid grid-cols-1 md:grid-cols-12 gap-6">
-      <!-- Capability Highlight Card (Col 8) -->
-      <div class="md:col-span-8 p-6 rounded-2xl glass-panel relative overflow-hidden group">
-        <div
-          class="absolute -right-10 -bottom-10 w-40 h-40 bg-[#8B5CF6]/10 rounded-full blur-2xl group-hover:bg-[#8B5CF6]/20 transition-all"
-        >
+  <!-- Stage 2 & 3 — Evidence Reveal & Evidence System -->
+  <section
+    id="evidence-system"
+    class="py-16 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto space-y-12 font-mono-tech"
+  >
+    <!-- Evidence Status Header Rail -->
+    <div
+      class="p-6 rounded-2xl glass-panel flex flex-col md:flex-row items-start md:items-center justify-between gap-4 border border-white/10"
+    >
+      <div class="space-y-1">
+        <div class="inline-flex items-center space-x-2 text-xs text-[#45F3FF] uppercase font-bold">
+          <span class="w-2 h-2 rounded-full bg-[#45F3FF] animate-pulse"></span>
+          <span>SYSTEM EVIDENCE LEDGER STATUS</span>
         </div>
-        <span class="text-xs font-semibold uppercase tracking-wider text-[#22D3EE]"
-          >Featured Capability</span
-        >
-        <h3 class="text-xl font-bold text-white mt-2">
-          Cloudflare Workers & Distributed Edge Systems
-        </h3>
-        <p class="text-xs text-[#9CAAC1] mt-2 leading-relaxed">
-          Deploys low-latency TypeScript microservices on Cloudflare Workers with cryptographic
-          Access JWT verification, D1 transactions, and R2 object storage isolation.
-        </p>
-        <div class="mt-6 flex flex-wrap items-center gap-3 text-xs">
-          <span
-            class="px-2.5 py-1 rounded-md bg-[#22D3EE]/10 text-[#22D3EE] border border-[#22D3EE]/20 font-medium"
-          >
-            Maturity: Delivered
-          </span>
-          <span class="text-[#9CAAC1]">6 Verified Evidence Items</span>
-        </div>
+        <h2 class="text-xl font-bold text-white font-display uppercase tracking-wide">
+          REAL-TIME EVIDENCE PROJECTION
+        </h2>
       </div>
 
-      <!-- Quick Metrics Card (Col 4) -->
-      <div class="md:col-span-4 p-6 rounded-2xl glass-panel flex flex-col justify-between">
+      <div class="flex items-center space-x-6 text-xs text-[#9CAAC1]">
         <div>
-          <span class="text-xs font-semibold uppercase tracking-wider text-[#EC4899]"
-            >Evidence Ledger</span
-          >
-          <h3 class="text-xl font-bold text-white mt-2">100% Provenance</h3>
-          <p class="text-xs text-[#9CAAC1] mt-2">
-            Every published claim is tied to verifiable evidence or explicitly attributed background
-            statements.
-          </p>
+          <span class="text-white font-bold">{publicEvidenceList.length}</span>
+          <span class="ml-1">Public Verified Items</span>
         </div>
-        <div
-          class="pt-6 border-t border-white/10 flex items-center justify-between text-xs text-[#9CAAC1]"
-        >
-          <span>Single Owner Model</span>
-          <span class="text-[#B6F43A] font-semibold">Zero Fake Metrics</span>
+        <a href="/evidence" class="text-[#45F3FF] hover:underline font-bold"> Inspect Ledger → </a>
+      </div>
+    </div>
+
+    <!-- 4-Column Asymmetric Evidence Stream Layout -->
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-8">
+      <!-- Wide Evidence Ledger Stream (7 Cols) -->
+      <div class="lg:col-span-7 space-y-6">
+        <div class="flex items-center justify-between border-b border-white/10 pb-3">
+          <h3 class="text-sm font-bold text-white uppercase tracking-wider">
+            Evidence Ledger Stream
+          </h3>
+          <span class="text-xs text-[#9CAAC1]">Verified Public Records</span>
+        </div>
+
+        {
+          publicEvidenceList.length > 0 ? (
+            <div class="space-y-3">
+              {publicEvidenceList.map((item) => (
+                <div class="p-4 rounded-xl glass-panel border border-white/10 hover:border-[#45F3FF]/40 transition-all flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-xs">
+                  <div class="space-y-1">
+                    <div class="font-bold text-white">{item.title}</div>
+                    <div class="flex items-center gap-2 text-[11px] text-[#9CAAC1]">
+                      <EvidenceBadge evidenceType={item.evidenceType} />
+                      <span>{item.provider}</span>
+                      <span>· {item.occurredAt}</span>
+                    </div>
+                  </div>
+                  <VerificationStatusBadge status={item.verificationState} />
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div class="p-8 rounded-2xl glass-panel text-center space-y-3 border border-white/10">
+              <div class="text-[#45F3FF] font-bold text-xs uppercase">
+                No Public Evidence Published
+              </div>
+              <p class="text-xs text-[#9CAAC1] max-w-sm mx-auto font-sans">
+                All engineering claims, architectural decisions, and production records are
+                undergoing owner approval in the Command Center queue.
+              </p>
+            </div>
+          )
+        }
+      </div>
+
+      <!-- Current Journey & Featured Project (5 Cols) -->
+      <div class="lg:col-span-5 space-y-6">
+        <!-- Current Journey -->
+        <div class="space-y-4">
+          <div class="flex items-center justify-between border-b border-white/10 pb-3">
+            <h3 class="text-sm font-bold text-white uppercase tracking-wider">Current Journey</h3>
+            <a href="/journey" class="text-xs text-[#8B5CFF] hover:underline">View All →</a>
+          </div>
+
+          {
+            publicJourneyList.length > 0 ? (
+              <div class="space-y-3">
+                {publicJourneyList.map((entry) => (
+                  <a
+                    href={`/journey/${entry.slug}`}
+                    class="p-4 rounded-xl glass-panel border border-white/10 hover:border-[#8B5CFF]/40 transition-all block space-y-1 text-xs"
+                  >
+                    <div class="text-[10px] text-[#8B5CFF] font-bold uppercase">
+                      {entry.publishedAt}
+                    </div>
+                    <h4 class="font-bold text-white">{entry.title}</h4>
+                    <p class="text-[11px] text-[#9CAAC1] font-sans line-clamp-2">{entry.summary}</p>
+                  </a>
+                ))}
+              </div>
+            ) : (
+              <div class="p-6 rounded-xl glass-panel text-xs text-[#9CAAC1] space-y-2 border border-white/10 font-sans">
+                <div class="font-bold text-white font-mono-tech uppercase">Journal Status</div>
+                <p>No public journey entries published yet.</p>
+              </div>
+            )
+          }
+        </div>
+
+        <!-- Featured Project -->
+        <div class="space-y-4">
+          <div class="flex items-center justify-between border-b border-white/10 pb-3">
+            <h3 class="text-sm font-bold text-white uppercase tracking-wider">Featured Project</h3>
+            <a href="/projects" class="text-xs text-[#45F3FF] hover:underline">Projects Index →</a>
+          </div>
+
+          {
+            publicFeaturedProject ? (
+              <div class="p-5 rounded-2xl glass-panel border border-white/10 space-y-3">
+                <div class="text-[10px] text-[#45F3FF] uppercase font-bold">
+                  Approved Case Study
+                </div>
+                <h4 class="text-lg font-bold text-white uppercase font-display">
+                  {publicFeaturedProject?.title}
+                </h4>
+                <p class="text-xs text-[#9CAAC1] font-sans">{publicFeaturedProject?.summary}</p>
+              </div>
+            ) : (
+              <div class="p-6 rounded-xl glass-panel text-xs text-[#9CAAC1] space-y-2 border border-white/10 font-sans">
+                <div class="font-bold text-white font-mono-tech uppercase">Featured Work</div>
+                <p>No featured projects published yet.</p>
+              </div>
+            )
+          }
         </div>
       </div>
+    </div>
+
+    <!-- Stage 3 — Activity Heatmap -->
+    <div class="pt-6">
+      <ActivityHeatmap client:load />
+    </div>
+  </section>
+
+  <!-- Stage 4 & 5 — Engineering Work & Skills Constellation -->
+  <section
+    class="py-16 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto space-y-8 font-mono-tech border-t border-white/10"
+  >
+    <div class="space-y-2">
+      <div class="inline-flex items-center space-x-2 text-xs text-[#8B5CFF] uppercase font-bold">
+        <span class="w-2 h-2 rounded-full bg-[#8B5CFF] animate-pulse"></span>
+        <span>EVIDENCE-BACKED SKILLS TAXONOMY</span>
+      </div>
+      <h2 class="text-3xl font-bold text-white font-display uppercase tracking-wide">
+        CAPABILITIES &amp; EVIDENCE GRAPH
+      </h2>
+      <p class="text-xs text-[#9CAAC1] font-sans max-w-xl">
+        Every technical claim linked to verifiable git commits, architecture decision records, and
+        system deployments. Zero self-rated percentage bars.
+      </p>
+    </div>
+
+    <div
+      class="p-8 rounded-2xl glass-panel flex flex-col md:flex-row items-center justify-between gap-6 border border-white/10"
+    >
+      <div class="space-y-2 max-w-lg">
+        <h3 class="text-lg font-bold text-white uppercase">Explore Verifiable Capabilities</h3>
+        <p class="text-xs text-[#9CAAC1] font-sans">
+          Inspect public capability outcomes, evidence strength scores, and relational graph paths.
+        </p>
+      </div>
+
+      <div class="flex items-center gap-4 text-xs">
+        <a
+          href="/skills"
+          class="px-4 py-2.5 rounded-lg bg-[#8B5CFF] text-[#05060A] font-bold uppercase tracking-wider hover:opacity-90 transition-opacity"
+        >
+          Skills Directory →
+        </a>
+        <a
+          href="/capabilities"
+          class="px-4 py-2.5 rounded-lg bg-white/10 text-white font-semibold uppercase tracking-wider hover:bg-white/20 transition-all"
+        >
+          Capabilities →
+        </a>
+      </div>
+    </div>
+  </section>
+
+  <!-- Stage 6 — Closing Identity & Recruiter Callout -->
+  <section
+    class="py-16 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto font-mono-tech border-t border-white/10"
+  >
+    <div
+      class="p-8 rounded-2xl glass-panel-cyan flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6"
+    >
+      <div class="space-y-2">
+        <div class="text-xs text-[#45F3FF] font-bold uppercase">
+          EXECUTIVE &amp; RECRUITER SUMMARY
+        </div>
+        <h3 class="text-2xl font-bold text-white uppercase font-display tracking-wide">
+          Evaluated in Under 90 Seconds
+        </h3>
+        <p class="text-xs text-[#9CAAC1] font-sans max-w-xl">
+          High-contrast breakdown of architecture domain focus, verified commit history, and core
+          capabilities.
+        </p>
+      </div>
+
+      <a
+        href="/recruiter"
+        class="px-6 py-3 rounded-xl bg-[#45F3FF] text-[#05060A] font-bold text-xs uppercase tracking-wider hover:opacity-90 transition-opacity whitespace-nowrap"
+      >
+        Open Recruiter View →
+      </a>
     </div>
   </section>
 </BaseLayout>

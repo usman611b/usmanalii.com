@@ -1,0 +1,103 @@
+---
+import DashboardLayout from '../../../layouts/DashboardLayout.astro';
+---
+
+<DashboardLayout
+  title="Profile Management — Dashboard"
+  description="Owner profile, bio, current focus, contact methods, and availability state."
+  currentPath="/dashboard/profile"
+>
+  <div class="space-y-8 font-mono-tech">
+    <div class="flex items-center justify-between border-b border-white/10 pb-6">
+      <div>
+        <span class="text-xs font-bold text-[#8B5CFF] uppercase tracking-wider"
+          >CANONICAL PROFILE</span
+        >
+        <h1 class="text-3xl font-display font-bold text-white uppercase tracking-wide">
+          Profile &amp; Identity
+        </h1>
+        <p class="text-xs text-[#9CAAC1]">
+          Manage canonical biography, contact links, availability, and résumé assets.
+        </p>
+      </div>
+
+      <button
+        id="save-profile-btn"
+        class="px-5 py-2.5 bg-[#45F3FF] text-[#05060A] font-bold text-xs rounded-lg uppercase tracking-wider hover:opacity-90 transition-opacity"
+      >
+        Save Profile
+      </button>
+    </div>
+
+    <form id="profile-form" class="space-y-6 max-w-2xl">
+      <div class="space-y-2">
+        <label for="displayName" class="text-xs font-bold text-white block uppercase"
+          >Display Name</label
+        >
+        <input
+          type="text"
+          id="displayName"
+          name="displayName"
+          value="Usman Ali"
+          class="w-full px-4 py-2.5 bg-white/5 border border-white/10 rounded-lg text-xs text-white focus:border-[#45F3FF] outline-none"
+        />
+      </div>
+
+      <div class="space-y-2">
+        <label for="headline" class="text-xs font-bold text-white block uppercase"
+          >Professional Headline</label
+        >
+        <input
+          type="text"
+          id="headline"
+          name="headline"
+          value="Systems Architect & Senior Software Engineer"
+          class="w-full px-4 py-2.5 bg-white/5 border border-white/10 rounded-lg text-xs text-white focus:border-[#45F3FF] outline-none"
+        />
+      </div>
+
+      <div class="space-y-2">
+        <label for="bio" class="text-xs font-bold text-white block uppercase">Short Biography</label
+        >
+        <textarea
+          id="bio"
+          name="bio"
+          rows="4"
+          class="w-full px-4 py-2.5 bg-white/5 border border-white/10 rounded-lg text-xs text-white focus:border-[#45F3FF] outline-none"
+          >Building evidence-backed systems, transparent software, and personal software
+          architectures.</textarea
+        >
+      </div>
+
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div class="space-y-2">
+          <label for="availabilityState" class="text-xs font-bold text-white block uppercase"
+            >Availability State</label
+          >
+          <select
+            id="availabilityState"
+            name="availabilityState"
+            class="w-full px-4 py-2.5 bg-[#08111F] border border-white/10 rounded-lg text-xs text-white focus:border-[#45F3FF] outline-none"
+          >
+            <option value="available" selected>Available</option>
+            <option value="open">Open to Opportunities</option>
+            <option value="busy">Busy / Unavailable</option>
+          </select>
+        </div>
+
+        <div class="space-y-2">
+          <label for="location" class="text-xs font-bold text-white block uppercase"
+            >Location / Timezone</label
+          >
+          <input
+            type="text"
+            id="location"
+            name="location"
+            value="Karachi, Pakistan (Asia/Karachi)"
+            class="w-full px-4 py-2.5 bg-white/5 border border-white/10 rounded-lg text-xs text-white focus:border-[#45F3FF] outline-none"
+          />
+        </div>
+      </div>
+    </form>
+  </div>
+</DashboardLayout>

@@ -1,6 +1,5 @@
 ---
 import BaseLayout from '../../layouts/BaseLayout.astro';
-import { ModeSwitcher } from '../../components/ModeSwitcher';
 
 const publicCapabilities = [
   {
@@ -10,7 +9,7 @@ const publicCapabilities = [
       'Design authorization boundaries that prevent cross-owner data access on Cloudflare Workers.',
     outcomeStatement:
       'Delivers multi-tenant APIs with zero IDOR vulnerabilities and Cloudflare Access verification.',
-    stage: 'demonstrated',
+    stage: 'Demonstrated',
     evidenceCount: 6,
   },
   {
@@ -20,45 +19,49 @@ const publicCapabilities = [
       'Analyzes runtime stack traces, worker logs, and D1 constraint failures to isolate root cause.',
     outcomeStatement:
       'Resolves production incidents without masking errors or introducing silent fallbacks.',
-    stage: 'applying',
+    stage: 'Applying',
     evidenceCount: 4,
   },
 ];
 ---
 
-<BaseLayout title="Capabilities — usmanalii.com" currentPath="/capabilities">
-  <div class="py-16 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto space-y-8">
-    <div
-      class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-b border-white/10 pb-6"
-    >
-      <div>
-        <h1 class="text-3xl font-bold text-white tracking-tight">Demonstrated Capabilities</h1>
-        <p class="text-xs text-[#9CAAC1] mt-1">
-          Demonstrated outcome statements backed by verifiable evidence. Descriptive maturity only.
-        </p>
+<BaseLayout title="Capabilities — USMAN ALI" currentPath="/capabilities">
+  <div class="py-12 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto space-y-8">
+    <div class="space-y-4">
+      <div
+        class="inline-flex items-center space-x-2 px-3 py-1 rounded-md bg-[#08111F] border border-[#B8FF5A]/30 font-mono-tech text-xs text-[#B8FF5A]"
+      >
+        <span class="w-2 h-2 rounded-full bg-[#B8FF5A] animate-pulse"></span>
+        <span>DEMONSTRATED OUTCOMES</span>
       </div>
-      <ModeSwitcher client:load />
+
+      <h1
+        class="text-6xl sm:text-7xl font-display font-bold tracking-tight text-white uppercase leading-none"
+      >
+        CAPABILITIES &amp; OUTCOMES
+      </h1>
+      <p class="text-base text-[#9CAAC1] max-w-2xl">
+        Demonstrated outcome statements backed by verifiable evidence. Descriptive maturity only.
+      </p>
     </div>
 
-    <div class="space-y-6">
+    <div class="space-y-6 font-mono-tech">
       {
         publicCapabilities.map((cap) => (
           <a
             href={`/capabilities/${cap.slug}`}
-            class="p-6 rounded-2xl glass-panel border border-white/10 hover:border-[#22D3EE] transition-all group block space-y-3"
+            class="p-6 rounded-2xl glass-panel border border-white/10 hover:border-[#B8FF5A]/50 transition-all group block space-y-3"
           >
-            <div class="flex items-center justify-between">
-              <span class="px-2.5 py-1 rounded bg-[#22D3EE]/10 text-[#22D3EE] border border-[#22D3EE]/20 font-medium text-xs capitalize">
+            <div class="flex items-center justify-between text-xs">
+              <span class="px-2.5 py-0.5 rounded bg-[#B8FF5A]/15 text-[#B8FF5A] border border-[#B8FF5A]/30 font-bold uppercase">
                 Stage: {cap.stage}
               </span>
-              <span class="text-xs text-[#9CAAC1] font-mono">
-                {cap.evidenceCount} Verified Items
-              </span>
+              <span class="text-[#9CAAC1]">{cap.evidenceCount} Verified Items</span>
             </div>
-            <h2 class="text-xl font-bold text-white group-hover:text-[#22D3EE] transition-colors">
+            <h2 class="text-2xl font-bold text-white group-hover:text-[#B8FF5A] transition-colors font-display uppercase tracking-wide">
               {cap.title}
             </h2>
-            <p class="text-xs font-semibold text-white">Outcome: {cap.outcomeStatement}</p>
+            <p class="text-xs font-bold text-white">Outcome: {cap.outcomeStatement}</p>
             <p class="text-xs text-[#9CAAC1] leading-relaxed">{cap.description}</p>
           </a>
         ))

@@ -30,15 +30,305 @@ publicRoutes.get('/health', (c) => {
 });
 
 // Public profile endpoint
-publicRoutes.get('/profile', (c) => {
+publicRoutes.get('/profile', async (c) => {
+  if (c.env?.DB && typeof c.env.DB.prepare === 'function') {
+    const { D1ProfileRepository } = await import('@usmanalii/database');
+    const repo = new D1ProfileRepository(c.env.DB);
+    const profile = await repo.getPublicProfile();
+    if (profile) {
+      return c.json({ ...profile, requestId: c.get('requestId') });
+    }
+  }
+
   return c.json({
     displayName: 'Usman Ali',
     headline: 'Systems Architect & Senior Software Engineer',
     bio: 'Building evidence-backed systems, transparent software, and personal software architectures.',
     currentFocus: 'usmanalii.com — Personal Career OS',
+    availabilityState: 'available',
+    preferredRoles: 'Staff / Senior Software Engineer',
+    profileImageUrl: null,
+    resumeAssetUrl: null,
+    location: 'Karachi, Pakistan',
+    timezone: 'Asia/Karachi',
+    contactUrl: 'https://usmanalii.com/contact',
     visibility: 'public',
     requestId: c.get('requestId'),
   });
+});
+
+/** GET /api/v1/public/recruiter — Recruiter Mode Projection */
+publicRoutes.get('/recruiter', async (c) => {
+  if (!c.env?.DB || typeof c.env.DB.prepare !== 'function') {
+    return c.json({
+      profile: null,
+      summary: null,
+      featuredExperience: [],
+      featuredEducation: [],
+      featuredCredentials: [],
+      featuredCapabilities: [],
+      featuredSkills: [],
+      featuredProjects: [],
+      approvedClaims: [],
+      resumeAssetUrl: null,
+      contactUrl: null,
+      requestId: c.get('requestId'),
+    });
+  }
+
+  const {
+    D1ProfileRepository,
+    D1ProfessionalRecordsRepository,
+    D1ClaimsRepository,
+    D1CapabilityRepository,
+    D1SkillRepository,
+    D1ProjectRepository,
+  } = await import('@usmanalii/database');
+
+  const profileRepo = new D1ProfileRepository(c.env.DB);
+  const recordsRepo = new D1ProfessionalRecordsRepository(c.env.DB);
+  const claimsRepo = new D1ClaimsRepository(c.env.DB);
+  const capRepo = new D1CapabilityRepository(c.env.DB);
+  const skillRepo = new D1SkillRepository(c.env.DB);
+  const projRepo = new D1ProjectRepository(c.env.DB);
+
+  const ownerId = '00000000-0000-0000-0000-000000000001' as EntityId;
+
+  const [profile, exp, edu, cred, claims, caps, skills, projects] = await Promise.all([
+    profileRepo.getPublicProfile(),
+    recordsRepo.listPublicExperience(),
+    recordsRepo.listPublicEducation(),
+    recordsRepo.listPublicCredentials(),
+    claimsRepo.listPublicClaims(),
+    capRepo.listCapabilitiesByOwner(ownerId, { visibility: 'public', state: 'published' }),
+    skillRepo.listSkillsByOwner(ownerId, { visibility: 'public' }),
+    projRepo.listProjects(ownerId, { visibility: 'public', publicationState: 'published' }),
+  ]);
+
+  return c.json({
+    profile,
+    summary: profile?.bio || profile?.headline || null,
+    featuredExperience: exp,
+    featuredEducation: edu,
+    featuredCredentials: cred,
+    featuredCapabilities: caps.map((c) => ({
+      id: c.id,
+      title: c.title,
+      slug: c.slug,
+      description: c.description,
+      maturity: c.maturity,
+      maturityRationale: c.maturityRationale,
+      lastReviewedAt: c.lastReviewedAt,
+      publicEvidenceCount: 1,
+      skillNames: [],
+    })),
+    featuredSkills: skills.map((s) => ({
+      id: s.id,
+      name: s.name,
+      slug: s.slug,
+      description: s.description,
+      parentId: s.parentId,
+      publicCapabilityCount: 1,
+    })),
+    featuredProjects: projects,
+    approvedClaims: claims,
+    resumeAssetUrl: profile?.resumeAssetUrl || null,
+    contactUrl: profile?.contactUrl || null,
+    requestId: c.get('requestId'),
+  });
+});
+
+/** GET /api/v1/public/resumes — List published public resume variants */
+publicRoutes.get('/resumes', async (c) => {
+  if (!c.env?.DB || typeof c.env.DB.prepare !== 'function') {
+    return c.json({ items: [], requestId: c.get('requestId') });
+  }
+  const { D1ResumeRepository } = await import('@usmanalii/database');
+  const repo = new D1ResumeRepository(c.env.DB);
+  const items = await repo.listPublicResumeVariants();
+  return c.json({ items, requestId: c.get('requestId') });
+});
+
+/** GET /api/v1/public/resumes/:slug — Get published public resume variant detail */
+publicRoutes.get('/resumes/:slug', async (c) => {
+  const slug = c.req.param('slug');
+  if (!c.env?.DB || typeof c.env.DB.prepare !== 'function') {
+    return c.json(
+      {
+        code: 'RESOURCE_NOT_FOUND',
+        message: 'Résumé variant not found.',
+        requestId: c.get('requestId'),
+      },
+      404,
+    );
+  }
+  const { D1ResumeRepository } = await import('@usmanalii/database');
+  const repo = new D1ResumeRepository(c.env.DB);
+  const variant = await repo.getPublicResumeVariantBySlug(slug);
+  if (!variant) {
+    return c.json(
+      {
+        code: 'RESOURCE_NOT_FOUND',
+        message: 'Résumé variant not found.',
+        requestId: c.get('requestId'),
+      },
+      404,
+    );
+  }
+  return c.json({ variant, requestId: c.get('requestId') });
+});
+
+/** GET /api/v1/public/resumes/:slug/export — Export published resume variant in HTML/TXT/JSON/MD */
+publicRoutes.get('/resumes/:slug/export', async (c) => {
+  const slug = c.req.param('slug');
+  const format = (c.req.query('format') || 'json').toLowerCase();
+
+  if (!c.env?.DB || typeof c.env.DB.prepare !== 'function') {
+    return c.json(
+      {
+        code: 'RESOURCE_NOT_FOUND',
+        message: 'Résumé variant not found.',
+        requestId: c.get('requestId'),
+      },
+      404,
+    );
+  }
+
+  const {
+    D1ResumeRepository,
+    D1ProfileRepository,
+    D1ProfessionalRecordsRepository,
+    D1ClaimsRepository,
+  } = await import('@usmanalii/database');
+  const resumeRepo = new D1ResumeRepository(c.env.DB);
+  const profileRepo = new D1ProfileRepository(c.env.DB);
+  const recordsRepo = new D1ProfessionalRecordsRepository(c.env.DB);
+  const claimsRepo = new D1ClaimsRepository(c.env.DB);
+
+  const variant = await resumeRepo.getPublicResumeVariantBySlug(slug);
+  if (!variant) {
+    return c.json(
+      {
+        code: 'RESOURCE_NOT_FOUND',
+        message: 'Résumé variant not found.',
+        requestId: c.get('requestId'),
+      },
+      404,
+    );
+  }
+
+  const [profile, exp, edu, cred, claims] = await Promise.all([
+    profileRepo.getPublicProfile(),
+    recordsRepo.listPublicExperience(),
+    recordsRepo.listPublicEducation(),
+    recordsRepo.listPublicCredentials(),
+    claimsRepo.listPublicClaims(),
+  ]);
+
+  if (format === 'json') {
+    return c.json({
+      variant,
+      profile,
+      experience: exp,
+      education: edu,
+      credentials: cred,
+      claims,
+      exportedAt: new Date().toISOString(),
+      schemaVersion: 17,
+      requestId: c.get('requestId'),
+    });
+  }
+
+  if (format === 'txt' || format === 'text') {
+    let txt = `========================================================================\n`;
+    txt += `${profile?.displayName || 'Usman Ali'} — ${profile?.headline || 'Professional Résumé'}\n`;
+    txt += `========================================================================\n\n`;
+    txt += `Bio: ${profile?.bio || ''}\n`;
+    txt += `Location: ${profile?.location || ''}\n\n`;
+
+    txt += `WORK EXPERIENCE:\n`;
+    for (const e of exp) {
+      txt += `- ${e.roleTitle} at ${e.company} (${e.startDate} - ${e.endDate || 'Present'})\n`;
+      if (e.description) txt += `  ${e.description}\n`;
+    }
+    txt += `\nEDUCATION:\n`;
+    for (const ed of edu) {
+      txt += `- ${ed.degree} in ${ed.fieldOfStudy || ''}, ${ed.institution} (${ed.startDate} - ${ed.endDate || 'Present'})\n`;
+    }
+    txt += `\nCREDENTIALS & CERTIFICATIONS:\n`;
+    for (const cr of cred) {
+      txt += `- ${cr.name} (${cr.issuingOrganization}, Issued ${cr.issueDate})\n`;
+    }
+    txt += `\nAPPROVED CLAIMS:\n`;
+    for (const cl of claims) {
+      txt += `- ${cl.wording}\n`;
+    }
+
+    c.header('Content-Type', 'text/plain; charset=utf-8');
+    c.header('Content-Disposition', `attachment; filename="${variant.slug}-resume.txt"`);
+    return c.text(txt);
+  }
+
+  if (format === 'md' || format === 'markdown') {
+    let md = `# ${profile?.displayName || 'Usman Ali'}\n\n`;
+    md += `**${profile?.headline || ''}**  \n`;
+    md += `📍 ${profile?.location || ''}  \n\n`;
+    md += `## Summary\n\n${profile?.bio || ''}\n\n`;
+
+    md += `## Work Experience\n\n`;
+    for (const e of exp) {
+      md += `### ${e.roleTitle} — ${e.company}\n`;
+      md += `*${e.startDate} – ${e.endDate || 'Present'}* | ${e.location || ''}\n\n`;
+      if (e.description) md += `${e.description}\n\n`;
+    }
+
+    md += `## Education\n\n`;
+    for (const ed of edu) {
+      md += `### ${ed.degree} ${ed.fieldOfStudy ? `in ${ed.fieldOfStudy}` : ''}\n`;
+      md += `**${ed.institution}** (*${ed.startDate} – ${ed.endDate || 'Present'}*)\n\n`;
+    }
+
+    md += `## Certifications\n\n`;
+    for (const cr of cred) {
+      md += `- **${cr.name}** — ${cr.issuingOrganization} (${cr.issueDate})\n`;
+    }
+
+    md += `\n## Approved Professional Claims\n\n`;
+    for (const cl of claims) {
+      md += `- ${cl.wording}\n`;
+    }
+
+    c.header('Content-Type', 'text/markdown; charset=utf-8');
+    c.header('Content-Disposition', `attachment; filename="${variant.slug}-resume.md"`);
+    return c.text(md);
+  }
+
+  if (format === 'html') {
+    let html = `<!DOCTYPE html>\n<html lang="en">\n<head><meta charset="UTF-8"><title>${profile?.displayName || 'Usman Ali'} - Résumé</title></head>\n<body>\n`;
+    html += `<h1>${profile?.displayName || 'Usman Ali'}</h1>\n<p><strong>${profile?.headline || ''}</strong></p>\n<p>${profile?.bio || ''}</p>\n`;
+    html += `<h2>Experience</h2>\n<ul>\n`;
+    for (const e of exp) {
+      html += `<li><strong>${e.roleTitle}</strong> at ${e.company} (${e.startDate} - ${e.endDate || 'Present'})</li>\n`;
+    }
+    html += `</ul>\n<h2>Education</h2>\n<ul>\n`;
+    for (const ed of edu) {
+      html += `<li><strong>${ed.degree}</strong>, ${ed.institution}</li>\n`;
+    }
+    html += `</ul>\n</body>\n</html>`;
+
+    c.header('Content-Type', 'text/html; charset=utf-8');
+    c.header('Content-Disposition', `inline; filename="${variant.slug}-resume.html"`);
+    return c.html(html);
+  }
+
+  return c.json(
+    {
+      code: 'UNSUPPORTED_FORMAT',
+      message: 'Format must be one of: json, txt, md, html.',
+      requestId: c.get('requestId'),
+    },
+    400,
+  );
 });
 
 // Public activity heatmap endpoint

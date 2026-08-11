@@ -28,6 +28,7 @@ import {
   type ContentType,
   type PublicationState,
   type Visibility,
+  type AvailabilityState,
   type ProjectLifecycleState,
   type ProjectContributionType,
   type ExperimentStatus,
@@ -1548,4 +1549,430 @@ privateRoutes.get('/activity', async (c) => {
 
   const projection = computeActivityHeatmap(events, oneYearAgo, nowIso, timezone, false);
   return c.json({ projection, requestId: c.get('requestId') });
+});
+
+// ----------------------------------------------------------------------------
+// Milestone M7 Private API Routes — Profile, Records, Claims, Résumés & Export
+// ----------------------------------------------------------------------------
+
+/** GET /api/v1/private/profile — Get full owner profile */
+privateRoutes.get('/profile', async (c) => {
+  const authContext = c.get('authContext')!;
+  const { D1ProfileRepository } = await import('@usmanalii/database');
+  const repo = new D1ProfileRepository(c.env.DB);
+  const profile = await repo.getOwnerProfile(authContext);
+  return c.json({ profile, requestId: c.get('requestId') });
+});
+
+/** PUT /api/v1/private/profile — Update owner profile */
+privateRoutes.put('/profile', async (c) => {
+  const authContext = c.get('authContext')!;
+  const body = (await c.req.json().catch(() => ({}))) as Record<string, unknown>;
+  const versionNo = Number(body.versionNo);
+
+  if (isNaN(versionNo) || versionNo < 1) {
+    return c.json(
+      { code: 'INVALID_PAYLOAD', message: 'versionNo is required.', requestId: c.get('requestId') },
+      400,
+    );
+  }
+
+  const { D1ProfileRepository } = await import('@usmanalii/database');
+  const repo = new D1ProfileRepository(c.env.DB);
+
+  try {
+    const profile = await repo.updateProfile(
+      authContext,
+      {
+        displayName: body.displayName as string,
+        headline: body.headline as string,
+        bio: body.bio as string,
+        currentFocus: body.currentFocus as string,
+        contactEmail: body.contactEmail as string,
+        contactUrl: body.contactUrl as string,
+        timezone: body.timezone as string,
+        visibility: body.visibility as Visibility,
+        availabilityState: body.availabilityState as AvailabilityState,
+        preferredRoles: body.preferredRoles as string,
+        profileImageUrl: body.profileImageUrl as string,
+        resumeAssetUrl: body.resumeAssetUrl as string,
+        location: body.location as string,
+      },
+      versionNo,
+    );
+    return c.json({ profile, requestId: c.get('requestId') });
+  } catch (err: unknown) {
+    const msg = err instanceof Error ? err.message : String(err);
+    if (msg.includes('CONCURRENCY_CONFLICT')) {
+      return c.json({ code: 'CONFLICT', message: msg, requestId: c.get('requestId') }, 409);
+    }
+    throw err;
+  }
+});
+
+/** GET /api/v1/private/experience — List owner experience */
+privateRoutes.get('/experience', async (c) => {
+  const authContext = c.get('authContext')!;
+  const { D1ProfessionalRecordsRepository } = await import('@usmanalii/database');
+  const repo = new D1ProfessionalRecordsRepository(c.env.DB);
+  const items = await repo.listOwnerExperience(authContext);
+  return c.json({ items, requestId: c.get('requestId') });
+});
+
+/** POST /api/v1/private/experience — Create experience record */
+privateRoutes.post('/experience', async (c) => {
+  const authContext = c.get('authContext')!;
+  const body = await c.req.json().catch(() => ({}));
+  const { D1ProfessionalRecordsRepository } = await import('@usmanalii/database');
+  const repo = new D1ProfessionalRecordsRepository(c.env.DB);
+  const item = await repo.createExperience(authContext, body);
+  return c.json({ item, requestId: c.get('requestId') }, 201);
+});
+
+/** PUT /api/v1/private/experience/:id — Update experience record */
+privateRoutes.put('/experience/:id', async (c) => {
+  const authContext = c.get('authContext')!;
+  const id = c.req.param('id');
+  const body = await c.req.json().catch(() => ({}));
+  const { D1ProfessionalRecordsRepository } = await import('@usmanalii/database');
+  const repo = new D1ProfessionalRecordsRepository(c.env.DB);
+  try {
+    const item = await repo.updateExperience(authContext, id, body);
+    return c.json({ item, requestId: c.get('requestId') });
+  } catch (err: unknown) {
+    const msg = err instanceof Error ? err.message : String(err);
+    if (msg.includes('CONCURRENCY_CONFLICT')) {
+      return c.json({ code: 'CONFLICT', message: msg, requestId: c.get('requestId') }, 409);
+    }
+    throw err;
+  }
+});
+
+/** DELETE /api/v1/private/experience/:id — Soft-delete experience record */
+privateRoutes.delete('/experience/:id', async (c) => {
+  const authContext = c.get('authContext')!;
+  const id = c.req.param('id');
+  const { D1ProfessionalRecordsRepository } = await import('@usmanalii/database');
+  const repo = new D1ProfessionalRecordsRepository(c.env.DB);
+  const success = await repo.deleteExperience(authContext, id);
+  return c.json({ success, requestId: c.get('requestId') });
+});
+
+/** GET /api/v1/private/education — List owner education */
+privateRoutes.get('/education', async (c) => {
+  const authContext = c.get('authContext')!;
+  const { D1ProfessionalRecordsRepository } = await import('@usmanalii/database');
+  const repo = new D1ProfessionalRecordsRepository(c.env.DB);
+  const items = await repo.listOwnerEducation(authContext);
+  return c.json({ items, requestId: c.get('requestId') });
+});
+
+/** POST /api/v1/private/education — Create education record */
+privateRoutes.post('/education', async (c) => {
+  const authContext = c.get('authContext')!;
+  const body = await c.req.json().catch(() => ({}));
+  const { D1ProfessionalRecordsRepository } = await import('@usmanalii/database');
+  const repo = new D1ProfessionalRecordsRepository(c.env.DB);
+  const item = await repo.createEducation(authContext, body);
+  return c.json({ item, requestId: c.get('requestId') }, 201);
+});
+
+/** PUT /api/v1/private/education/:id — Update education record */
+privateRoutes.put('/education/:id', async (c) => {
+  const authContext = c.get('authContext')!;
+  const id = c.req.param('id');
+  const body = await c.req.json().catch(() => ({}));
+  const { D1ProfessionalRecordsRepository } = await import('@usmanalii/database');
+  const repo = new D1ProfessionalRecordsRepository(c.env.DB);
+  try {
+    const item = await repo.updateEducation(authContext, id, body);
+    return c.json({ item, requestId: c.get('requestId') });
+  } catch (err: unknown) {
+    const msg = err instanceof Error ? err.message : String(err);
+    if (msg.includes('CONCURRENCY_CONFLICT')) {
+      return c.json({ code: 'CONFLICT', message: msg, requestId: c.get('requestId') }, 409);
+    }
+    throw err;
+  }
+});
+
+/** DELETE /api/v1/private/education/:id — Soft-delete education record */
+privateRoutes.delete('/education/:id', async (c) => {
+  const authContext = c.get('authContext')!;
+  const id = c.req.param('id');
+  const { D1ProfessionalRecordsRepository } = await import('@usmanalii/database');
+  const repo = new D1ProfessionalRecordsRepository(c.env.DB);
+  const success = await repo.deleteEducation(authContext, id);
+  return c.json({ success, requestId: c.get('requestId') });
+});
+
+/** GET /api/v1/private/credentials — List owner credentials */
+privateRoutes.get('/credentials', async (c) => {
+  const authContext = c.get('authContext')!;
+  const { D1ProfessionalRecordsRepository } = await import('@usmanalii/database');
+  const repo = new D1ProfessionalRecordsRepository(c.env.DB);
+  const items = await repo.listOwnerCredentials(authContext);
+  return c.json({ items, requestId: c.get('requestId') });
+});
+
+/** POST /api/v1/private/credentials — Create credential record */
+privateRoutes.post('/credentials', async (c) => {
+  const authContext = c.get('authContext')!;
+  const body = await c.req.json().catch(() => ({}));
+  const { D1ProfessionalRecordsRepository } = await import('@usmanalii/database');
+  const repo = new D1ProfessionalRecordsRepository(c.env.DB);
+  const item = await repo.createCredential(authContext, body);
+  return c.json({ item, requestId: c.get('requestId') }, 201);
+});
+
+/** PUT /api/v1/private/credentials/:id — Update credential record */
+privateRoutes.put('/credentials/:id', async (c) => {
+  const authContext = c.get('authContext')!;
+  const id = c.req.param('id');
+  const body = await c.req.json().catch(() => ({}));
+  const { D1ProfessionalRecordsRepository } = await import('@usmanalii/database');
+  const repo = new D1ProfessionalRecordsRepository(c.env.DB);
+  try {
+    const item = await repo.updateCredential(authContext, id, body);
+    return c.json({ item, requestId: c.get('requestId') });
+  } catch (err: unknown) {
+    const msg = err instanceof Error ? err.message : String(err);
+    if (msg.includes('CONCURRENCY_CONFLICT')) {
+      return c.json({ code: 'CONFLICT', message: msg, requestId: c.get('requestId') }, 409);
+    }
+    throw err;
+  }
+});
+
+/** DELETE /api/v1/private/credentials/:id — Soft-delete credential record */
+privateRoutes.delete('/credentials/:id', async (c) => {
+  const authContext = c.get('authContext')!;
+  const id = c.req.param('id');
+  const { D1ProfessionalRecordsRepository } = await import('@usmanalii/database');
+  const repo = new D1ProfessionalRecordsRepository(c.env.DB);
+  const success = await repo.deleteCredential(authContext, id);
+  return c.json({ success, requestId: c.get('requestId') });
+});
+
+/** GET /api/v1/private/claims — List owner claims */
+privateRoutes.get('/claims', async (c) => {
+  const authContext = c.get('authContext')!;
+  const { D1ClaimsRepository } = await import('@usmanalii/database');
+  const repo = new D1ClaimsRepository(c.env.DB);
+  const items = await repo.listOwnerClaims(authContext);
+  return c.json({ items, requestId: c.get('requestId') });
+});
+
+/** POST /api/v1/private/claims — Create claim */
+privateRoutes.post('/claims', async (c) => {
+  const authContext = c.get('authContext')!;
+  const body = await c.req.json().catch(() => ({}));
+  const { D1ClaimsRepository } = await import('@usmanalii/database');
+  const repo = new D1ClaimsRepository(c.env.DB);
+  const claim = await repo.createClaim(authContext, body);
+  return c.json({ claim, requestId: c.get('requestId') }, 201);
+});
+
+/** PUT /api/v1/private/claims/:id — Update claim */
+privateRoutes.put('/claims/:id', async (c) => {
+  const authContext = c.get('authContext')!;
+  const id = c.req.param('id');
+  const body = await c.req.json().catch(() => ({}));
+  const { D1ClaimsRepository } = await import('@usmanalii/database');
+  const repo = new D1ClaimsRepository(c.env.DB);
+  try {
+    const claim = await repo.updateClaim(authContext, id, body);
+    return c.json({ claim, requestId: c.get('requestId') });
+  } catch (err: unknown) {
+    const msg = err instanceof Error ? err.message : String(err);
+    if (msg.includes('CONCURRENCY_CONFLICT')) {
+      return c.json({ code: 'CONFLICT', message: msg, requestId: c.get('requestId') }, 409);
+    }
+    throw err;
+  }
+});
+
+/** DELETE /api/v1/private/claims/:id — Soft-delete claim */
+privateRoutes.delete('/claims/:id', async (c) => {
+  const authContext = c.get('authContext')!;
+  const id = c.req.param('id');
+  const { D1ClaimsRepository } = await import('@usmanalii/database');
+  const repo = new D1ClaimsRepository(c.env.DB);
+  const success = await repo.deleteClaim(authContext, id);
+  return c.json({ success, requestId: c.get('requestId') });
+});
+
+/** POST /api/v1/private/claims/:id/supports — Add claim support edge */
+privateRoutes.post('/claims/:id/supports', async (c) => {
+  const authContext = c.get('authContext')!;
+  const id = c.req.param('id');
+  const body = await c.req.json().catch(() => ({}));
+  const { D1ClaimsRepository } = await import('@usmanalii/database');
+  const repo = new D1ClaimsRepository(c.env.DB);
+  const support = await repo.addClaimSupport(authContext, id, body);
+  return c.json({ support, requestId: c.get('requestId') }, 201);
+});
+
+/** DELETE /api/v1/private/claims/:id/supports/:targetType/:targetId — Remove claim support edge */
+privateRoutes.delete('/claims/:id/supports/:targetType/:targetId', async (c) => {
+  const authContext = c.get('authContext')!;
+  const id = c.req.param('id');
+  const targetType = c.req.param('targetType');
+  const targetId = c.req.param('targetId');
+  const { D1ClaimsRepository } = await import('@usmanalii/database');
+  const repo = new D1ClaimsRepository(c.env.DB);
+  const success = await repo.removeClaimSupport(authContext, id, targetType, targetId);
+  return c.json({ success, requestId: c.get('requestId') });
+});
+
+/** GET /api/v1/private/claims/:id/eligibility — Inspect claim eligibility & rejection reasons */
+privateRoutes.get('/claims/:id/eligibility', async (c) => {
+  const authContext = c.get('authContext')!;
+  const id = c.req.param('id');
+  const { D1ClaimsRepository } = await import('@usmanalii/database');
+  const repo = new D1ClaimsRepository(c.env.DB);
+  const eligibility = await repo.checkClaimEligibility(authContext, id);
+  return c.json({ eligibility, requestId: c.get('requestId') });
+});
+
+/** GET /api/v1/private/resumes — List owner resume variants */
+privateRoutes.get('/resumes', async (c) => {
+  const authContext = c.get('authContext')!;
+  const { D1ResumeRepository } = await import('@usmanalii/database');
+  const repo = new D1ResumeRepository(c.env.DB);
+  const items = await repo.listOwnerResumeVariants(authContext);
+  return c.json({ items, requestId: c.get('requestId') });
+});
+
+/** POST /api/v1/private/resumes — Create resume variant */
+privateRoutes.post('/resumes', async (c) => {
+  const authContext = c.get('authContext')!;
+  const body = await c.req.json().catch(() => ({}));
+  const { D1ResumeRepository } = await import('@usmanalii/database');
+  const repo = new D1ResumeRepository(c.env.DB);
+  const variant = await repo.createResumeVariant(authContext, body);
+  return c.json({ variant, requestId: c.get('requestId') }, 201);
+});
+
+/** GET /api/v1/private/resumes/:id — Get resume variant by ID or slug */
+privateRoutes.get('/resumes/:id', async (c) => {
+  const authContext = c.get('authContext')!;
+  const id = c.req.param('id');
+  const { D1ResumeRepository } = await import('@usmanalii/database');
+  const repo = new D1ResumeRepository(c.env.DB);
+  const variant = await repo.getResumeVariantByIdOrSlug(authContext, id);
+  if (!variant) {
+    return c.json(
+      {
+        code: 'RESOURCE_NOT_FOUND',
+        message: 'Résumé variant not found.',
+        requestId: c.get('requestId'),
+      },
+      404,
+    );
+  }
+  return c.json({ variant, requestId: c.get('requestId') });
+});
+
+/** PUT /api/v1/private/resumes/:id — Update resume variant */
+privateRoutes.put('/resumes/:id', async (c) => {
+  const authContext = c.get('authContext')!;
+  const id = c.req.param('id');
+  const body = await c.req.json().catch(() => ({}));
+  const { D1ResumeRepository } = await import('@usmanalii/database');
+  const repo = new D1ResumeRepository(c.env.DB);
+  try {
+    const variant = await repo.updateResumeVariant(authContext, id, body);
+    return c.json({ variant, requestId: c.get('requestId') });
+  } catch (err: unknown) {
+    const msg = err instanceof Error ? err.message : String(err);
+    if (msg.includes('CONCURRENCY_CONFLICT')) {
+      return c.json({ code: 'CONFLICT', message: msg, requestId: c.get('requestId') }, 409);
+    }
+    throw err;
+  }
+});
+
+/** POST /api/v1/private/resumes/:id/publish — Publish resume variant & snapshot version */
+privateRoutes.post('/resumes/:id/publish', async (c) => {
+  const authContext = c.get('authContext')!;
+  const id = c.req.param('id');
+  const { D1ResumeRepository } = await import('@usmanalii/database');
+  const repo = new D1ResumeRepository(c.env.DB);
+  const variant = await repo.publishResumeVariant(authContext, id);
+  return c.json({ variant, requestId: c.get('requestId') });
+});
+
+/** POST /api/v1/private/resumes/:id/rollback — Rollback resume variant (appends new version) */
+privateRoutes.post('/resumes/:id/rollback', async (c) => {
+  const authContext = c.get('authContext')!;
+  const id = c.req.param('id');
+  const body = (await c.req.json().catch(() => ({}))) as Record<string, unknown>;
+  const versionNo = Number(body.versionNo);
+
+  if (isNaN(versionNo) || versionNo < 1) {
+    return c.json(
+      {
+        code: 'INVALID_PAYLOAD',
+        message: 'versionNo to rollback to is required.',
+        requestId: c.get('requestId'),
+      },
+      400,
+    );
+  }
+
+  const { D1ResumeRepository } = await import('@usmanalii/database');
+  const repo = new D1ResumeRepository(c.env.DB);
+  const variant = await repo.rollbackResumeVariant(authContext, id, versionNo);
+  return c.json({ variant, requestId: c.get('requestId') });
+});
+
+/** GET /api/v1/private/resumes/:id/versions — List variant versions */
+privateRoutes.get('/resumes/:id/versions', async (c) => {
+  const authContext = c.get('authContext')!;
+  const id = c.req.param('id');
+  const { D1ResumeRepository } = await import('@usmanalii/database');
+  const repo = new D1ResumeRepository(c.env.DB);
+  const versions = await repo.listVariantVersions(authContext, id);
+  return c.json({ versions, requestId: c.get('requestId') });
+});
+
+/** GET /api/v1/private/export/m7 — Owner export of M7 canonical records */
+privateRoutes.get('/export/m7', async (c) => {
+  const authContext = c.get('authContext')!;
+  const {
+    D1ProfileRepository,
+    D1ProfessionalRecordsRepository,
+    D1ClaimsRepository,
+    D1ResumeRepository,
+  } = await import('@usmanalii/database');
+
+  const profileRepo = new D1ProfileRepository(c.env.DB);
+  const recordsRepo = new D1ProfessionalRecordsRepository(c.env.DB);
+  const claimsRepo = new D1ClaimsRepository(c.env.DB);
+  const resumeRepo = new D1ResumeRepository(c.env.DB);
+
+  const [profile, exp, edu, cred, claims, variants] = await Promise.all([
+    profileRepo.getOwnerProfile(authContext),
+    recordsRepo.listOwnerExperience(authContext),
+    recordsRepo.listOwnerEducation(authContext),
+    recordsRepo.listOwnerCredentials(authContext),
+    claimsRepo.listOwnerClaims(authContext),
+    resumeRepo.listOwnerResumeVariants(authContext),
+  ]);
+
+  // Exclude secrets, internal tokens, or database credentials
+  const exportPayload = {
+    schemaVersion: 17,
+    exportedAt: new Date().toISOString(),
+    ownerId: authContext.ownerId,
+    profile,
+    experienceRecords: exp,
+    educationRecords: edu,
+    credentialRecords: cred,
+    claims,
+    resumeVariants: variants,
+  };
+
+  return c.json(exportPayload);
 });

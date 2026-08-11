@@ -19,25 +19,26 @@
 
 export const colorTokens = {
   // Foundation
-  obsidian: '#050509', // Page foundation
-  midnight: '#080D1A', // Reading and navigation surfaces
-  elevatedNavy: '#0D1528', // Cards and panels
-  surfaceHigh: '#101A31', // Interactive elevation
+  obsidian: '#05060A', // Page foundation
+  deepCanvas: '#070A11', // Layered background canvas
+  midnight: '#08111F', // Reading and navigation surfaces
+  elevatedNavy: '#0C1626', // Cards and elevated panels
+  surfaceHigh: '#101F38', // Interactive elevation
 
   // Text
-  foreground: '#F7FBFF', // Primary text
-  muted: '#9CAAC1', // Secondary text
+  foreground: '#F4F1EA', // Warm white primary text
+  muted: '#9CAAC1', // Cool gray secondary text
 
   // Semantic accents
-  cyberCyan: '#22D3EE', // Evidence and verification
-  electricViolet: '#8B5CF6', // Intelligence and identity
-  hotMagenta: '#EC4899', // Experiments and exploration
-  acidLime: '#B6F43A', // Delivery and progress
-  signalBlue: '#3B82F6', // Navigation and information
+  cyberCyan: '#45F3FF', // System exploration & navigation
+  electricViolet: '#8B5CFF', // Knowledge & decisions
+  hotMagenta: '#FF3DA4', // Major actions & focus points
+  acidLime: '#B8FF5A', // Verified & healthy states
+  signalBlue: '#3B82F6', // Navigation & info
 
   // Status
-  warningAmber: '#F59E0B', // Stale or incomplete evidence
-  errorRed: '#F43F5E', // Broken, rejected or destructive state
+  warningAmber: '#F59E0B', // Pending review / stale evidence
+  errorRed: '#F43F5E', // Errors and destructive actions
 } as const;
 
 export type ColorToken = keyof typeof colorTokens;
@@ -47,6 +48,7 @@ export type ColorToken = keyof typeof colorTokens;
 // ---------------------------------------------------------------------------
 
 export const typographyTokens = {
+  fontDisplay: '"Bebas Neue", "Oswald", "Outfit", sans-serif',
   fontPrimary: '"Geist", "Inter", system-ui, sans-serif',
   fontTechnical: '"Geist Mono", "IBM Plex Mono", monospace',
 

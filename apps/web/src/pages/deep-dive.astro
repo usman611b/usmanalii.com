@@ -1,51 +1,119 @@
 ---
 import BaseLayout from '../layouts/BaseLayout.astro';
+import { ArchitectureCanvas } from '../components/ArchitectureCanvas';
+
+interface ProjectCaseStudy {
+  title: string;
+  slug: string;
+  summary: string;
+  status: string;
+  role: string;
+  timeline: string;
+  language: string;
+  stack: string;
+  adrs: Array<{ id: string; title: string; summary: string }>;
+  constraintText: string;
+  decisionText: string;
+  experimentText: string;
+  debuggingText: string;
+  outcomeText: string;
+}
+
+const eligibleProjectCaseStudy = null as unknown as ProjectCaseStudy | null;
 ---
 
 <BaseLayout
-  title="Deep Dive — usmanalii.com"
-  description="Technical architecture, ADRs, experiments, and debugging lessons"
+  title="Technical Architecture & Project Case Study — USMAN ALI"
+  description="Technical architecture, ADRs, experiments, and debugging lessons for verified systems."
   currentPath="/deep-dive"
 >
-  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-    <div class="space-y-4">
-      <span class="text-xs font-semibold text-[#EC4899] uppercase tracking-wider"
-        >Technical Evaluator View</span
-      >
-      <h1 class="text-3xl font-bold text-white tracking-tight">
-        Engineering Architecture & Deep Dive
-      </h1>
-      <p class="text-sm text-[#9CAAC1] max-w-2xl">
-        Inspect system design, Architecture Decision Records (ADRs), experiments, failure
-        post-mortems, and debugging lessons.
-      </p>
-    </div>
+  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 space-y-8 font-mono-tech">
+    {
+      eligibleProjectCaseStudy ? (
+        <div class="space-y-6">
+          <div class="space-y-4">
+            <div class="flex flex-wrap items-center gap-3 text-xs">
+              <span class="px-2.5 py-0.5 rounded-full bg-[#B8FF5A]/15 text-[#B8FF5A] border border-[#B8FF5A]/30 font-bold flex items-center gap-1.5">
+                <span class="w-1.5 h-1.5 rounded-full bg-[#B8FF5A]" />
+                VERIFIED EVIDENCE
+              </span>
+              <span class="text-[#9CAAC1]">
+                STATUS: <span class="text-white">{eligibleProjectCaseStudy?.status}</span>
+              </span>
+            </div>
 
-    <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mt-12">
-      <div class="p-6 rounded-2xl glass-panel">
-        <span class="text-xs text-[#22D3EE] font-mono">Architecture</span>
-        <h2 class="text-lg font-bold text-white mt-1">14-Package Monorepo Scaffold</h2>
-        <p class="text-xs text-[#9CAAC1] mt-2">
-          Pure domain layer strictly separated from Cloudflare adapters via ESLint boundary rules.
-        </p>
-      </div>
+            <h1 class="text-6xl sm:text-7xl lg:text-8xl font-display font-bold tracking-tight text-white uppercase leading-none">
+              {eligibleProjectCaseStudy?.title}
+            </h1>
+            <p class="text-xl text-[#9CAAC1] max-w-3xl font-sans">
+              {eligibleProjectCaseStudy?.summary}
+            </p>
+          </div>
 
-      <div class="p-6 rounded-2xl glass-panel">
-        <span class="text-xs text-[#A78BFA] font-mono">ADRs</span>
-        <h2 class="text-lg font-bold text-white mt-1">Decided ADRs 001–010</h2>
-        <p class="text-xs text-[#9CAAC1] mt-2">
-          Static Astro rebuilds, Hono REST conventions, WebCrypto RS256 auth, and encrypted backups.
-        </p>
-      </div>
+          <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+            <div class="lg:col-span-8">
+              <ArchitectureCanvas client:load />
+            </div>
 
-      <div class="p-6 rounded-2xl glass-panel">
-        <span class="text-xs text-[#EC4899] font-mono">Security</span>
-        <h2 class="text-lg font-bold text-white mt-1">Zero-Trust Cloudflare Access</h2>
-        <p class="text-xs text-[#9CAAC1] mt-2">
-          Cryptographic signature verification, key rotation cache, and fail-closed private API
-          routes.
-        </p>
-      </div>
-    </div>
+            <div class="lg:col-span-4 rounded-2xl glass-panel p-5 space-y-4">
+              <div class="flex items-center justify-between text-xs">
+                <span class="text-[#8B5CFF] font-bold tracking-wider uppercase">
+                  ARCHITECTURE DECISIONS
+                </span>
+                <a href="/evidence" class="text-[#8B5CFF] hover:underline">
+                  View all →
+                </a>
+              </div>
+
+              <div class="space-y-4 text-xs">
+                {eligibleProjectCaseStudy?.adrs?.map(
+                  (adr: { id: string; title: string; summary: string }) => (
+                    <div class="border-b border-white/10 pb-3 space-y-1">
+                      <div class="text-[#45F3FF] font-bold">{adr.id}</div>
+                      <div class="text-white font-semibold">{adr.title}</div>
+                      <div class="text-[11px] text-[#9CAAC1] font-sans">{adr.summary}</div>
+                    </div>
+                  ),
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      ) : (
+        <div class="max-w-3xl mx-auto py-16 text-center space-y-6">
+          <div class="inline-flex items-center space-x-2 px-3 py-1 rounded-md bg-[#08111F] border border-[#8B5CFF]/30 text-xs text-[#8B5CFF] uppercase">
+            <span class="w-2 h-2 rounded-full bg-[#8B5CFF] animate-pulse" />
+            <span>PROJECT CASE STUDY ENGINE</span>
+          </div>
+
+          <h1 class="text-5xl sm:text-6xl font-display font-bold text-white uppercase tracking-tight">
+            PROJECT DEEP-DIVE INDEX
+          </h1>
+
+          <p class="text-base text-[#9CAAC1] font-sans leading-relaxed">
+            Detailed architectural deep dives, ADR decision trees, load-testing experiments, and
+            debugging lessons for owner-approved project records.
+          </p>
+
+          <div class="p-8 rounded-2xl glass-panel border border-white/10 text-center space-y-4">
+            <div class="text-[#45F3FF] font-bold text-xs uppercase">
+              No Public Project Case Study Selected
+            </div>
+            <p class="text-xs text-[#9CAAC1] font-sans max-w-md mx-auto">
+              Project case studies and architecture decision records are published from approved
+              database revisions.
+            </p>
+            <div class="pt-2">
+              <a
+                href="/projects"
+                class="px-5 py-2.5 rounded-lg bg-[#45F3FF] text-[#05060A] font-bold text-xs uppercase tracking-wider hover:opacity-90 transition-opacity"
+              >
+                Browse Projects Index →
+              </a>
+            </div>
+          </div>
+        </div>
+      )
+    }
   </div>
 </BaseLayout>

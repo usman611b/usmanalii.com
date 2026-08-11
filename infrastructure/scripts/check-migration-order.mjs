@@ -33,6 +33,7 @@ const CANONICAL_ORDER = [
   '014_m5_content_model_gate1.sql',
   '015_m5_integrity_closure.sql',
   '016_github_evidence_integration_m6.sql',
+  '017_professional_identity_resume_m7.sql',
 ];
 
 console.log('🔍 Checking migration file order and completeness...\n');

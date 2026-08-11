@@ -1,0 +1,84 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import EvidenceBadge from '../components/EvidenceBadge.astro';
+import VerificationStatusBadge from '../components/VerificationStatusBadge.astro';
+
+// Real Data Projections or Honest Empty States
+const evidenceItems: Array<{
+  id: string;
+  evidenceType: string;
+  title: string;
+  sourceType: string;
+  provider: string;
+  verificationState: string;
+  occurredAt: string;
+  canonicalLocator?: string | null;
+}> = [];
+---
+
+<BaseLayout
+  title="Evidence Ledger — USMAN ALI"
+  description="Verifiable evidence ledger detailing technical contributions, ADRs, commits, and releases."
+  currentPath="/evidence"
+>
+  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 space-y-8">
+    <div class="space-y-4">
+      <div
+        class="inline-flex items-center space-x-2 px-3 py-1 rounded-md bg-[#08111F] border border-[#45F3FF]/30 font-mono-tech text-xs text-[#45F3FF]"
+      >
+        <span class="w-2 h-2 rounded-full bg-[#45F3FF] animate-pulse"></span>
+        <span>IMMUTABLE EVIDENCE LEDGER</span>
+      </div>
+
+      <h1
+        class="text-6xl sm:text-7xl font-display font-bold tracking-tight text-white uppercase leading-none"
+      >
+        EVIDENCE &amp; PROVENANCE
+      </h1>
+      <p class="text-base text-[#9CAAC1] max-w-2xl">
+        Every claim published across this portfolio is anchored to inspectable, source-backed
+        evidence.
+      </p>
+    </div>
+
+    <!-- Evidence Ledger Table -->
+    <div class="rounded-2xl glass-panel p-6 space-y-4 font-mono-tech">
+      <div class="flex items-center justify-between text-xs border-b border-white/10 pb-4">
+        <span class="text-white font-bold tracking-wider uppercase">LEDGER STREAM</span>
+        <span class="text-[#45F3FF]">{evidenceItems.length} PUBLIC VERIFIED ITEMS</span>
+      </div>
+
+      {
+        evidenceItems.length > 0 ? (
+          <div class="space-y-4">
+            {evidenceItems.map((item) => (
+              <div class="p-4 rounded-xl border border-white/5 bg-[#070A11]/70 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 text-xs">
+                <div class="space-y-1">
+                  <div class="flex items-center gap-2">
+                    <EvidenceBadge evidenceType={item.evidenceType} />
+                    <span class="text-white font-bold text-sm">{item.title}</span>
+                  </div>
+                  <div class="text-[11px] text-[#9CAAC1]">
+                    Provider: <span class="text-white">{item.provider}</span> · Occurred:{' '}
+                    <span class="text-[#8B5CFF]">{item.occurredAt}</span>
+                  </div>
+                </div>
+                <VerificationStatusBadge status={item.verificationState} />
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div class="p-12 text-center space-y-3 font-sans">
+            <div class="text-[#45F3FF] font-bold text-xs uppercase font-mono-tech">
+              No Public Evidence Published
+            </div>
+            <p class="text-xs text-[#9CAAC1] max-w-sm mx-auto">
+              Public evidence records will appear here as owner-approved candidates move from the
+              Command Center queue into the immutable public projection.
+            </p>
+          </div>
+        )
+      }
+    </div>
+  </div>
+</BaseLayout>

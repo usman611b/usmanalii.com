@@ -40,7 +40,7 @@ export const ModeSwitcher: React.FC<ModeSwitcherProps> = ({ initialMode = 'gener
 
   return (
     <div
-      className="inline-flex items-center p-1 bg-[#0D1528] rounded-full border border-white/10 text-xs font-medium"
+      className="inline-flex items-center p-0.5 bg-[#08111F] rounded-lg border border-white/10 text-xs font-medium font-mono-tech"
       role="radiogroup"
       aria-label="View Mode Switcher"
     >
@@ -49,9 +49,9 @@ export const ModeSwitcher: React.FC<ModeSwitcherProps> = ({ initialMode = 'gener
         role="radio"
         aria-checked={mode === 'general'}
         onClick={() => handleModeChange('general')}
-        className={`px-3 py-1 rounded-full transition-all duration-200 ${
+        className={`px-3 py-1 rounded-md transition-all duration-200 ${
           mode === 'general'
-            ? 'bg-[#22D3EE] text-[#050509] font-semibold shadow-sm'
+            ? 'bg-[#45F3FF]/15 text-[#45F3FF] border border-[#45F3FF]/30 font-semibold shadow-sm'
             : 'text-[#9CAAC1] hover:text-white'
         }`}
       >
@@ -63,9 +63,9 @@ export const ModeSwitcher: React.FC<ModeSwitcherProps> = ({ initialMode = 'gener
         role="radio"
         aria-checked={mode === 'recruiter'}
         onClick={() => handleModeChange('recruiter')}
-        className={`px-3 py-1 rounded-full transition-all duration-200 ${
+        className={`px-3 py-1 rounded-md transition-all duration-200 ${
           mode === 'recruiter'
-            ? 'bg-[#8B5CF6] text-white font-semibold shadow-sm'
+            ? 'bg-[#8B5CFF]/15 text-[#8B5CFF] border border-[#8B5CFF]/30 font-semibold shadow-sm'
             : 'text-[#9CAAC1] hover:text-white'
         }`}
       >
@@ -77,9 +77,9 @@ export const ModeSwitcher: React.FC<ModeSwitcherProps> = ({ initialMode = 'gener
         role="radio"
         aria-checked={mode === 'deep-dive'}
         onClick={() => handleModeChange('deep-dive')}
-        className={`px-3 py-1 rounded-full transition-all duration-200 ${
+        className={`px-3 py-1 rounded-md transition-all duration-200 ${
           mode === 'deep-dive'
-            ? 'bg-[#EC4899] text-white font-semibold shadow-sm'
+            ? 'bg-[#FF3DA4]/15 text-[#FF3DA4] border border-[#FF3DA4]/30 font-semibold shadow-sm'
             : 'text-[#9CAAC1] hover:text-white'
         }`}
       >

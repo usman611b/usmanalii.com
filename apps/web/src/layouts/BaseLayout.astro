@@ -41,11 +41,13 @@ const {
     />
     <slot name="head" />
   </head>
-  <body class="bg-[#050509] text-[#F7FBFF] flex flex-col min-h-screen">
+  <body
+    class="bg-[#05060A] text-[#F4F1EA] flex flex-col min-h-screen selection:bg-[#45F3FF]/20 selection:text-[#45F3FF]"
+  >
     <!-- Accessibility Skip Link -->
     <a
       href="#main-content"
-      class="sr-only focus:not-sr-only focus:absolute focus:top-4 focus:left-4 bg-[#22D3EE] text-[#050509] px-4 py-2 rounded-md font-bold z-50 shadow-lg"
+      class="sr-only focus:not-sr-only focus:absolute focus:top-4 focus:left-4 bg-[#45F3FF] text-[#05060A] px-4 py-2 rounded-md font-bold z-50 shadow-lg shadow-[#45F3FF]/20"
     >
       Skip to main content
     </a>
@@ -59,17 +61,17 @@ const {
     </main>
 
     <!-- Footer -->
-    <footer class="border-t border-white/10 bg-[#080D1A] py-12 mt-20 text-xs text-[#9CAAC1]">
+    <footer class="border-t border-white/10 bg-[#070A11] py-12 mt-20 text-xs text-[#9CAAC1]">
       <div
         class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row items-center justify-between gap-4"
       >
         <div>
-          <p class="font-medium text-white">usmanalii.com — Personal Career OS</p>
-          <p class="mt-1">Evidence-backed professional identity & learning journey.</p>
+          <p class="font-medium text-white tracking-wide">USMAN ALI — Personal Career OS</p>
+          <p class="mt-1 text-[#9CAAC1]">A living engineering record illuminated by evidence.</p>
         </div>
-        <div class="flex items-center space-x-6">
-          <a href="/recruiter" class="hover:text-white transition-colors">Recruiter View</a>
-          <a href="/deep-dive" class="hover:text-white transition-colors">Deep Dive</a>
+        <div class="flex items-center space-x-6 font-mono-tech">
+          <a href="/recruiter" class="hover:text-[#45F3FF] transition-colors">Recruiter View</a>
+          <a href="/deep-dive" class="hover:text-[#8B5CFF] transition-colors">Deep Dive</a>
           <a href="/about" class="hover:text-white transition-colors">About</a>
         </div>
       </div>

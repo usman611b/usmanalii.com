@@ -8,11 +8,10 @@ interface Props {
 const { currentPath = '/' } = Astro.props;
 
 const navLinks = [
-  { href: '/', label: 'Home' },
   { href: '/journey', label: 'Journey' },
-  { href: '/skills', label: 'Skills' },
   { href: '/projects', label: 'Projects' },
-  { href: '/about', label: 'About' },
+  { href: '/skills', label: 'Skills' },
+  { href: '/evidence', label: 'Evidence' },
 ];
 ---
 
@@ -22,14 +21,33 @@ const navLinks = [
       <!-- Brand Logo -->
       <a
         href="/"
-        class="flex items-center space-x-2 text-lg font-bold tracking-tight text-white hover:opacity-90 transition-opacity"
+        class="flex items-center space-x-3 text-xs font-mono-tech transition-opacity hover:opacity-90"
       >
-        <span class="w-3 h-3 rounded-full bg-[#22D3EE] inline-block"></span>
-        <span>usmanalii.com</span>
+        <svg
+          class="w-6 h-6 text-[#45F3FF]"
+          viewBox="0 0 32 32"
+          fill="none"
+          xmlns="http://www.w3.org/2000/svg"
+          aria-hidden="true"
+        >
+          <path
+            d="M6 8V18C6 21.3137 8.68629 24 12 24C15.3137 24 18 21.3137 18 18V8"
+            stroke="currentColor"
+            stroke-width="2.5"
+            stroke-linecap="round"></path>
+          <path
+            d="M18 24L26 8M21 17H26.5"
+            stroke="currentColor"
+            stroke-width="2.5"
+            stroke-linecap="round"
+            stroke-linejoin="round"></path>
+        </svg>
+        <span class="h-4 w-px bg-white/20 inline-block"></span>
+        <span class="text-sm font-semibold tracking-wider text-white lowercase">usmanalii.com</span>
       </a>
 
       <!-- Desktop Nav -->
-      <nav class="hidden md:flex items-center space-x-6" aria-label="Main Navigation">
+      <nav class="hidden md:flex items-center space-x-8" aria-label="Main Navigation">
         {
           navLinks.map((link) => {
             const isActive =
@@ -37,8 +55,8 @@ const navLinks = [
             return (
               <a
                 href={link.href}
-                class={`text-sm font-medium transition-colors ${
-                  isActive ? 'text-[#22D3EE] font-semibold' : 'text-[#9CAAC1] hover:text-white'
+                class={`text-xs font-mono-tech tracking-wider uppercase transition-colors ${
+                  isActive ? 'text-[#45F3FF] font-semibold' : 'text-[#9CAAC1] hover:text-white'
                 }`}
                 aria-current={isActive ? 'page' : undefined}
               >
@@ -54,9 +72,10 @@ const navLinks = [
         <ModeSwitcher client:load />
         <a
           href="/dashboard"
-          class="text-xs px-3 py-1.5 rounded-lg border border-white/10 bg-[#0D1528] text-[#9CAAC1] hover:text-white hover:border-white/30 transition-all font-medium"
+          class="text-xs px-3 py-1.5 rounded-lg border border-white/10 bg-[#0C1626] text-[#9CAAC1] hover:text-white hover:border-[#45F3FF]/40 transition-all font-mono-tech"
+          title="Command Center"
         >
-          Dashboard
+          Command Center
         </a>
       </div>
 
