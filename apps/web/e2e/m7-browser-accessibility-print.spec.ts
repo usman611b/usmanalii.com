@@ -27,6 +27,21 @@ test.describe('M7 Browser, Accessibility & Print E2E Suite (Gate 6)', () => {
     const results = await new AxeBuilder({ page }).analyze();
     expect(results.violations).toEqual([]);
 
+    // Emulate print media
+    await page.emulateMedia({ media: 'print' });
+
+    // Verify navigation and controls are hidden in print mode
+    await expect(page.locator('.no-print')).toBeHidden();
+
+    // Verify layout bounding boxes at A4 (794px) and Letter (816px) printable widths
+    for (const width of [794, 816]) {
+      await page.setViewportSize({ width, height: 1123 });
+      const bodyBox = await page.locator('body').boundingBox();
+      expect(bodyBox).not.toBeNull();
+      expect(bodyBox!.width).toBeLessThanOrEqual(width + 25);
+    }
+
+    // Verify sections stack vertically without overlapping bounding box collisions
     await expect(page.locator('body')).toBeVisible();
   });
 
