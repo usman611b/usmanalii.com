@@ -1,71 +1,23 @@
 ---
 import BaseLayout from '../../layouts/BaseLayout.astro';
-
-const publicCapabilities = [
-  {
-    title: 'Design Secure Multi-Tenant APIs',
-    slug: 'design-secure-multi-tenant-apis',
-    description:
-      'Design authorization boundaries that prevent cross-owner data access on Cloudflare Workers.',
-    outcomeStatement:
-      'Delivers multi-tenant APIs with zero IDOR vulnerabilities and Cloudflare Access verification.',
-    stage: 'Demonstrated',
-    evidenceCount: 6,
-  },
-  {
-    title: 'Diagnose Production Reliability Failures',
-    slug: 'diagnose-production-failures',
-    description:
-      'Analyzes runtime stack traces, worker logs, and D1 constraint failures to isolate root cause.',
-    outcomeStatement:
-      'Resolves production incidents without masking errors or introducing silent fallbacks.',
-    stage: 'Applying',
-    evidenceCount: 4,
-  },
-];
+import { PublicRecordDirectory } from '../../components/PublicRecordDirectory';
 ---
 
-<BaseLayout title="Capabilities — USMAN ALI" currentPath="/capabilities">
-  <div class="py-12 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto space-y-8">
-    <div class="space-y-4">
-      <div
-        class="inline-flex items-center space-x-2 px-3 py-1 rounded-md bg-[#08111F] border border-[#B8FF5A]/30 font-mono-tech text-xs text-[#B8FF5A]"
-      >
-        <span class="w-2 h-2 rounded-full bg-[#B8FF5A] animate-pulse"></span>
-        <span>DEMONSTRATED OUTCOMES</span>
-      </div>
-
-      <h1
-        class="text-6xl sm:text-7xl font-display font-bold tracking-tight text-white uppercase leading-none"
-      >
-        CAPABILITIES &amp; OUTCOMES
-      </h1>
-      <p class="text-base text-[#9CAAC1] max-w-2xl">
-        Demonstrated outcome statements backed by verifiable evidence. Descriptive maturity only.
+<BaseLayout
+  title="Capabilities — USMAN ALI"
+  description="Outcome-based professional capabilities connected to approved evidence."
+  currentPath="/capabilities"
+>
+  <div class="public-page-shell max-w-[1280px] mx-auto px-4 sm:px-6 lg:px-8 py-14 space-y-10">
+    <header class="public-page-header space-y-4 max-w-3xl">
+      <div class="hero-eyebrow"><span></span>Outcome-based capability graph</div>
+      <h1 class="public-page-title">Capabilities</h1>
+      <p class="text-base leading-relaxed" style="color: var(--text-secondary); max-width: 62ch;">
+        What I can deliver, expressed as outcomes and connected to approved evidence—not arbitrary
+        proficiency scores.
       </p>
-    </div>
-
-    <div class="space-y-6 font-mono-tech">
-      {
-        publicCapabilities.map((cap) => (
-          <a
-            href={`/capabilities/${cap.slug}`}
-            class="p-6 rounded-2xl glass-panel border border-white/10 hover:border-[#B8FF5A]/50 transition-all group block space-y-3"
-          >
-            <div class="flex items-center justify-between text-xs">
-              <span class="px-2.5 py-0.5 rounded bg-[#B8FF5A]/15 text-[#B8FF5A] border border-[#B8FF5A]/30 font-bold uppercase">
-                Stage: {cap.stage}
-              </span>
-              <span class="text-[#9CAAC1]">{cap.evidenceCount} Verified Items</span>
-            </div>
-            <h2 class="text-2xl font-bold text-white group-hover:text-[#B8FF5A] transition-colors font-display uppercase tracking-wide">
-              {cap.title}
-            </h2>
-            <p class="text-xs font-bold text-white">Outcome: {cap.outcomeStatement}</p>
-            <p class="text-xs text-[#9CAAC1] leading-relaxed">{cap.description}</p>
-          </a>
-        ))
-      }
-    </div>
+    </header>
+    <hr class="luminous-rule" aria-hidden="true" />
+    <PublicRecordDirectory kind="capabilities" client:load />
   </div>
 </BaseLayout>

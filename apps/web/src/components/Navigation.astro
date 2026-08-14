@@ -8,26 +8,31 @@ interface Props {
 const { currentPath = '/' } = Astro.props;
 
 const navLinks = [
-  { href: '/journey', label: 'Journey' },
-  { href: '/projects', label: 'Projects' },
-  { href: '/skills', label: 'Skills' },
+  { href: '/projects', label: 'Work' },
   { href: '/evidence', label: 'Evidence' },
+  { href: '/skills', label: 'System' },
+  { href: '/about', label: 'About' },
+  { href: '/#contact', label: 'Contact' },
 ];
 ---
 
-<header class="sticky top-0 z-50 glass-nav">
-  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-    <div class="flex items-center justify-between h-16">
-      <!-- Brand Logo -->
+<header
+  id="site-nav"
+  class="sticky top-0 z-[200] glass-nav transition-all duration-[220ms]"
+  role="banner"
+>
+  <div class="max-w-[1280px] mx-auto px-4 sm:px-6 lg:px-8">
+    <div class="flex items-center justify-between h-16 gap-4">
+      <!-- Brand mark -->
       <a
         href="/"
-        class="flex items-center space-x-3 text-xs font-mono-tech transition-opacity hover:opacity-90"
+        class="flex items-center gap-3 flex-shrink-0 group"
+        aria-label="usmanalii.com — home"
       >
         <svg
-          class="w-6 h-6 text-[#45F3FF]"
+          class="w-6 h-6 text-[var(--cyan)] group-hover:scale-105 transition-transform duration-[150ms]"
           viewBox="0 0 32 32"
           fill="none"
-          xmlns="http://www.w3.org/2000/svg"
           aria-hidden="true"
         >
           <path
@@ -42,12 +47,17 @@ const navLinks = [
             stroke-linecap="round"
             stroke-linejoin="round"></path>
         </svg>
-        <span class="h-4 w-px bg-white/20 inline-block"></span>
-        <span class="text-sm font-semibold tracking-wider text-white lowercase">usmanalii.com</span>
+        <span class="h-4 w-px bg-[var(--hairline)] hidden sm:inline-block" aria-hidden="true"
+        ></span>
+        <span
+          class="text-sm font-medium tracking-wide text-[var(--text-primary)] group-hover:text-[var(--cyan)] transition-colors duration-[150ms]"
+        >
+          usmanalii.com
+        </span>
       </a>
 
-      <!-- Desktop Nav -->
-      <nav class="hidden md:flex items-center space-x-8" aria-label="Main Navigation">
+      <!-- Desktop navigation -->
+      <nav class="hidden md:flex items-center gap-6" aria-label="Main Navigation">
         {
           navLinks.map((link) => {
             const isActive =
@@ -55,8 +65,10 @@ const navLinks = [
             return (
               <a
                 href={link.href}
-                class={`text-xs font-mono-tech tracking-wider uppercase transition-colors ${
-                  isActive ? 'text-[#45F3FF] font-semibold' : 'text-[#9CAAC1] hover:text-white'
+                class={`text-sm tracking-tight transition-colors duration-[150ms] ${
+                  isActive
+                    ? 'text-[var(--cyan)] font-semibold'
+                    : 'text-[var(--text-muted)] hover:text-[var(--text-primary)]'
                 }`}
                 aria-current={isActive ? 'page' : undefined}
               >
@@ -67,84 +79,286 @@ const navLinks = [
         }
       </nav>
 
-      <!-- Right Controls: Mode Switcher + Dashboard Link -->
-      <div class="hidden md:flex items-center space-x-4">
+      <!-- Desktop: Mode switcher -->
+      <div class="hidden md:flex items-center gap-4 flex-shrink-0">
         <ModeSwitcher client:load />
-        <a
-          href="/dashboard"
-          class="text-xs px-3 py-1.5 rounded-lg border border-white/10 bg-[#0C1626] text-[#9CAAC1] hover:text-white hover:border-[#45F3FF]/40 transition-all font-mono-tech"
-          title="Command Center"
-        >
-          Command Center
-        </a>
       </div>
 
-      <!-- Mobile Menu Button -->
-      <div class="md:hidden flex items-center space-x-2">
-        <button
-          type="button"
-          id="mobile-menu-btn"
-          class="p-2 rounded-lg text-[#9CAAC1] hover:text-white hover:bg-white/5 focus:outline-none focus:ring-2 focus:ring-[#22D3EE]"
-          aria-expanded="false"
-          aria-controls="mobile-menu"
-          aria-label="Toggle Navigation Menu"
-        >
-          <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              stroke-width="2"
-              d="M4 6h16M4 12h16M4 18h16"></path>
-          </svg>
-        </button>
-      </div>
-    </div>
-  </div>
-
-  <!-- Mobile Navigation Overlay -->
-  <div
-    id="mobile-menu"
-    class="hidden md:hidden border-b border-white/10 bg-[#080D1A] px-4 pt-2 pb-4 space-y-3"
-  >
-    {
-      navLinks.map((link) => (
-        <a
-          href={link.href}
-          class="block text-base font-medium text-[#9CAAC1] hover:text-white hover:bg-white/5 px-3 py-2 rounded-md"
-        >
-          {link.label}
-        </a>
-      ))
-    }
-    <div class="pt-2 border-t border-white/10 flex items-center justify-between">
-      <ModeSwitcher client:load />
-      <a
-        href="/dashboard"
-        class="text-xs px-3 py-1.5 rounded-lg border border-white/10 bg-[#0D1528] text-[#9CAAC1]"
+      <!-- Mobile: hamburger -->
+      <button
+        type="button"
+        id="mobile-menu-btn"
+        class="md:hidden flex items-center justify-center w-10 h-10 rounded-lg text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-white/5 transition-colors duration-[150ms]"
+        aria-expanded="false"
+        aria-controls="mobile-menu"
+        aria-label="Toggle Navigation Menu"
       >
-        Dashboard
-      </a>
+        <!-- Hamburger icon -->
+        <svg
+          id="icon-hamburger"
+          class="h-5 w-5"
+          fill="none"
+          viewBox="0 0 24 24"
+          stroke="currentColor"
+          aria-hidden="true"
+        >
+          <path
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            stroke-width="2"
+            d="M4 6h16M4 12h16M4 18h16"></path>
+        </svg>
+        <!-- Close icon (hidden by default) -->
+        <svg
+          id="icon-close"
+          class="h-5 w-5 hidden"
+          fill="none"
+          viewBox="0 0 24 24"
+          stroke="currentColor"
+          aria-hidden="true"
+        >
+          <path
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            stroke-width="2"
+            d="M6 18L18 6M6 6l12 12"></path>
+        </svg>
+      </button>
     </div>
   </div>
 </header>
 
-<script>
-  const btn = document.getElementById('mobile-menu-btn');
-  const menu = document.getElementById('mobile-menu');
+<!-- Mobile Navigation Sheet — full-height overlay with focus trap -->
+<div
+  id="mobile-menu"
+  class="fixed inset-0 z-[300] hidden"
+  role="dialog"
+  aria-label="Navigation menu"
+  aria-modal="true"
+>
+  <!-- Backdrop -->
+  <div
+    id="mobile-menu-backdrop"
+    class="absolute inset-0 bg-[var(--canvas)]/90 backdrop-blur-md"
+    aria-hidden="true"
+  >
+  </div>
 
-  if (btn && menu) {
-    btn.addEventListener('click', () => {
-      const isExpanded = btn.getAttribute('aria-expanded') === 'true';
-      btn.setAttribute('aria-expanded', String(!isExpanded));
-      menu.classList.toggle('hidden');
-    });
+  <!-- Sheet panel -->
+  <div
+    class="relative z-10 flex flex-col h-full max-w-sm ml-auto bg-[var(--obsidian)] border-l border-[var(--hairline)] shadow-2xl px-6 py-8 overflow-y-auto"
+  >
+    <!-- Sheet header -->
+    <div class="flex items-center justify-between mb-10">
+      <a href="/" class="flex items-center gap-3" aria-label="usmanalii.com — home" tabindex="0">
+        <svg class="w-5 h-5 text-[var(--cyan)]" viewBox="0 0 32 32" fill="none" aria-hidden="true">
+          <path
+            d="M6 8V18C6 21.3137 8.68629 24 12 24C15.3137 24 18 21.3137 18 18V8"
+            stroke="currentColor"
+            stroke-width="2.5"
+            stroke-linecap="round"></path>
+          <path
+            d="M18 24L26 8M21 17H26.5"
+            stroke="currentColor"
+            stroke-width="2.5"
+            stroke-linecap="round"
+            stroke-linejoin="round"></path>
+        </svg>
+        <span class="text-sm font-semibold text-[var(--text-primary)] font-[var(--font-mono)]"
+          >usmanalii.com</span
+        >
+      </a>
+      <button
+        id="mobile-menu-close"
+        type="button"
+        class="w-10 h-10 flex items-center justify-center rounded-lg text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-white/5 transition-colors"
+        aria-label="Close navigation menu"
+      >
+        <svg
+          class="h-5 w-5"
+          fill="none"
+          viewBox="0 0 24 24"
+          stroke="currentColor"
+          aria-hidden="true"
+        >
+          <path
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            stroke-width="2"
+            d="M6 18L18 6M6 6l12 12"></path>
+        </svg>
+      </button>
+    </div>
 
-    document.addEventListener('keydown', (e) => {
-      if (e.key === 'Escape' && btn.getAttribute('aria-expanded') === 'true') {
-        btn.setAttribute('aria-expanded', 'false');
-        menu.classList.add('hidden');
-        btn.focus();
+    <!-- Mobile nav links -->
+    <nav aria-label="Mobile navigation" class="flex-1 space-y-1">
+      <div
+        class="text-[10px] text-[var(--text-muted)] font-[var(--font-mono)] uppercase tracking-widest mb-4"
+      >
+        Explore
+      </div>
+      {
+        navLinks.map((link) => {
+          const isActive =
+            currentPath === link.href || (link.href !== '/' && currentPath.startsWith(link.href));
+          return (
+            <a
+              href={link.href}
+              class={`flex items-center gap-3 px-3 py-3 rounded-lg text-sm font-medium transition-all duration-[150ms] ${
+                isActive
+                  ? 'bg-[var(--elevated)] text-[var(--cyan)] border border-[var(--border-cyan)]'
+                  : 'text-[var(--text-secondary)] hover:bg-white/5 hover:text-[var(--text-primary)]'
+              }`}
+              aria-current={isActive ? 'page' : undefined}
+            >
+              {link.label}
+            </a>
+          );
+        })
       }
+
+      <!-- Divider -->
+      <div class="pt-6 pb-2">
+        <div
+          class="text-[10px] text-[var(--text-muted)] font-[var(--font-mono)] uppercase tracking-widest mb-4"
+        >
+          View Mode
+        </div>
+        <ModeSwitcher client:load />
+      </div>
+
+      <!-- Secondary links -->
+      <div class="pt-6 pb-2">
+        <div
+          class="text-[10px] text-[var(--text-muted)] font-[var(--font-mono)] uppercase tracking-widest mb-4"
+        >
+          Identity
+        </div>
+        <a
+          href="/recruiter"
+          class="flex items-center gap-3 px-3 py-3 rounded-lg text-sm text-[var(--text-secondary)] hover:bg-white/5 hover:text-[var(--text-primary)] transition-all duration-[150ms]"
+        >
+          Recruiter Mode
+        </a>
+        <a
+          href="/deep-dive"
+          class="flex items-center gap-3 px-3 py-3 rounded-lg text-sm text-[var(--text-secondary)] hover:bg-white/5 hover:text-[var(--text-primary)] transition-all duration-[150ms]"
+        >
+          Deep Dive
+        </a>
+        <a
+          href="/about"
+          class="flex items-center gap-3 px-3 py-3 rounded-lg text-sm text-[var(--text-secondary)] hover:bg-white/5 hover:text-[var(--text-primary)] transition-all duration-[150ms]"
+        >
+          About
+        </a>
+        <a
+          href="/resume"
+          class="flex items-center gap-3 px-3 py-3 rounded-lg text-sm text-[var(--text-secondary)] hover:bg-white/5 hover:text-[var(--text-primary)] transition-all duration-[150ms]"
+        >
+          Résumé
+        </a>
+      </div>
+    </nav>
+
+    <!-- Sheet footer -->
+    <div class="pt-6 border-t border-[var(--hairline)] mt-6">
+      <p class="text-[11px] text-[var(--text-muted)] font-[var(--font-mono)]">
+        Personal Career OS — Engineering, evidenced.
+      </p>
+    </div>
+  </div>
+</div>
+
+<script>
+  // Mobile navigation with full focus trap and keyboard management
+  const btn = document.getElementById('mobile-menu-btn') as HTMLButtonElement | null;
+  const menu = document.getElementById('mobile-menu') as HTMLElement | null;
+  const closeBtn = document.getElementById('mobile-menu-close') as HTMLButtonElement | null;
+  const backdrop = document.getElementById('mobile-menu-backdrop') as HTMLElement | null;
+  const hamburger = document.getElementById('icon-hamburger') as SVGElement | null;
+  const closeIcon = document.getElementById('icon-close') as SVGElement | null;
+
+  let previouslyFocused: HTMLElement | null = null;
+
+  function getAllFocusable(container: HTMLElement): HTMLElement[] {
+    return Array.from(
+      container.querySelectorAll<HTMLElement>(
+        'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])',
+      ),
+    ).filter((el) => !el.closest('[aria-hidden="true"]'));
+  }
+
+  function openMenu() {
+    if (!menu || !btn) return;
+    previouslyFocused = document.activeElement as HTMLElement;
+    menu.classList.remove('hidden');
+    btn.setAttribute('aria-expanded', 'true');
+    hamburger?.classList.add('hidden');
+    closeIcon?.classList.remove('hidden');
+    document.body.style.overflow = 'hidden';
+
+    // Focus the close button on open
+    requestAnimationFrame(() => {
+      closeBtn?.focus();
     });
   }
+
+  function closeMenu() {
+    if (!menu || !btn) return;
+    menu.classList.add('hidden');
+    btn.setAttribute('aria-expanded', 'false');
+    hamburger?.classList.remove('hidden');
+    closeIcon?.classList.add('hidden');
+    document.body.style.overflow = '';
+
+    // Restore focus to the element that opened the menu
+    previouslyFocused?.focus();
+  }
+
+  btn?.addEventListener('click', openMenu);
+  closeBtn?.addEventListener('click', closeMenu);
+  backdrop?.addEventListener('click', closeMenu);
+
+  document.addEventListener('keydown', (e: KeyboardEvent) => {
+    if (!menu || menu.classList.contains('hidden')) return;
+
+    if (e.key === 'Escape') {
+      e.preventDefault();
+      closeMenu();
+      return;
+    }
+
+    // Tab key focus trap
+    if (e.key === 'Tab') {
+      const focusable = getAllFocusable(menu);
+      if (focusable.length === 0) return;
+      const first = focusable[0]!;
+      const last = focusable[focusable.length - 1]!;
+
+      if (e.shiftKey) {
+        if (document.activeElement === first) {
+          e.preventDefault();
+          last.focus();
+        }
+      } else {
+        if (document.activeElement === last) {
+          e.preventDefault();
+          first.focus();
+        }
+      }
+    }
+  });
+
+  // Transparent → solid on scroll
+  const header = document.getElementById('site-nav');
+  function handleScroll() {
+    if (!header) return;
+    if (window.scrollY > 16) {
+      header.style.setProperty('--nav-bg-opacity', '0.96');
+    } else {
+      header.style.setProperty('--nav-bg-opacity', '0.88');
+    }
+  }
+  window.addEventListener('scroll', handleScroll, { passive: true });
 </script>

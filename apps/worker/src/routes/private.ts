@@ -43,6 +43,7 @@ import {
   computeActivityHeatmap,
 } from '@usmanalii/domain';
 import { githubRoutes } from './github.js';
+import { UpdateProfileRequestSchema } from '@usmanalii/contracts';
 
 type OwnedLinkKind = 'project' | 'evidence' | 'artifact' | 'skill' | 'capability';
 
@@ -100,36 +101,35 @@ privateRoutes.get('/dashboard/summary', async (c) => {
   const authContext = c.get('authContext');
   const ownerId = authContext?.ownerId || 'owner';
   const repo = new D1ContentRepository(c.env.DB);
-
-  const items = await repo.listForOwner(ownerId);
+  const [items, evidence, projects, candidates] = await Promise.all([
+    repo.listForOwner(ownerId),
+    c.env.DB.prepare(
+      "SELECT COUNT(*) AS count FROM evidence_items WHERE owner_id = ? AND archived_at IS NULL AND verification_state = 'unverified'",
+    )
+      .bind(ownerId)
+      .first<{ count: number }>(),
+    c.env.DB.prepare(
+      "SELECT COUNT(*) AS count FROM projects WHERE owner_id = ? AND deleted_at IS NULL AND status NOT IN ('archived', 'dead_demo')",
+    )
+      .bind(ownerId)
+      .first<{ count: number }>(),
+    c.env.DB.prepare(
+      "SELECT COUNT(*) AS count FROM evidence_candidates WHERE owner_id = ? AND review_state = 'pending_review'",
+    )
+      .bind(ownerId)
+      .first<{ count: number }>(),
+  ]);
 
   return c.json({
     authenticatedSubject: authContext?.authenticatedSubject,
     systemStatus: 'healthy',
     counts: {
-      pendingApprovals: 0,
+      pendingApprovals: Number(candidates?.count || 0),
       draftContent: items.filter((i) => i.state === 'draft').length,
       publishedContent: items.filter((i) => i.state === 'published').length,
-      unreviewedEvidence: 0,
-      activeProjects: 0,
+      unreviewedEvidence: Number(evidence?.count || 0),
+      activeProjects: Number(projects?.count || 0),
     },
-    requestId: c.get('requestId'),
-  });
-});
-
-// Full owner profile (includes private contactEmail)
-privateRoutes.get('/profile', (c) => {
-  const authContext = c.get('authContext');
-
-  return c.json({
-    id: authContext?.ownerId,
-    ownerId: authContext?.ownerId,
-    displayName: 'Usman Ali',
-    headline: 'Software Engineer & Systems Architect',
-    bio: 'Building evidence-backed systems, transparent software, and personal software architectures.',
-    currentFocus: 'usmanalii.com — Personal Career OS',
-    contactEmail: c.env.OWNER_EMAIL || 'owner@usmanalii.com',
-    visibility: 'public',
     requestId: c.get('requestId'),
   });
 });
@@ -819,6 +819,23 @@ privateRoutes.post('/projects', async (c) => {
     visibility: 'private',
   });
 
+  if (Array.isArray(body.roleIds)) {
+    const { D1CareerGraphRepository } = await import('@usmanalii/database');
+    await new D1CareerGraphRepository(c.env.DB).replaceProjectRoles(
+      authContext,
+      project.id,
+      body.roleIds.map(String),
+    );
+  }
+  if (Array.isArray(body.skillIds)) {
+    const { D1CareerGraphRepository } = await import('@usmanalii/database');
+    await new D1CareerGraphRepository(c.env.DB).replaceProjectSkills(
+      authContext,
+      project.id,
+      body.skillIds.map(String),
+    );
+  }
+
   return c.json({ project, requestId: c.get('requestId') }, 201);
 });
 
@@ -848,6 +865,12 @@ privateRoutes.get('/projects/:id', async (c) => {
       engRepo.listVersions(authContext.ownerId, id),
       relRepo.listRelationships(authContext.ownerId, id),
     ]);
+  const { D1CareerGraphRepository } = await import('@usmanalii/database');
+  const careerGraphRepo = new D1CareerGraphRepository(c.env.DB);
+  const [roleIds, skillIds] = await Promise.all([
+    careerGraphRepo.getProjectRoleIds(authContext, id),
+    careerGraphRepo.getProjectSkillIds(authContext, id),
+  ]);
 
   return c.json({
     project,
@@ -858,6 +881,8 @@ privateRoutes.get('/projects/:id', async (c) => {
     deployments,
     versions,
     relationships,
+    roleIds,
+    skillIds,
     requestId: c.get('requestId'),
   });
 });
@@ -939,6 +964,23 @@ privateRoutes.put('/projects/:id', async (c) => {
         id,
         body.caseStudyBody as string,
         body.revisionNote as string,
+      );
+    }
+
+    if (Array.isArray(body.roleIds)) {
+      const { D1CareerGraphRepository } = await import('@usmanalii/database');
+      await new D1CareerGraphRepository(c.env.DB).replaceProjectRoles(
+        authContext,
+        id,
+        body.roleIds.map(String),
+      );
+    }
+    if (Array.isArray(body.skillIds)) {
+      const { D1CareerGraphRepository } = await import('@usmanalii/database');
+      await new D1CareerGraphRepository(c.env.DB).replaceProjectSkills(
+        authContext,
+        id,
+        body.skillIds.map(String),
       );
     }
 
@@ -1564,18 +1606,60 @@ privateRoutes.get('/profile', async (c) => {
   return c.json({ profile, requestId: c.get('requestId') });
 });
 
-/** PUT /api/v1/private/profile — Update owner profile */
-privateRoutes.put('/profile', async (c) => {
+/** POST /api/v1/private/profile — Initialize the owner's canonical private profile once. */
+privateRoutes.post('/profile', async (c) => {
   const authContext = c.get('authContext')!;
-  const body = (await c.req.json().catch(() => ({}))) as Record<string, unknown>;
-  const versionNo = Number(body.versionNo);
-
-  if (isNaN(versionNo) || versionNo < 1) {
+  const { CreateProfileRequestSchema } = await import('@usmanalii/contracts');
+  const parsed = CreateProfileRequestSchema.safeParse(await c.req.json().catch(() => ({})));
+  if (!parsed.success) {
     return c.json(
-      { code: 'INVALID_PAYLOAD', message: 'versionNo is required.', requestId: c.get('requestId') },
+      {
+        code: 'INVALID_PAYLOAD',
+        message: 'Enter your display name to create the profile.',
+        requestId: c.get('requestId'),
+      },
       400,
     );
   }
+
+  const { D1ProfileRepository } = await import('@usmanalii/database');
+  const repo = new D1ProfileRepository(c.env.DB);
+  try {
+    const profile = await repo.createProfile(authContext, parsed.data.displayName);
+    return c.json({ profile, requestId: c.get('requestId') }, 201);
+  } catch (err: unknown) {
+    if (err instanceof Error && err.message === 'PROFILE_ALREADY_EXISTS') {
+      return c.json(
+        {
+          code: 'PROFILE_ALREADY_EXISTS',
+          message: 'The canonical profile already exists. Reload it instead.',
+          requestId: c.get('requestId'),
+        },
+        409,
+      );
+    }
+    throw err;
+  }
+});
+
+/** PUT /api/v1/private/profile — Update owner profile */
+privateRoutes.put('/profile', async (c) => {
+  const authContext = c.get('authContext')!;
+  const parsed = UpdateProfileRequestSchema.safeParse(await c.req.json().catch(() => ({})));
+  if (!parsed.success) {
+    const fieldErrors = parsed.error.flatten().fieldErrors;
+    return c.json(
+      {
+        code: 'INVALID_PAYLOAD',
+        message: 'Correct the highlighted profile fields and try again.',
+        fieldErrors,
+        requestId: c.get('requestId'),
+      },
+      400,
+    );
+  }
+  const body = parsed.data;
+  const versionNo = body.versionNo;
 
   const { D1ProfileRepository } = await import('@usmanalii/database');
   const repo = new D1ProfileRepository(c.env.DB);
@@ -1590,6 +1674,10 @@ privateRoutes.put('/profile', async (c) => {
         currentFocus: body.currentFocus as string,
         contactEmail: body.contactEmail as string,
         contactUrl: body.contactUrl as string,
+        githubUrl: body.githubUrl as string,
+        linkedinUrl: body.linkedinUrl as string,
+        xUrl: body.xUrl as string,
+        instagramUrl: body.instagramUrl as string,
         timezone: body.timezone as string,
         visibility: body.visibility as Visibility,
         availabilityState: body.availabilityState as AvailabilityState,

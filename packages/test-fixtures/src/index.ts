@@ -60,6 +60,10 @@ export const profiles = {
     currentFocus: 'Building things.', // generic
     contactEmail: null, // private — not in public DTOs
     contactUrl: null,
+    githubUrl: null,
+    linkedinUrl: null,
+    xUrl: null,
+    instagramUrl: null,
     timezone: 'UTC',
     visibility: 'public' as const,
     availabilityState: 'available' as const,
@@ -82,6 +86,10 @@ export const profiles = {
     currentFocus: null,
     contactEmail: null,
     contactUrl: null,
+    githubUrl: null,
+    linkedinUrl: null,
+    xUrl: null,
+    instagramUrl: null,
     timezone: 'UTC',
     visibility: DEFAULT_VISIBILITY, // 'private' — default invariant test
     availabilityState: 'available' as const,

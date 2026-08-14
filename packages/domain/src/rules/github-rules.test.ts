@@ -181,7 +181,13 @@ describe('GitHub Domain Rules Engine & Attribution (M6 Gate 2)', () => {
 
     // Duplicate event ev-1 deduplicated; future event excluded
     expect(publicProj.totalActivities).toBe(2);
-    const todayCell = publicProj.cells.find((c) => c.date === todayIso.slice(0, 10));
+    const todayInTargetTimezone = new Intl.DateTimeFormat('en-CA', {
+      timeZone: 'Asia/Karachi',
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+    }).format(now);
+    const todayCell = publicProj.cells.find((c) => c.date === todayInTargetTimezone);
     expect(todayCell?.count).toBe(1); // Count masked to 1 for public view
     expect(todayCell?.eventTypes).toEqual([]); // Obscured in public view
   });

@@ -1,119 +1,16 @@
 ---
 import DashboardLayout from '../../../layouts/DashboardLayout.astro';
-
-const mockSkills = [
-  {
-    id: 'skill-1',
-    name: 'TypeScript',
-    slug: 'typescript',
-    category: 'programming_language',
-    skillType: 'technical',
-    visibility: 'public',
-    lifecycleState: 'active',
-  },
-  {
-    id: 'skill-2',
-    name: 'API Security & OAuth/Access',
-    slug: 'api-security',
-    category: 'security',
-    skillType: 'technical',
-    visibility: 'public',
-    lifecycleState: 'active',
-  },
-  {
-    id: 'skill-3',
-    name: 'D1 & SQLite Database Design',
-    slug: 'database-design',
-    category: 'data',
-    skillType: 'technical',
-    visibility: 'private',
-    lifecycleState: 'active',
-  },
-];
+import { PrivateRecordDirectory } from '../../../components/dashboard/PrivateRecordDirectory';
 ---
 
-<DashboardLayout title="Skills Taxonomy — Command Center" activeSection="skills">
-  <div class="space-y-6 font-mono-tech">
-    <div class="flex items-center justify-between">
-      <div>
-        <h2 class="text-sm font-bold text-white tracking-wide">Skills Taxonomy</h2>
-        <p class="text-xs text-[#9CAAC1] mt-1">
-          Organizes records and evidence. Skills do NOT assert proficiency or percentage scores.
-        </p>
-      </div>
-      <button
-        type="button"
-        class="px-4 py-2 bg-[#8B5CFF] text-[#05060A] font-bold text-xs rounded-lg uppercase tracking-wider hover:opacity-90 transition-opacity"
+<DashboardLayout title="Skills Taxonomy — Command Center" activeSection="skills"
+  ><section class="space-y-6">
+    <header>
+      <h1 class="text-xl font-bold text-white">Skills Taxonomy</h1><p
+        class="mt-1 text-xs text-[#9CAAC1]"
       >
-        + Add Skill
-      </button>
-    </div>
-
-    <!-- Category Filters -->
-    <div
-      class="p-4 rounded-xl glass-panel flex flex-wrap items-center justify-between gap-3 text-xs"
-    >
-      <div class="flex items-center gap-2 flex-wrap">
-        <select
-          aria-label="Filter by Category"
-          class="bg-[#070A11] text-xs text-white border border-white/10 rounded-lg px-2.5 py-1.5 focus:outline-none focus:border-[#8B5CFF]"
-        >
-          <option value="">All Categories</option>
-          <option value="programming_language">Programming Languages</option>
-          <option value="framework_library">Frameworks &amp; Libraries</option>
-          <option value="security">Security</option>
-          <option value="data">Data &amp; Storage</option>
-        </select>
-        <select
-          aria-label="Filter by Visibility"
-          class="bg-[#070A11] text-xs text-white border border-white/10 rounded-lg px-2.5 py-1.5 focus:outline-none focus:border-[#8B5CFF]"
-        >
-          <option value="">All Visibilities</option>
-          <option value="private">Private</option>
-          <option value="public">Public</option>
-        </select>
-      </div>
-      <input
-        type="search"
-        placeholder="Search skills..."
-        aria-label="Search skills"
-        class="bg-[#070A11] text-xs text-white border border-white/10 rounded-lg px-3 py-1.5 w-48 focus:outline-none focus:border-[#8B5CFF]"
-      />
-    </div>
-
-    <!-- Skills List -->
-    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-      {
-        mockSkills.map((skill) => (
-          <div class="p-5 rounded-2xl glass-panel border border-white/10 space-y-3">
-            <div class="flex items-center justify-between text-xs">
-              <span class="font-bold uppercase text-[#8B5CFF] tracking-wider">
-                {skill.category.replace('_', ' ')}
-              </span>
-              <span
-                class={`text-[10px] uppercase font-bold px-2 py-0.5 rounded ${skill.visibility === 'public' ? 'bg-[#B8FF5A]/15 text-[#B8FF5A] border border-[#B8FF5A]/30' : 'bg-[#F59E0B]/15 text-[#F59E0B] border border-[#F59E0B]/30'}`}
-              >
-                {skill.visibility}
-              </span>
-            </div>
-            <h3 class="text-xl font-bold text-white font-display uppercase tracking-wide">
-              {skill.name}
-            </h3>
-            <p class="text-xs text-[#9CAAC1]">
-              Slug: <code class="text-[#45F3FF]">{skill.slug}</code>
-            </p>
-            <div class="pt-3 border-t border-white/5 flex items-center justify-between text-xs text-[#9CAAC1]">
-              <span>State: {skill.lifecycleState}</span>
-              <a
-                href={`/dashboard/skills/${skill.id}`}
-                class="text-[#8B5CFF] hover:underline font-bold"
-              >
-                Manage →
-              </a>
-            </div>
-          </div>
-        ))
-      }
-    </div>
-  </div>
-</DashboardLayout>
+        Database-backed skills; no self-rated percentage scores.
+      </p>
+    </header><PrivateRecordDirectory kind="skills" client:load />
+  </section></DashboardLayout
+>

@@ -4,6 +4,14 @@ import AxeBuilder from '@axe-core/playwright';
 test.describe('Playwright + axe-core Live Application E2E Suite (M1 + M2)', () => {
   test('1. Home page (/) passes axe accessibility scan', async ({ page }) => {
     await page.goto('/');
+    const portrait = page.locator('.hero-portrait');
+    await expect(portrait).toHaveAttribute('src', '/usman-ali-portrait-1600.webp');
+    await expect
+      .poll(() => portrait.evaluate((image: HTMLImageElement) => image.naturalWidth))
+      .toBeGreaterThan(0);
+    await expect
+      .poll(() => portrait.evaluate((image: HTMLImageElement) => image.currentSrc))
+      .toMatch(/usman-ali-portrait-(960|1600)\.webp$/);
     const results = await new AxeBuilder({ page }).analyze();
     expect(results.violations).toEqual([]);
   });
@@ -177,13 +185,18 @@ test.describe('Playwright + axe-core Live Application E2E Suite (M1 + M2)', () =
     expect(results.violations).toEqual([]);
   });
 
-  test('23. Graph Visualization accessible table view toggle & category filtering', async ({
+  test('23. Career Knowledge Universe exposes semantic zoom and accessible table controls', async ({
     page,
   }) => {
     await page.goto('/dashboard/graph');
     await expect(
-      page.locator('h2').filter({ hasText: 'CAPABILITIES & EVIDENCE GRAPH' }),
+      page.getByRole('heading', { name: 'Career Knowledge Universe' }).first(),
     ).toBeVisible();
+    const tableToggle = page.getByRole('button', { name: 'Table' });
+    await expect(tableToggle).toBeVisible();
+    await expect(page.getByRole('slider', { name: 'Detail' })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Universe', exact: true })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Back' })).toBeVisible();
   });
 
   test('24. Public Projects Index (/projects) passes axe accessibility scan', async ({ page }) => {

@@ -1,76 +1,16 @@
 ---
 import DashboardLayout from '../../../layouts/DashboardLayout.astro';
-
-// Fictional synthetic capability fixtures
-const mockCapabilities = [
-  {
-    id: 'cap-1',
-    title: 'Design Secure Multi-Tenant APIs',
-    slug: 'design-secure-multi-tenant-apis',
-    description:
-      'Design authorization boundaries that prevent cross-owner data leaks on Cloudflare Workers.',
-    outcomeStatement:
-      'Delivers multi-tenant APIs with zero IDOR vulnerabilities and Cloudflare Access verification.',
-    maturity: 'demonstrated',
-    visibility: 'public',
-    state: 'published',
-  },
-  {
-    id: 'cap-2',
-    title: 'Diagnose Production Reliability Failures',
-    slug: 'diagnose-production-failures',
-    description:
-      'Analyzes runtime stack traces, worker logs, and D1 constraint failures to isolate root cause.',
-    outcomeStatement:
-      'Resolves production incidents without masking errors or introducing silent fallbacks.',
-    maturity: 'applying',
-    visibility: 'public',
-    state: 'published',
-  },
-];
+import { PrivateRecordDirectory } from '../../../components/dashboard/PrivateRecordDirectory';
 ---
 
-<DashboardLayout title="Capabilities — Private Dashboard" activeSection="capabilities">
-  <div class="space-y-6">
-    <div class="flex items-center justify-between">
-      <div>
-        <h2 class="text-xl font-bold text-white">Capabilities & Outcome Statements</h2>
-        <p class="text-xs text-[#9CAAC1] mt-1">
-          Bounded, observable outcome statements. Descriptive maturity — never percentage scores.
-        </p>
-      </div>
-      <button
-        type="button"
-        class="px-3 py-1.5 bg-[#22D3EE] text-[#050509] font-bold text-xs rounded-lg hover:opacity-90 transition-opacity"
+<DashboardLayout title="Capabilities — Private Dashboard" activeSection="capabilities"
+  ><section class="space-y-6">
+    <header>
+      <h1 class="text-xl font-bold text-white">Capabilities & Outcome Statements</h1><p
+        class="mt-1 text-xs text-[#9CAAC1]"
       >
-        + Add Capability
-      </button>
-    </div>
-
-    <!-- Capabilities List -->
-    <div class="space-y-4">
-      {
-        mockCapabilities.map((cap) => (
-          <div class="p-5 rounded-xl glass-panel border border-white/10 space-y-3">
-            <div class="flex items-center justify-between">
-              <h3 class="text-base font-bold text-white">{cap.title}</h3>
-              <span class="px-2.5 py-1 rounded bg-[#22D3EE]/10 text-[#22D3EE] border border-[#22D3EE]/20 font-medium text-xs capitalize">
-                Stage: {cap.maturity}
-              </span>
-            </div>
-            <p class="text-xs text-white font-semibold">Outcome: {cap.outcomeStatement}</p>
-            <p class="text-xs text-[#9CAAC1]">{cap.description}</p>
-            <div class="pt-3 border-t border-white/5 flex items-center justify-between text-xs text-[#9CAAC1]">
-              <span>
-                Visibility: {cap.visibility} | State: {cap.state}
-              </span>
-              <a href={`/dashboard/capabilities/${cap.id}`} class="text-[#22D3EE] hover:underline">
-                Edit Capability →
-              </a>
-            </div>
-          </div>
-        ))
-      }
-    </div>
-  </div>
-</DashboardLayout>
+        Owner-approved capabilities loaded from D1.
+      </p>
+    </header><PrivateRecordDirectory kind="capabilities" client:load />
+  </section></DashboardLayout
+>

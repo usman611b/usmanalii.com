@@ -9,10 +9,12 @@ interface Props {
 }
 
 const {
-  title = 'usmanalii.com — Personal Career OS',
-  description = 'Canonical evidence-backed professional identity system, learning journey, capabilities, and engineering record of Usman Ali.',
+  title = 'USMAN ALI — Engineering, evidenced.',
+  description = 'Personal Career OS and evidence-backed engineering archive of Usman Ali — a living record of what he learns, builds, decides, debugs, and ships.',
   currentPath = '/',
 } = Astro.props;
+
+const canonicalUrl = `https://usmanalii.com${currentPath}`;
 ---
 
 <!doctype html>
@@ -22,57 +24,188 @@ const {
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
 
-    <!-- Primary Meta Tags -->
+    <!-- Primary Meta -->
     <title>{title}</title>
     <meta name="title" content={title} />
     <meta name="description" content={description} />
+    <link rel="canonical" href={canonicalUrl} />
 
-    <!-- Open Graph / Facebook -->
+    <!-- Open Graph -->
     <meta property="og:type" content="website" />
+    <meta property="og:url" content={canonicalUrl} />
     <meta property="og:title" content={title} />
     <meta property="og:description" content={description} />
+    <meta property="og:site_name" content="usmanalii.com — Personal Career OS" />
 
-    <!-- Google Fonts -->
+    <!-- Fonts — preconnect for performance -->
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
-      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
+      href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:ital,opsz,wght@0,14..32,400..700;1,14..32,400..700&family=JetBrains+Mono:wght@400;500;600&display=swap"
       rel="stylesheet"
     />
+
     <slot name="head" />
   </head>
-  <body
-    class="bg-[#05060A] text-[#F4F1EA] flex flex-col min-h-screen selection:bg-[#45F3FF]/20 selection:text-[#45F3FF]"
-  >
-    <!-- Accessibility Skip Link -->
-    <a
-      href="#main-content"
-      class="sr-only focus:not-sr-only focus:absolute focus:top-4 focus:left-4 bg-[#45F3FF] text-[#05060A] px-4 py-2 rounded-md font-bold z-50 shadow-lg shadow-[#45F3FF]/20"
-    >
-      Skip to main content
-    </a>
+  <body>
+    <!-- Skip Navigation — keyboard accessibility -->
+    <a href="#main-content" class="skip-nav">Skip to main content</a>
 
-    <!-- Header Navigation -->
+    <!-- Global Navigation -->
     <Navigation currentPath={currentPath} />
 
-    <!-- Main Content Body -->
-    <main id="main-content" class="flex-grow">
+    <!-- Main Content -->
+    <main id="main-content" class="public-main flex-grow">
       <slot />
     </main>
 
-    <!-- Footer -->
-    <footer class="border-t border-white/10 bg-[#070A11] py-12 mt-20 text-xs text-[#9CAAC1]">
+    <!-- Public Footer -->
+    <footer
+      class="border-t border-[var(--hairline)] bg-[var(--obsidian)] mt-24"
+      role="contentinfo"
+      aria-label="Site footer"
+    >
+      <!-- Luminous separator -->
       <div
-        class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row items-center justify-between gap-4"
+        class="h-px"
+        style="background: linear-gradient(to right, transparent, var(--border-cyan) 30%, var(--border-violet) 70%, transparent);"
+        aria-hidden="true"
       >
-        <div>
-          <p class="font-medium text-white tracking-wide">USMAN ALI — Personal Career OS</p>
-          <p class="mt-1 text-[#9CAAC1]">A living engineering record illuminated by evidence.</p>
+      </div>
+
+      <div class="max-w-[1280px] mx-auto px-4 sm:px-6 lg:px-8 py-10">
+        <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-8">
+          <!-- Brand -->
+          <div class="space-y-2">
+            <a
+              href="/"
+              class="inline-flex items-center gap-3 group"
+              aria-label="usmanalii.com — home"
+            >
+              <svg
+                class="w-5 h-5 text-[var(--cyan)]"
+                viewBox="0 0 32 32"
+                fill="none"
+                aria-hidden="true"
+              >
+                <path
+                  d="M6 8V18C6 21.3137 8.68629 24 12 24C15.3137 24 18 21.3137 18 18V8"
+                  stroke="currentColor"
+                  stroke-width="2.5"
+                  stroke-linecap="round"></path>
+                <path
+                  d="M18 24L26 8M21 17H26.5"
+                  stroke="currentColor"
+                  stroke-width="2.5"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"></path>
+              </svg>
+              <span
+                class="text-sm font-semibold tracking-wider text-[var(--text-primary)] group-hover:text-[var(--cyan)] transition-colors duration-[var(--duration-fast)]"
+              >
+                USMAN ALI
+              </span>
+            </a>
+            <p class="text-xs text-[var(--text-muted)] font-[var(--font-mono)] pl-8">
+              Personal Career OS &mdash; Engineering, evidenced.
+            </p>
+          </div>
+
+          <!-- Navigation columns -->
+          <nav
+            class="grid grid-cols-2 sm:grid-cols-3 gap-x-12 gap-y-2 text-xs"
+            aria-label="Footer navigation"
+          >
+            <!-- Explore -->
+            <div class="space-y-2">
+              <div
+                class="text-[var(--text-muted)] font-[var(--font-mono)] uppercase tracking-widest text-[10px]"
+              >
+                Explore
+              </div>
+              <a
+                href="/journey"
+                class="block text-[var(--text-secondary)] hover:text-[var(--cyan)] transition-colors duration-[var(--duration-fast)]"
+                >Journey</a
+              >
+              <a
+                href="/projects"
+                class="block text-[var(--text-secondary)] hover:text-[var(--cyan)] transition-colors duration-[var(--duration-fast)]"
+                >Projects</a
+              >
+              <a
+                href="/skills"
+                class="block text-[var(--text-secondary)] hover:text-[var(--cyan)] transition-colors duration-[var(--duration-fast)]"
+                >Skills</a
+              >
+              <a
+                href="/evidence"
+                class="block text-[var(--text-secondary)] hover:text-[var(--cyan)] transition-colors duration-[var(--duration-fast)]"
+                >Evidence</a
+              >
+            </div>
+
+            <!-- Identity -->
+            <div class="space-y-2">
+              <div
+                class="text-[var(--text-muted)] font-[var(--font-mono)] uppercase tracking-widest text-[10px]"
+              >
+                Identity
+              </div>
+              <a
+                href="/about"
+                class="block text-[var(--text-secondary)] hover:text-[var(--violet)] transition-colors duration-[var(--duration-fast)]"
+                >About</a
+              >
+              <a
+                href="/resume"
+                class="block text-[var(--text-secondary)] hover:text-[var(--violet)] transition-colors duration-[var(--duration-fast)]"
+                >Résumé</a
+              >
+              <a
+                href="/recruiter"
+                class="block text-[var(--text-secondary)] hover:text-[var(--violet)] transition-colors duration-[var(--duration-fast)]"
+                >Recruiter Mode</a
+              >
+              <a
+                href="/deep-dive"
+                class="block text-[var(--text-secondary)] hover:text-[var(--magenta)] transition-colors duration-[var(--duration-fast)]"
+                >Deep Dive</a
+              >
+            </div>
+
+            <!-- Record -->
+            <div class="space-y-2 col-span-2 sm:col-span-1 mt-4 sm:mt-0">
+              <div
+                class="text-[var(--text-muted)] font-[var(--font-mono)] uppercase tracking-widest text-[10px]"
+              >
+                Record
+              </div>
+              <a
+                href="/activity"
+                class="block text-[var(--text-secondary)] hover:text-[var(--lime)] transition-colors duration-[var(--duration-fast)]"
+                >Activity</a
+              >
+              <a
+                href="/capabilities"
+                class="block text-[var(--text-secondary)] hover:text-[var(--lime)] transition-colors duration-[var(--duration-fast)]"
+                >Capabilities</a
+              >
+            </div>
+          </nav>
         </div>
-        <div class="flex items-center space-x-6 font-mono-tech">
-          <a href="/recruiter" class="hover:text-[#45F3FF] transition-colors">Recruiter View</a>
-          <a href="/deep-dive" class="hover:text-[#8B5CFF] transition-colors">Deep Dive</a>
-          <a href="/about" class="hover:text-white transition-colors">About</a>
+
+        <!-- Bottom bar -->
+        <div
+          class="mt-8 pt-6 border-t border-[var(--hairline)] flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-[11px] text-[var(--text-muted)] font-[var(--font-mono)]"
+        >
+          <span>
+            &copy; {new Date().getFullYear()} Usman Ali. Personal Career OS.
+          </span>
+          <span class="flex items-center gap-2">
+            <span class="status-dot status-dot-healthy" aria-hidden="true"></span>
+            <span>usmanalii.com</span>
+          </span>
         </div>
       </div>
     </footer>

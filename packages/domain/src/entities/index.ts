@@ -495,6 +495,10 @@ export interface ProfileEntity {
   readonly currentFocus: string | null; // truthful current positioning
   readonly contactEmail: string | null;
   readonly contactUrl: string | null;
+  readonly githubUrl: string | null;
+  readonly linkedinUrl: string | null;
+  readonly xUrl: string | null;
+  readonly instagramUrl: string | null;
   readonly timezone: string; // IANA timezone for activity aggregation
   readonly visibility: Visibility;
   readonly availabilityState: AvailabilityState;

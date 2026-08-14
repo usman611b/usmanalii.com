@@ -1,6 +1,7 @@
 # Milestone M7 — Professional Identity & Résumé Engine Gate Closure Report
 
 ## Executive Summary
+
 This document certifies that **Milestone M7 — Professional Identity & Résumé Engine** has met all verification gates, audit constraints, adversarial privacy requirements, contrast accessibility criteria, export format guarantees, propagation invalidations, domain vocabulary rules, and migration integrity checks.
 
 No unverified or AI-invented professional claims exist within the system. Every public projection and export variant is strictly derived from owner-approved database records and verified evidence items.
@@ -13,21 +14,21 @@ Verification confirms that 100% of historical workspace test files remain regist
 
 ### Per-Project Vitest Unit Test Inventory
 
-| Project | Test files | Tests passed | Failed | Skipped |
-|---|---:|---:|---:|---:|
-| `@usmanalii/authorization` | 1 | 23 | 0 | 0 |
-| `@usmanalii/content` | 4 | 21 | 0 | 0 |
-| `@usmanalii/contracts` | 1 | 3 | 0 | 0 |
-| `@usmanalii/database` | 1 | 19 | 0 | 0 |
-| `@usmanalii/design-system` | 1 | 5 | 0 | 0 |
-| `@usmanalii/domain` | 6 | 105 | 0 | 0 |
-| `@usmanalii/evidence` | 2 | 25 | 0 | 0 |
-| `@usmanalii/observability` | 1 | 2 | 0 | 0 |
-| `@usmanalii/search` | 2 | 7 | 0 | 0 |
-| `@usmanalii/test-fixtures` | 1 | 15 | 0 | 0 |
-| `@usmanalii/web` | 1 | 5 | 0 | 0 |
-| `@usmanalii/worker` | 6 | 44 | 0 | 0 |
-| **TOTAL Vitest Unit Tests** | **27** | **274** | **0** | **0** |
+| Project                     | Test files | Tests passed | Failed | Skipped |
+| --------------------------- | ---------: | -----------: | -----: | ------: |
+| `@usmanalii/authorization`  |          1 |           23 |      0 |       0 |
+| `@usmanalii/content`        |          4 |           21 |      0 |       0 |
+| `@usmanalii/contracts`      |          1 |            3 |      0 |       0 |
+| `@usmanalii/database`       |          1 |           19 |      0 |       0 |
+| `@usmanalii/design-system`  |          1 |            5 |      0 |       0 |
+| `@usmanalii/domain`         |          6 |          105 |      0 |       0 |
+| `@usmanalii/evidence`       |          2 |           25 |      0 |       0 |
+| `@usmanalii/observability`  |          1 |            2 |      0 |       0 |
+| `@usmanalii/search`         |          2 |            7 |      0 |       0 |
+| `@usmanalii/test-fixtures`  |          1 |           15 |      0 |       0 |
+| `@usmanalii/web`            |          1 |            5 |      0 |       0 |
+| `@usmanalii/worker`         |          6 |           44 |      0 |       0 |
+| **TOTAL Vitest Unit Tests** |     **27** |      **274** |  **0** |   **0** |
 
 ### Complete Workspace Test Totals
 
@@ -50,7 +51,7 @@ Skipped: 0
 Automated axe violations under configured rules: 0
 ```
 
-*Explanation of Historical Count*: Milestone M6 previously reported 287 total tests by combining the 274 Vitest unit tests with the 13 Playwright accessibility tests (274 + 13 = 287). In M7, 53 new unit tests and 37 new Playwright E2E tests were added. Today, the repository contains **274 Vitest unit tests** and **50 Playwright E2E tests**, yielding a grand workspace total of **324 passed tests**.
+_Explanation of Historical Count_: Milestone M6 previously reported 287 total tests by combining the 274 Vitest unit tests with the 13 Playwright accessibility tests (274 + 13 = 287). In M7, 53 new unit tests and 37 new Playwright E2E tests were added. Today, the repository contains **274 Vitest unit tests** and **50 Playwright E2E tests**, yielding a grand workspace total of **324 passed tests**.
 
 ---
 
@@ -59,6 +60,7 @@ Automated axe violations under configured rules: 0
 All documentation files and source assets were scanned for UTF-8 encoding integrity. Byte-level verification confirmed valid UTF-8 sequences. The byte-level scan returned zero findings of corrupted encoding.
 
 Key domain terms verified:
+
 ```text
 Milestone M7 — Professional Identity & Résumé Engine
 Résumé
@@ -71,20 +73,21 @@ résumé
 
 Propagation rules ensure that database state transitions (Publishing & Unpublishing) synchronously update or purge public projections, exports, caches, and search indexes.
 
-| Projection | Publish Behavior | Unpublish Behavior | Test Reference |
-|---|---|---|---|
-| **Public profile** | Includes approved claims & published records | Strips un-approved claims & unpublished records | `m7-propagation.test.ts` |
-| **Recruiter projection** | Projects published claims & proof points | Removes unpublished items from executive scan | `m7-propagation.test.ts` |
-| **Résumé index** | Displays published résumé variants | Excludes draft, private, & archived variants | `m7-propagation.test.ts` |
-| **Direct résumé route** | Serves 200 OK for published slug | Returns 404 RESOURCE_NOT_FOUND when unpublished | `m7-propagation.test.ts` |
-| **TXT export** | Generates plain-text export for published variant | Returns 404 RESOURCE_NOT_FOUND when unpublished | `m7-export.test.ts` |
-| **JSON export** | Generates version 17 JSON for published variant | Returns 404 RESOURCE_NOT_FOUND when unpublished | `m7-export.test.ts` |
-| **Markdown export** | Generates Markdown export for published variant | Returns 404 RESOURCE_NOT_FOUND when unpublished | `m7-export.test.ts` |
-| **HTML export** | Generates sanitized HTML for published variant | Returns 404 RESOURCE_NOT_FOUND when unpublished | `m7-export.test.ts` |
-| **Search projection** | `buildRecordSearchDocument()` indexes record | Returns `null`, purging item from search index | `packages/search/src/m7-propagation.test.ts` |
-| **Cache invalidation** | Cache tag invalidated on publish | Cache tag invalidated on unpublish | `publication-propagation.test.ts` |
+| Projection               | Publish Behavior                                  | Unpublish Behavior                              | Test Reference                               |
+| ------------------------ | ------------------------------------------------- | ----------------------------------------------- | -------------------------------------------- |
+| **Public profile**       | Includes approved claims & published records      | Strips un-approved claims & unpublished records | `m7-propagation.test.ts`                     |
+| **Recruiter projection** | Projects published claims & proof points          | Removes unpublished items from executive scan   | `m7-propagation.test.ts`                     |
+| **Résumé index**         | Displays published résumé variants                | Excludes draft, private, & archived variants    | `m7-propagation.test.ts`                     |
+| **Direct résumé route**  | Serves 200 OK for published slug                  | Returns 404 RESOURCE_NOT_FOUND when unpublished | `m7-propagation.test.ts`                     |
+| **TXT export**           | Generates plain-text export for published variant | Returns 404 RESOURCE_NOT_FOUND when unpublished | `m7-export.test.ts`                          |
+| **JSON export**          | Generates version 17 JSON for published variant   | Returns 404 RESOURCE_NOT_FOUND when unpublished | `m7-export.test.ts`                          |
+| **Markdown export**      | Generates Markdown export for published variant   | Returns 404 RESOURCE_NOT_FOUND when unpublished | `m7-export.test.ts`                          |
+| **HTML export**          | Generates sanitized HTML for published variant    | Returns 404 RESOURCE_NOT_FOUND when unpublished | `m7-export.test.ts`                          |
+| **Search projection**    | `buildRecordSearchDocument()` indexes record      | Returns `null`, purging item from search index  | `packages/search/src/m7-propagation.test.ts` |
+| **Cache invalidation**   | Cache tag invalidated on publish                  | Cache tag invalidated on unpublish              | `publication-propagation.test.ts`            |
 
 ### Distinction Between Claims & Professional Records
+
 - **Claims**: Require explicit owner approval (`approval_state === 'approved'`), healthy evidence links, and non-embargoed status. Unpublishing or revoking supporting evidence immediately disqualifies the claim from public projections.
 - **Professional Records**: Experience, education, and credential records require `publication_state === 'published'`. Unpublishing a record automatically invalidates all claims that depend on it as a support edge.
 
@@ -130,15 +133,15 @@ Playwright verification in `apps/web/e2e/m7-browser-accessibility-print.spec.ts`
 
 M7 strictly reuses canonical database columns and domain properties without introducing competing synonyms:
 
-| Domain Aspect | Implemented Code Property | Database Column Name | Allowed Values |
-|---|---|---|---|
-| **Verification State** | `verificationStatus` | `verification_status` | `'owner_verified'`, `'source_verified'`, `'automatically_observed'` |
-| **Publication State** | `publicationState` | `publication_state` | `'draft'`, `'published'`, `'archived'` |
-| **Lifecycle State** | `lifecycleState` | `lifecycle_state` | `'active'`, `'deprecated'`, `'archived'` |
-| **Visibility** | `visibility` | `visibility` | `'public'`, `'private'` |
-| **Archive / Deletion** | `archivedAt`, `deletedAt` | `archived_at`, `deleted_at` | ISO8601 Timestamp / `NULL` |
-| **Embargo** | `embargoUntil` | `embargo_until` | ISO8601 Timestamp / `NULL` |
-| **Approval State** | `approvalState` | `approval_state` | `'pending'`, `'approved'`, `'rejected'` |
+| Domain Aspect          | Implemented Code Property | Database Column Name        | Allowed Values                                                      |
+| ---------------------- | ------------------------- | --------------------------- | ------------------------------------------------------------------- |
+| **Verification State** | `verificationStatus`      | `verification_status`       | `'owner_verified'`, `'source_verified'`, `'automatically_observed'` |
+| **Publication State**  | `publicationState`        | `publication_state`         | `'draft'`, `'published'`, `'archived'`                              |
+| **Lifecycle State**    | `lifecycleState`          | `lifecycle_state`           | `'active'`, `'deprecated'`, `'archived'`                            |
+| **Visibility**         | `visibility`              | `visibility`                | `'public'`, `'private'`                                             |
+| **Archive / Deletion** | `archivedAt`, `deletedAt` | `archived_at`, `deleted_at` | ISO8601 Timestamp / `NULL`                                          |
+| **Embargo**            | `embargoUntil`            | `embargo_until`             | ISO8601 Timestamp / `NULL`                                          |
+| **Approval State**     | `approvalState`           | `approval_state`            | `'pending'`, `'approved'`, `'rejected'`                             |
 
 ---
 

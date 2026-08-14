@@ -1,94 +1,15 @@
 ---
 import DashboardLayout from '../../../layouts/DashboardLayout.astro';
-
+import { ResumeEditor } from '../../../components/dashboard/ResumeEditor';
 export function getStaticPaths() {
-  return [{ params: { id: 'general' } }, { params: { id: 'software-engineering' } }];
+  return [{ params: { id: 'record' } }];
 }
-
-const { id } = Astro.params;
 ---
 
 <DashboardLayout
-  title={`Edit Résumé Variant (${id}) — Dashboard`}
-  description="Section ordering, item selection, version history, rollback, and export actions."
+  title="Résumé Composer — Dashboard"
+  description="Edit, publish, and restore a canonical résumé projection."
   currentPath="/dashboard/resumes"
 >
-  <div class="space-y-8 font-mono-tech">
-    <div class="flex items-center justify-between border-b border-white/10 pb-6">
-      <div>
-        <span class="text-xs font-bold text-[#8B5CFF] uppercase tracking-wider"
-          >RÉSUMÉ COMPOSER &amp; TAILORING</span
-        >
-        <h1 class="text-3xl font-display font-bold text-white uppercase tracking-wide">
-          Variant: {id}
-        </h1>
-        <p class="text-xs text-[#9CAAC1]">
-          Section inclusion &amp; ordering, preview, publish, version history, and rollback.
-        </p>
-      </div>
-
-      <div class="flex gap-3">
-        <button
-          class="px-4 py-2 bg-white/10 text-white font-bold text-xs rounded hover:bg-white/20"
-        >
-          Rollback Version
-        </button>
-        <button
-          class="px-5 py-2.5 bg-[#45F3FF] text-[#05060A] font-bold text-xs rounded-lg uppercase tracking-wider hover:opacity-90"
-        >
-          Publish Variant
-        </button>
-      </div>
-    </div>
-
-    <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
-      <div class="lg:col-span-2 space-y-6">
-        <div class="p-6 rounded-xl glass-panel space-y-4">
-          <h2 class="text-sm font-bold text-white uppercase tracking-wider text-[#45F3FF]">
-            Included Sections &amp; Ordering
-          </h2>
-          <div class="space-y-2">
-            <div
-              class="p-3 bg-white/5 rounded-lg border border-white/10 flex items-center justify-between text-xs text-white"
-            >
-              <span>1. Professional Summary</span>
-              <span class="text-[#9CAAC1]">Included</span>
-            </div>
-            <div
-              class="p-3 bg-white/5 rounded-lg border border-white/10 flex items-center justify-between text-xs text-white"
-            >
-              <span>2. Work Experience</span>
-              <span class="text-[#9CAAC1]">Included</span>
-            </div>
-            <div
-              class="p-3 bg-white/5 rounded-lg border border-white/10 flex items-center justify-between text-xs text-white"
-            >
-              <span>3. Key Achievements &amp; Claims</span>
-              <span class="text-[#9CAAC1]">Included</span>
-            </div>
-            <div
-              class="p-3 bg-white/5 rounded-lg border border-white/10 flex items-center justify-between text-xs text-white"
-            >
-              <span>4. Education &amp; Credentials</span>
-              <span class="text-[#9CAAC1]">Included</span>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <div class="space-y-4">
-        <div class="p-6 rounded-xl glass-panel space-y-3">
-          <h2 class="text-xs font-bold text-white uppercase tracking-wider text-[#8B5CFF]">
-            Version History
-          </h2>
-          <div class="space-y-2 text-xs text-[#9CAAC1]">
-            <div class="p-2 bg-white/5 rounded flex justify-between">
-              <span>Version 1 (Active)</span>
-              <span>2026-08-01</span>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
+  <ResumeEditor client:load />
 </DashboardLayout>

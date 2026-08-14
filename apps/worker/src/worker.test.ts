@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import worker, { handleScheduledReconciliation } from './index';
 
 const mockDb = {
@@ -53,13 +53,14 @@ describe('Worker API Integration & Security Tests', () => {
     expect(res.headers.get('X-Frame-Options')).toBe('DENY');
   });
 
-  it('GET /api/v1/public/profile — returns allowlisted DTO without owner_id', async () => {
+  it('GET /api/v1/public/profile — returns no invented facts without a published D1 profile', async () => {
     const res = await worker.fetch(new Request('http://localhost/api/v1/public/profile'), env);
 
-    expect(res.status).toBe(200);
+    expect(res.status).toBe(404);
     const body = (await res.json()) as Record<string, unknown>;
-    expect(body.displayName).toBe('Usman Ali');
-    expect(body.headline).toBe('Systems Architect & Senior Software Engineer');
+    expect(body.code).toBe('RESOURCE_NOT_FOUND');
+    expect(body.displayName).toBeUndefined();
+    expect(body.headline).toBeUndefined();
     expect(body.owner_id).toBeUndefined(); // SECURITY: owner_id not exposed
   });
 
@@ -76,6 +77,123 @@ describe('Worker API Integration & Security Tests', () => {
     expect(body.requestId).toBeDefined();
     // Confirm stack trace is redacted
     expect((body as Record<string, unknown>).stack).toBeUndefined();
+  });
+
+  it('M8 graph role endpoints fail closed without owner authentication', async () => {
+    const cases: Array<[Request, number]> = [
+      [new Request('http://localhost/api/v1/private/graph/roles'), 401],
+      [new Request('http://localhost/api/v1/private/graph/career'), 401],
+      [
+        new Request('http://localhost/api/v1/private/graph/roles', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ name: 'AI Engineer', slug: 'ai-engineer' }),
+        }),
+        403,
+      ],
+    ];
+    for (const [request, expectedStatus] of cases) {
+      const response = await worker.fetch(request, env);
+      expect(response.status).toBe(expectedStatus);
+    }
+  });
+
+  it('M8 owner can create a private career role through the validated API', async () => {
+    const statements: string[] = [];
+    const roleDb = {
+      prepare(sql: string) {
+        statements.push(sql);
+        return {
+          bind() {
+            return this;
+          },
+          async run() {
+            return { meta: { changes: 1 } };
+          },
+        };
+      },
+    };
+    const response = await worker.fetch(
+      new Request('http://localhost/api/v1/private/graph/roles', {
+        method: 'POST',
+        headers: {
+          Authorization: 'Bearer test-jwt-token',
+          'Content-Type': 'application/json',
+          Origin: 'http://localhost',
+          Host: 'localhost',
+        },
+        body: JSON.stringify({
+          name: 'AI/ML Engineer',
+          slug: 'ai-ml-engineer',
+          description: 'Owner-approved role cluster.',
+          color: '#25E6FF',
+        }),
+      }),
+      { ...env, DB: roleDb as any },
+    );
+
+    expect(response.status).toBe(201);
+    expect(await response.json()).toMatchObject({
+      role: {
+        name: 'AI/ML Engineer',
+        slug: 'ai-ml-engineer',
+        visibility: 'private',
+        publicationState: 'draft',
+      },
+    });
+    expect(statements).toContainEqual(expect.stringContaining('INSERT INTO career_roles'));
+  });
+
+  it('M8 career role API rejects invalid slugs before database access', async () => {
+    const prepare = vi.fn();
+    const response = await worker.fetch(
+      new Request('http://localhost/api/v1/private/graph/roles', {
+        method: 'POST',
+        headers: {
+          Authorization: 'Bearer test-jwt-token',
+          'Content-Type': 'application/json',
+          Origin: 'http://localhost',
+          Host: 'localhost',
+        },
+        body: JSON.stringify({ name: 'AI Engineer', slug: 'Invalid Slug' }),
+      }),
+      { ...env, DB: { prepare } as any },
+    );
+
+    expect(response.status).toBe(400);
+    expect(prepare).not.toHaveBeenCalled();
+  });
+
+  it('DASHBOARD SUMMARY uses the canonical project status column', async () => {
+    const preparedQueries: string[] = [];
+    const dashboardDb = {
+      prepare(sql: string) {
+        preparedQueries.push(sql);
+        return {
+          bind() {
+            return this;
+          },
+          async first() {
+            return { count: 0 };
+          },
+          async all() {
+            return { results: [] };
+          },
+        };
+      },
+    };
+    const response = await worker.fetch(
+      new Request('http://localhost/api/v1/private/dashboard/summary', {
+        headers: { Authorization: 'Bearer test-jwt-token' },
+      }),
+      { ...env, DB: dashboardDb as any },
+    );
+
+    expect(response.status).toBe(200);
+    expect(preparedQueries).toContainEqual(
+      expect.stringContaining("status NOT IN ('archived', 'dead_demo')"),
+    );
+    expect(preparedQueries).not.toContainEqual(expect.stringContaining('lifecycle_state'));
   });
 
   it('GET /api/v1/private/dashboard/summary with invalid JWT header — fails closed with 401 and redacted error', async () => {
@@ -95,6 +213,24 @@ describe('Worker API Integration & Security Tests', () => {
   });
 
   it('POST /api/v1/public/contact with valid same-origin — accepts mutation', async () => {
+    const resend = vi
+      .spyOn(globalThis, 'fetch')
+      .mockResolvedValueOnce(
+        new Response(JSON.stringify({ success: true, action: 'contact' }), { status: 200 }),
+      )
+      .mockResolvedValueOnce(new Response(JSON.stringify({ id: 'email_test' }), { status: 200 }));
+    const contactDb = {
+      prepare() {
+        return {
+          bind() {
+            return this;
+          },
+          async first() {
+            return { contact_email: 'private-owner@usmanalii.com' };
+          },
+        };
+      },
+    };
     const res = await worker.fetch(
       new Request('http://localhost/api/v1/public/contact', {
         method: 'POST',
@@ -110,12 +246,89 @@ describe('Worker API Integration & Security Tests', () => {
           turnstileToken: 'test-token-123',
         }),
       }),
-      env,
+      {
+        ...env,
+        DB: contactDb as any,
+        TURNSTILE_SECRET_KEY: 'test-turnstile-secret',
+        RESEND_API_KEY: 'test-resend-key',
+        CONTACT_FROM_EMAIL: 'Portfolio <contact@usmanalii.com>',
+      } as any,
     );
 
     expect(res.status).toBe(200);
     const body = (await res.json()) as { success: boolean };
     expect(body.success).toBe(true);
+    expect(resend).toHaveBeenNthCalledWith(
+      1,
+      'https://challenges.cloudflare.com/turnstile/v0/siteverify',
+      expect.objectContaining({ method: 'POST' }),
+    );
+    expect(resend).toHaveBeenNthCalledWith(
+      2,
+      'https://api.resend.com/emails',
+      expect.objectContaining({ method: 'POST' }),
+    );
+    resend.mockRestore();
+  });
+
+  it('POST /api/v1/public/contact rejects a missing Turnstile token before delivery', async () => {
+    const fetchSpy = vi.spyOn(globalThis, 'fetch');
+    const res = await worker.fetch(
+      new Request('http://localhost/api/v1/public/contact', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Origin: 'http://localhost',
+          Host: 'localhost',
+        },
+        body: JSON.stringify({
+          name: 'Jane Recruiter',
+          email: 'jane@company.com',
+          message: 'Hello Usman, interested in your systems architecture role.',
+        }),
+      }),
+      env,
+    );
+
+    expect(res.status).toBe(400);
+    expect(await res.json()).toMatchObject({ code: 'CONTACT_VERIFICATION_REQUIRED' });
+    expect(fetchSpy).not.toHaveBeenCalled();
+    fetchSpy.mockRestore();
+  });
+
+  it('POST /api/v1/public/contact fails closed when Turnstile rejects the token', async () => {
+    const fetchSpy = vi
+      .spyOn(globalThis, 'fetch')
+      .mockResolvedValueOnce(
+        new Response(JSON.stringify({ success: false, action: 'contact' }), { status: 200 }),
+      );
+    const res = await worker.fetch(
+      new Request('http://localhost/api/v1/public/contact', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Origin: 'http://localhost',
+          Host: 'localhost',
+        },
+        body: JSON.stringify({
+          name: 'Jane Recruiter',
+          email: 'jane@company.com',
+          message: 'Hello Usman, interested in your systems architecture role.',
+          turnstileToken: 'invalid-test-token',
+        }),
+      }),
+      {
+        ...env,
+        TURNSTILE_SECRET_KEY: 'test-turnstile-secret',
+        RESEND_API_KEY: 'test-resend-key',
+        CONTACT_FROM_EMAIL: 'Portfolio <contact@usmanalii.com>',
+      } as any,
+    );
+
+    expect(res.status).toBe(403);
+    expect(await res.json()).toMatchObject({ code: 'CONTACT_VERIFICATION_FAILED' });
+    expect(fetchSpy).toHaveBeenCalledTimes(1);
+    fetchSpy.mockRestore();
   });
 
   it('NEGATIVE: POST /api/v1/public/contact with MISSING Origin & Referer — fails closed with 403 FORBIDDEN', async () => {
@@ -653,5 +866,58 @@ describe('Worker API Integration & Security Tests', () => {
       );
       expect(response.status).toBe(401);
     }
+  });
+
+  it('LOCAL AUTH accepts a strong token only on localhost in the local environment', async () => {
+    const token = 'local-test-token-that-is-at-least-32-characters';
+    const login = await worker.fetch(
+      new Request('http://127.0.0.1/api/v1/local-auth/session', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Origin: 'http://localhost:4321' },
+        body: JSON.stringify({ token }),
+      }),
+      { ...env, ENVIRONMENT: 'local', LOCAL_OWNER_TOKEN: token },
+    );
+    expect(login.status).toBe(200);
+    const cookie = login.headers.get('Set-Cookie');
+    expect(cookie).toContain('HttpOnly');
+    expect(cookie).toContain('SameSite=Strict');
+    const privateResponse = await worker.fetch(
+      new Request('http://127.0.0.1/api/v1/private/dashboard/summary', {
+        headers: { Cookie: cookie! },
+      }),
+      { ...env, ENVIRONMENT: 'local', LOCAL_OWNER_TOKEN: token, DB: mockDb as any },
+    );
+    expect(privateResponse.status).toBe(200);
+  });
+
+  it('LOCAL AUTH is unreachable outside local and rejects wrong tokens', async () => {
+    const token = 'local-test-token-that-is-at-least-32-characters';
+    const wrong = await worker.fetch(
+      new Request('http://127.0.0.1/api/v1/local-auth/session', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Origin: 'http://localhost:4321' },
+        body: JSON.stringify({ token: 'wrong-token-that-is-also-at-least-32-characters' }),
+      }),
+      { ...env, ENVIRONMENT: 'local', LOCAL_OWNER_TOKEN: token },
+    );
+    expect(wrong.status).toBe(401);
+    const production = await worker.fetch(
+      new Request('https://usmanalii.com/api/v1/local-auth/session', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Origin: 'https://usmanalii.com' },
+        body: JSON.stringify({ token }),
+      }),
+      { ...env, ENVIRONMENT: 'production', LOCAL_OWNER_TOKEN: token },
+    );
+    expect(production.status).toBe(404);
+
+    const productionPrivate = await worker.fetch(
+      new Request('https://usmanalii.com/api/v1/private/dashboard/summary', {
+        headers: { Cookie: `local_owner_session=${token}` },
+      }),
+      { ...env, ENVIRONMENT: 'production', LOCAL_OWNER_TOKEN: token, DB: mockDb as any },
+    );
+    expect(productionPrivate.status).toBe(401);
   });
 });

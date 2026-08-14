@@ -1,0 +1,37 @@
+# ============================================================================
+# wrangler.staging.toml.example — Template for local staging deployment override
+#
+# INSTRUCTIONS:
+#  1. Copy this file to wrangler.staging.toml (or apps/worker/wrangler.staging.toml)
+#  2. Replace STAGING_DB_ID_HERE with your actual Cloudflare D1 usmanalii-staging UUID
+#  3. NEVER commit wrangler.staging.toml to Git (it is covered by .gitignore)
+#  4. Deploy using:
+#     npx wrangler deploy --env staging --config infrastructure/wrangler/wrangler.staging.toml
+# ============================================================================
+
+name = "usmanalii-worker"
+main = "../../apps/worker/src/index.ts"
+compatibility_date = "2024-12-01"
+compatibility_flags = ["nodejs_compat"]
+
+[env.staging]
+vars = { ENVIRONMENT = "staging", LOG_LEVEL = "info" }
+route = { pattern = "staging.usmanalii.com/api/*", zone_name = "usmanalii.com" }
+
+[[env.staging.d1_databases]]
+binding = "DB"
+database_name = "usmanalii-staging"
+database_id = "STAGING_DB_ID_HERE"
+migrations_dir = "../../packages/database/migrations"
+
+[[env.staging.r2_buckets]]
+binding = "ARTIFACTS_BUCKET"
+bucket_name = "usmanalii-artifacts-staging"
+
+[[env.staging.r2_buckets]]
+binding = "R2_PRIVATE"
+bucket_name = "usmanalii-artifacts-staging"
+
+[[env.staging.r2_buckets]]
+binding = "R2_PUBLIC"
+bucket_name = "usmanalii-artifacts-staging"

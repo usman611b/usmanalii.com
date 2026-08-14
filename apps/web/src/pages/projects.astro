@@ -1,110 +1,50 @@
 ---
 import BaseLayout from '../layouts/BaseLayout.astro';
-
-const mockProjects = [
-  {
-    id: 'proj-1',
-    title: 'Secure Multi-Tenant Monorepo Platform',
-    slug: 'secure-multi-tenant-monorepo',
-    shortSummary:
-      'Evidence-backed monorepo platform with Cloudflare Workers, D1 DB, R2, and Astro 5.',
-    lifecycleState: 'Active',
-    isFeatured: true,
-    skills: ['TypeScript', 'Cloudflare Workers', 'Astro 5', 'D1 Database'],
-  },
-  {
-    id: 'proj-2',
-    title: 'Distributed Cache Invalidation Engine',
-    slug: 'distributed-cache-engine',
-    shortSummary:
-      'High-performance cache invalidation pipeline on edge workers with automated purging.',
-    lifecycleState: 'Completed',
-    isFeatured: false,
-    skills: ['Cloudflare Workers', 'R2 Storage', 'TypeScript'],
-  },
-];
+import { PublicRecordDirectory } from '../components/PublicRecordDirectory';
 ---
 
 <BaseLayout
   title="Projects & Case Studies — USMAN ALI"
-  description="Evidence-backed engineering case studies detailing problem context, goals, architecture decisions, experiments, debugging lessons, and outcomes."
+  description="Evidence-backed engineering case studies detailing problem context, architecture decisions, experiments, debugging lessons, and outcomes."
   currentPath="/projects"
 >
-  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 space-y-8">
-    <div class="space-y-4">
+  <div class="public-page-shell max-w-[1280px] mx-auto px-4 sm:px-6 lg:px-8 py-14 space-y-10">
+    <!-- Page header -->
+    <header class="public-page-header space-y-4 max-w-3xl">
       <div
-        class="inline-flex items-center space-x-2 px-3 py-1 rounded-md bg-[#08111F] border border-[#45F3FF]/30 font-mono-tech text-xs text-[#45F3FF]"
+        class="inline-flex items-center gap-2 px-3 py-1 rounded-lg text-xs font-semibold tracking-widest uppercase"
+        style="background: rgba(37,230,255,0.08); border: 1px solid var(--border-cyan); color: var(--cyan); font-family: var(--font-mono);"
       >
-        <span class="w-2 h-2 rounded-full bg-[#45F3FF] animate-pulse"></span>
-        <span>EVIDENCE-BACKED CASE STUDIES</span>
+        <span class="w-1.5 h-1.5 rounded-full" style="background: var(--cyan);" aria-hidden="true"
+        ></span>
+        Evidence-backed Case Studies
       </div>
 
       <h1
-        class="text-6xl sm:text-7xl font-display font-bold tracking-tight text-white uppercase leading-none"
+        class="public-page-title font-display uppercase leading-none"
+        style="font-family: var(--font-display); font-size: clamp(3rem, 7vw, 5rem); color: var(--text-primary);"
       >
-        PROJECTS &amp; ARCHITECTURE
+        Projects & Architecture
       </h1>
-      <p class="text-base text-[#9CAAC1] max-w-2xl">
+
+      <p class="text-base leading-relaxed" style="color: var(--text-secondary); max-width: 68ch;">
         Engineering case studies documenting system architecture, constraints, ADRs, experiments,
-        failure post-mortems, and verified outcomes.
+        failure post-mortems, and verified outcomes. Each project links to supporting evidence.
       </p>
-    </div>
 
-    <!-- Filter Bar -->
-    <div
-      class="p-4 rounded-2xl glass-panel flex flex-col md:flex-row items-center justify-between gap-4 font-mono-tech text-xs"
-    >
-      <div class="flex items-center space-x-3">
-        <span class="text-[#9CAAC1]">STATUS:</span>
-        <select
-          aria-label="Filter projects by lifecycle state"
-          class="bg-[#070A11] border border-white/10 text-xs text-white rounded-lg px-3 py-1.5 focus:outline-none focus:border-[#45F3FF]"
-        >
-          <option value="all">All Projects</option>
-          <option value="active">Active &amp; Maintained</option>
-          <option value="completed">Completed</option>
-        </select>
+      <!-- Project narrative arc -->
+      <div
+        class="inline-flex items-center gap-2 text-xs rounded-lg px-3 py-2"
+        style="background: var(--surface-quiet); border: 1px solid var(--hairline); color: var(--text-muted); font-family: var(--font-mono);"
+        aria-label="Project story structure"
+        role="note"
+      >
+        Context → Constraint → Decision → Implementation → Experiment → Outcome → Evidence
       </div>
-      <div class="text-[#9CAAC1]">
-        Showing <span class="text-white font-bold">{mockProjects.length}</span> verified case studies
-      </div>
-    </div>
+    </header>
 
-    <!-- Projects Grid -->
-    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-      {
-        mockProjects.map((proj) => (
-          <a href={`/projects/${proj.slug}`} class="block group h-full">
-            <div class="p-6 rounded-2xl glass-panel border border-white/10 group-hover:border-[#45F3FF]/50 transition-all h-full flex flex-col justify-between space-y-6">
-              <div class="space-y-4 font-mono-tech">
-                <div class="flex items-center justify-between text-[10px]">
-                  <span class="px-2 py-0.5 rounded bg-[#45F3FF]/15 text-[#45F3FF] border border-[#45F3FF]/30 font-bold uppercase">
-                    {proj.lifecycleState}
-                  </span>
-                  {proj.isFeatured && (
-                    <span class="px-2 py-0.5 rounded bg-[#B8FF5A]/15 text-[#B8FF5A] border border-[#B8FF5A]/30 font-bold uppercase">
-                      Featured
-                    </span>
-                  )}
-                </div>
+    <hr class="luminous-rule" aria-hidden="true" />
 
-                <h2 class="text-2xl font-bold text-white group-hover:text-[#45F3FF] transition-colors font-display uppercase tracking-wide">
-                  {proj.title}
-                </h2>
-                <p class="text-xs text-[#9CAAC1] leading-relaxed font-sans">{proj.shortSummary}</p>
-              </div>
-
-              <div class="pt-4 border-t border-white/10 flex flex-wrap gap-1.5 font-mono-tech text-[10px]">
-                {proj.skills.map((skill) => (
-                  <span class="text-[#9CAAC1] bg-white/5 px-2 py-0.5 rounded border border-white/5">
-                    {skill}
-                  </span>
-                ))}
-              </div>
-            </div>
-          </a>
-        ))
-      }
-    </div>
+    <PublicRecordDirectory kind="projects" client:load />
   </div>
 </BaseLayout>

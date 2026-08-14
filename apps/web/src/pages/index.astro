@@ -1,262 +1,89 @@
 ---
 import BaseLayout from '../layouts/BaseLayout.astro';
 import { PortraitHero } from '../components/PortraitHero';
+import { HomeLiveSummary } from '../components/HomeLiveSummary';
 import { ActivityHeatmap } from '../components/ActivityHeatmap';
-import EvidenceBadge from '../components/EvidenceBadge.astro';
-import VerificationStatusBadge from '../components/VerificationStatusBadge.astro';
-
-// Real Data Projections or Honest Empty States
-const publicEvidenceList: Array<{
-  id: string;
-  title: string;
-  evidenceType: string;
-  provider: string;
-  verificationState: string;
-  occurredAt: string;
-  canonicalLocator?: string | null;
-}> = [];
-
-const publicJourneyList: Array<{
-  id: string;
-  slug: string;
-  title: string;
-  summary: string;
-  publishedAt: string;
-  contentType: string;
-}> = [];
-
-interface FeaturedProject {
-  id: string;
-  title: string;
-  slug: string;
-  summary: string;
-  architectureNotes?: string;
-  publicationState: string;
-}
-
-const publicFeaturedProject = null as unknown as FeaturedProject | null;
+import { SkillsEvidenceGraph } from '../components/SkillsEvidenceGraph';
+import { ContactSection } from '../components/ContactSection';
 ---
 
 <BaseLayout
   title="USMAN ALI — Engineering, evidenced."
-  description="Personal Career OS and evidence-backed engineering archive of Usman Ali."
+  description="Personal Career OS and evidence-backed engineering archive of Usman Ali — a living record of what he learns, builds, decides, debugs, and ships."
   currentPath="/"
 >
-  <!-- Stage 1 — Identity (Portrait-Led 3D Hero) -->
-  <section class="relative w-full">
-    <PortraitHero client:load />
-  </section>
+  <PortraitHero client:load />
 
-  <!-- Stage 2 & 3 — Evidence Reveal & Evidence System -->
-  <section
-    id="evidence-system"
-    class="py-16 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto space-y-12 font-mono-tech"
-  >
-    <!-- Evidence Status Header Rail -->
-    <div
-      class="p-6 rounded-2xl glass-panel flex flex-col md:flex-row items-start md:items-center justify-between gap-4 border border-white/10"
-    >
-      <div class="space-y-1">
-        <div class="inline-flex items-center space-x-2 text-xs text-[#45F3FF] uppercase font-bold">
-          <span class="w-2 h-2 rounded-full bg-[#45F3FF] animate-pulse"></span>
-          <span>SYSTEM EVIDENCE LEDGER STATUS</span>
-        </div>
-        <h2 class="text-xl font-bold text-white font-display uppercase tracking-wide">
-          REAL-TIME EVIDENCE PROJECTION
-        </h2>
+  <section id="overview" class="record-observatory" aria-labelledby="record-heading">
+    <header class="record-intro">
+      <div>
+        <p class="section-eyebrow">The living record</p>
+        <h2 id="record-heading">A LIVING RECORD,<br />NOT A STATIC RÉSUMÉ.</h2>
       </div>
-
-      <div class="flex items-center space-x-6 text-xs text-[#9CAAC1]">
-        <div>
-          <span class="text-white font-bold">{publicEvidenceList.length}</span>
-          <span class="ml-1">Public Verified Items</span>
-        </div>
-        <a href="/evidence" class="text-[#45F3FF] hover:underline font-bold"> Inspect Ledger → </a>
-      </div>
-    </div>
-
-    <!-- 4-Column Asymmetric Evidence Stream Layout -->
-    <div class="grid grid-cols-1 lg:grid-cols-12 gap-8">
-      <!-- Wide Evidence Ledger Stream (7 Cols) -->
-      <div class="lg:col-span-7 space-y-6">
-        <div class="flex items-center justify-between border-b border-white/10 pb-3">
-          <h3 class="text-sm font-bold text-white uppercase tracking-wider">
-            Evidence Ledger Stream
-          </h3>
-          <span class="text-xs text-[#9CAAC1]">Verified Public Records</span>
-        </div>
-
-        {
-          publicEvidenceList.length > 0 ? (
-            <div class="space-y-3">
-              {publicEvidenceList.map((item) => (
-                <div class="p-4 rounded-xl glass-panel border border-white/10 hover:border-[#45F3FF]/40 transition-all flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-xs">
-                  <div class="space-y-1">
-                    <div class="font-bold text-white">{item.title}</div>
-                    <div class="flex items-center gap-2 text-[11px] text-[#9CAAC1]">
-                      <EvidenceBadge evidenceType={item.evidenceType} />
-                      <span>{item.provider}</span>
-                      <span>· {item.occurredAt}</span>
-                    </div>
-                  </div>
-                  <VerificationStatusBadge status={item.verificationState} />
-                </div>
-              ))}
-            </div>
-          ) : (
-            <div class="p-8 rounded-2xl glass-panel text-center space-y-3 border border-white/10">
-              <div class="text-[#45F3FF] font-bold text-xs uppercase">
-                No Public Evidence Published
-              </div>
-              <p class="text-xs text-[#9CAAC1] max-w-sm mx-auto font-sans">
-                All engineering claims, architectural decisions, and production records are
-                undergoing owner approval in the Command Center queue.
-              </p>
-            </div>
-          )
-        }
-      </div>
-
-      <!-- Current Journey & Featured Project (5 Cols) -->
-      <div class="lg:col-span-5 space-y-6">
-        <!-- Current Journey -->
-        <div class="space-y-4">
-          <div class="flex items-center justify-between border-b border-white/10 pb-3">
-            <h3 class="text-sm font-bold text-white uppercase tracking-wider">Current Journey</h3>
-            <a href="/journey" class="text-xs text-[#8B5CFF] hover:underline">View All →</a>
-          </div>
-
-          {
-            publicJourneyList.length > 0 ? (
-              <div class="space-y-3">
-                {publicJourneyList.map((entry) => (
-                  <a
-                    href={`/journey/${entry.slug}`}
-                    class="p-4 rounded-xl glass-panel border border-white/10 hover:border-[#8B5CFF]/40 transition-all block space-y-1 text-xs"
-                  >
-                    <div class="text-[10px] text-[#8B5CFF] font-bold uppercase">
-                      {entry.publishedAt}
-                    </div>
-                    <h4 class="font-bold text-white">{entry.title}</h4>
-                    <p class="text-[11px] text-[#9CAAC1] font-sans line-clamp-2">{entry.summary}</p>
-                  </a>
-                ))}
-              </div>
-            ) : (
-              <div class="p-6 rounded-xl glass-panel text-xs text-[#9CAAC1] space-y-2 border border-white/10 font-sans">
-                <div class="font-bold text-white font-mono-tech uppercase">Journal Status</div>
-                <p>No public journey entries published yet.</p>
-              </div>
-            )
-          }
-        </div>
-
-        <!-- Featured Project -->
-        <div class="space-y-4">
-          <div class="flex items-center justify-between border-b border-white/10 pb-3">
-            <h3 class="text-sm font-bold text-white uppercase tracking-wider">Featured Project</h3>
-            <a href="/projects" class="text-xs text-[#45F3FF] hover:underline">Projects Index →</a>
-          </div>
-
-          {
-            publicFeaturedProject ? (
-              <div class="p-5 rounded-2xl glass-panel border border-white/10 space-y-3">
-                <div class="text-[10px] text-[#45F3FF] uppercase font-bold">
-                  Approved Case Study
-                </div>
-                <h4 class="text-lg font-bold text-white uppercase font-display">
-                  {publicFeaturedProject?.title}
-                </h4>
-                <p class="text-xs text-[#9CAAC1] font-sans">{publicFeaturedProject?.summary}</p>
-              </div>
-            ) : (
-              <div class="p-6 rounded-xl glass-panel text-xs text-[#9CAAC1] space-y-2 border border-white/10 font-sans">
-                <div class="font-bold text-white font-mono-tech uppercase">Featured Work</div>
-                <p>No featured projects published yet.</p>
-              </div>
-            )
-          }
-        </div>
-      </div>
-    </div>
-
-    <!-- Stage 3 — Activity Heatmap -->
-    <div class="pt-6">
-      <ActivityHeatmap client:load />
-    </div>
-  </section>
-
-  <!-- Stage 4 & 5 — Engineering Work & Skills Constellation -->
-  <section
-    class="py-16 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto space-y-8 font-mono-tech border-t border-white/10"
-  >
-    <div class="space-y-2">
-      <div class="inline-flex items-center space-x-2 text-xs text-[#8B5CFF] uppercase font-bold">
-        <span class="w-2 h-2 rounded-full bg-[#8B5CFF] animate-pulse"></span>
-        <span>EVIDENCE-BACKED SKILLS TAXONOMY</span>
-      </div>
-      <h2 class="text-3xl font-bold text-white font-display uppercase tracking-wide">
-        CAPABILITIES &amp; EVIDENCE GRAPH
-      </h2>
-      <p class="text-xs text-[#9CAAC1] font-sans max-w-xl">
-        Every technical claim linked to verifiable git commits, architecture decision records, and
-        system deployments. Zero self-rated percentage bars.
+      <p>
+        Learning compounds. Context is preserved. Every published professional record comes from the
+        approved application data—not from decorative demo content.
       </p>
+    </header>
+
+    <div id="evidence-system" class="home-system-panel home-live-system">
+      <div class="panel-heading">
+        <span>Recent verified evidence</span>
+        <a href="/evidence">View the ledger →</a>
+      </div>
+      <HomeLiveSummary client:load />
     </div>
 
-    <div
-      class="p-8 rounded-2xl glass-panel flex flex-col md:flex-row items-center justify-between gap-6 border border-white/10"
+    <section
+      id="activity-system"
+      class="home-system-panel activity-panel activity-panel-featured"
+      aria-labelledby="activity-heading"
     >
-      <div class="space-y-2 max-w-lg">
-        <h3 class="text-lg font-bold text-white uppercase">Explore Verifiable Capabilities</h3>
-        <p class="text-xs text-[#9CAAC1] font-sans">
-          Inspect public capability outcomes, evidence strength scores, and relational graph paths.
-        </p>
+      <div class="panel-heading">
+        <span id="activity-heading">365-day activity signal</span>
+        <a href="/activity">View full activity →</a>
       </div>
+      <ActivityHeatmap client:visible />
+    </section>
 
-      <div class="flex items-center gap-4 text-xs">
-        <a
-          href="/skills"
-          class="px-4 py-2.5 rounded-lg bg-[#8B5CFF] text-[#05060A] font-bold uppercase tracking-wider hover:opacity-90 transition-opacity"
-        >
-          Skills Directory →
-        </a>
-        <a
-          href="/capabilities"
-          class="px-4 py-2.5 rounded-lg bg-white/10 text-white font-semibold uppercase tracking-wider hover:bg-white/20 transition-all"
-        >
-          Capabilities →
-        </a>
-      </div>
-    </div>
-  </section>
-
-  <!-- Stage 6 — Closing Identity & Recruiter Callout -->
-  <section
-    class="py-16 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto font-mono-tech border-t border-white/10"
-  >
-    <div
-      class="p-8 rounded-2xl glass-panel-cyan flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6"
-    >
-      <div class="space-y-2">
-        <div class="text-xs text-[#45F3FF] font-bold uppercase">
-          EXECUTIVE &amp; RECRUITER SUMMARY
-        </div>
-        <h3 class="text-2xl font-bold text-white uppercase font-display tracking-wide">
-          Evaluated in Under 90 Seconds
-        </h3>
-        <p class="text-xs text-[#9CAAC1] font-sans max-w-xl">
-          High-contrast breakdown of architecture domain focus, verified commit history, and core
-          capabilities.
-        </p>
-      </div>
-
-      <a
-        href="/recruiter"
-        class="px-6 py-3 rounded-xl bg-[#45F3FF] text-[#05060A] font-bold text-xs uppercase tracking-wider hover:opacity-90 transition-opacity whitespace-nowrap"
+    <div class="home-system-grid home-graph-grid">
+      <section
+        id="graph-system"
+        class="home-system-panel graph-panel"
+        aria-labelledby="graph-heading"
       >
-        Open Recruiter View →
-      </a>
+        <div class="panel-heading">
+          <span id="graph-heading">Career Knowledge Universe</span>
+          <a href="/skills">Explore graph →</a>
+        </div>
+        <SkillsEvidenceGraph client:visible />
+      </section>
     </div>
+
+    <section id="projects-system" class="engineering-rail" aria-labelledby="engineering-heading">
+      <p class="section-eyebrow">Engineering record</p>
+      <h2 id="engineering-heading">DECIDE. EXPERIMENT. DEBUG. SHIP.</h2>
+      <div class="engineering-links">
+        <a href="/projects"
+          ><span>01</span><strong>Projects</strong><small>Context, architecture and outcomes</small
+          ></a
+        >
+        <a href="/deep-dive"
+          ><span>02</span><strong>Deep Dive</strong><small
+            >ADRs, experiments and debugging lessons</small
+          ></a
+        >
+        <a href="/journey"
+          ><span>03</span><strong>Journey</strong><small>The continuous learning record</small></a
+        >
+        <a href="/recruiter"
+          ><span>04</span><strong>Recruiter View</strong><small
+            >Evidence-backed professional identity</small
+          ></a
+        >
+      </div>
+    </section>
+
+    <ContactSection client:load />
   </section>
 </BaseLayout>

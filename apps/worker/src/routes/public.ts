@@ -18,6 +18,7 @@ import {
 import { filterPublicEvidence, filterPublicArtifacts } from '@usmanalii/evidence';
 import { formatContentDisposition } from './artifacts.js';
 import { type ContentType, type EntityId, computeActivityHeatmap } from '@usmanalii/domain';
+import { ContactMessageRequestSchema } from '@usmanalii/contracts';
 
 export const publicRoutes = new Hono<{
   Bindings: WorkerEnv;
@@ -40,21 +41,14 @@ publicRoutes.get('/profile', async (c) => {
     }
   }
 
-  return c.json({
-    displayName: 'Usman Ali',
-    headline: 'Systems Architect & Senior Software Engineer',
-    bio: 'Building evidence-backed systems, transparent software, and personal software architectures.',
-    currentFocus: 'usmanalii.com — Personal Career OS',
-    availabilityState: 'available',
-    preferredRoles: 'Staff / Senior Software Engineer',
-    profileImageUrl: null,
-    resumeAssetUrl: null,
-    location: 'Karachi, Pakistan',
-    timezone: 'Asia/Karachi',
-    contactUrl: 'https://usmanalii.com/contact',
-    visibility: 'public',
-    requestId: c.get('requestId'),
-  });
+  return c.json(
+    {
+      code: 'RESOURCE_NOT_FOUND',
+      message: 'No public profile has been published.',
+      requestId: c.get('requestId'),
+    },
+    404,
+  );
 });
 
 /** GET /api/v1/public/recruiter — Recruiter Mode Projection */
@@ -105,31 +99,60 @@ publicRoutes.get('/recruiter', async (c) => {
     projRepo.listProjects(ownerId, { visibility: 'public', publicationState: 'published' }),
   ]);
 
+  const capabilityDtos = await Promise.all(
+    caps.map(async (capability) => {
+      const count = await c.env.DB.prepare(
+        `SELECT COUNT(*) AS count
+         FROM evidence_capability_links ecl
+         JOIN evidence_items ei ON ei.id = ecl.evidence_id
+         WHERE ecl.capability_id = ? AND ecl.approval_state = 'accepted'
+           AND ei.visibility = 'public' AND ei.archived_at IS NULL`,
+      )
+        .bind(capability.id)
+        .first<{ count: number }>();
+      return {
+        id: capability.id,
+        title: capability.title,
+        slug: capability.slug,
+        description: capability.description,
+        maturity: capability.maturity,
+        maturityRationale: capability.maturityRationale,
+        lastReviewedAt: capability.lastReviewedAt,
+        publicEvidenceCount: Number(count?.count || 0),
+        skillNames: [],
+      };
+    }),
+  );
+  const skillDtos = await Promise.all(
+    skills.map(async (skill) => {
+      const count = await c.env.DB.prepare(
+        `SELECT COUNT(DISTINCT csr.capability_id) AS count
+         FROM capability_skill_relationships csr
+         JOIN capabilities cap ON cap.id = csr.capability_id
+         WHERE csr.skill_id = ? AND csr.approval_state = 'accepted'
+           AND cap.visibility = 'public' AND cap.state = 'published' AND cap.archived_at IS NULL`,
+      )
+        .bind(skill.id)
+        .first<{ count: number }>();
+      return {
+        id: skill.id,
+        name: skill.name,
+        slug: skill.slug,
+        description: skill.description,
+        parentId: skill.parentId,
+        publicCapabilityCount: Number(count?.count || 0),
+      };
+    }),
+  );
+
   return c.json({
     profile,
     summary: profile?.bio || profile?.headline || null,
     featuredExperience: exp,
     featuredEducation: edu,
     featuredCredentials: cred,
-    featuredCapabilities: caps.map((c) => ({
-      id: c.id,
-      title: c.title,
-      slug: c.slug,
-      description: c.description,
-      maturity: c.maturity,
-      maturityRationale: c.maturityRationale,
-      lastReviewedAt: c.lastReviewedAt,
-      publicEvidenceCount: 1,
-      skillNames: [],
-    })),
-    featuredSkills: skills.map((s) => ({
-      id: s.id,
-      name: s.name,
-      slug: s.slug,
-      description: s.description,
-      parentId: s.parentId,
-      publicCapabilityCount: 1,
-    })),
+    featuredCapabilities: capabilityDtos,
+    featuredSkills: skillDtos,
     featuredProjects: projects,
     approvedClaims: claims,
     resumeAssetUrl: profile?.resumeAssetUrl || null,
@@ -241,7 +264,7 @@ publicRoutes.get('/resumes/:slug/export', async (c) => {
 
   if (format === 'txt' || format === 'text') {
     let txt = `========================================================================\n`;
-    txt += `${profile?.displayName || 'Usman Ali'} — ${profile?.headline || 'Professional Résumé'}\n`;
+    txt += `${profile?.displayName || 'Professional Profile'} — ${profile?.headline || 'Professional Résumé'}\n`;
     txt += `========================================================================\n\n`;
     txt += `Bio: ${profile?.bio || ''}\n`;
     txt += `Location: ${profile?.location || ''}\n\n`;
@@ -270,7 +293,7 @@ publicRoutes.get('/resumes/:slug/export', async (c) => {
   }
 
   if (format === 'md' || format === 'markdown') {
-    let md = `# ${profile?.displayName || 'Usman Ali'}\n\n`;
+    let md = `# ${profile?.displayName || 'Professional Profile'}\n\n`;
     md += `**${profile?.headline || ''}**  \n`;
     md += `📍 ${profile?.location || ''}  \n\n`;
     md += `## Summary\n\n${profile?.bio || ''}\n\n`;
@@ -304,8 +327,8 @@ publicRoutes.get('/resumes/:slug/export', async (c) => {
   }
 
   if (format === 'html') {
-    let html = `<!DOCTYPE html>\n<html lang="en">\n<head><meta charset="UTF-8"><title>${profile?.displayName || 'Usman Ali'} - Résumé</title></head>\n<body>\n`;
-    html += `<h1>${profile?.displayName || 'Usman Ali'}</h1>\n<p><strong>${profile?.headline || ''}</strong></p>\n<p>${profile?.bio || ''}</p>\n`;
+    let html = `<!DOCTYPE html>\n<html lang="en">\n<head><meta charset="UTF-8"><title>${profile?.displayName || 'Professional Profile'} - Résumé</title></head>\n<body>\n`;
+    html += `<h1>${profile?.displayName || 'Professional Profile'}</h1>\n<p><strong>${profile?.headline || ''}</strong></p>\n<p>${profile?.bio || ''}</p>\n`;
     html += `<h2>Experience</h2>\n<ul>\n`;
     for (const e of exp) {
       html += `<li><strong>${e.roleTitle}</strong> at ${e.company} (${e.startDate} - ${e.endDate || 'Present'})</li>\n`;
@@ -348,9 +371,9 @@ publicRoutes.get('/activity', async (c) => {
     FROM content_items
     WHERE visibility = 'public' AND state = 'published' AND deleted_at IS NULL
     UNION ALL
-    SELECT id, deployed_at as date_iso, 'deployment' as type, visibility, publication_state as state
+    SELECT id, deployed_at as date_iso, 'deployment' as type, visibility, 'published' as state
     FROM deployments
-    WHERE visibility = 'public' AND publication_state = 'published' AND deleted_at IS NULL
+    WHERE visibility = 'public' AND status = 'success'
   `;
 
   const { results } = await c.env.DB.prepare(sql).all<Record<string, unknown>>();
@@ -368,25 +391,114 @@ publicRoutes.get('/activity', async (c) => {
 
 // Contact form mutation endpoint
 publicRoutes.post('/contact', async (c) => {
-  const body = await c.req.json().catch(() => ({}));
-  const email = String(body.email || '');
-  const message = String(body.message || '');
-
-  if (!email || !message) {
+  const parsed = ContactMessageRequestSchema.safeParse(await c.req.json().catch(() => ({})));
+  if (!parsed.success) {
     return c.json(
       {
         code: 'INVALID_PAYLOAD',
-        message: 'Email and message are required.',
+        message: 'Enter a valid name, email address, and message.',
         requestId: c.get('requestId'),
       },
       400,
     );
   }
 
+  // Honeypot submissions get a neutral response without spending email quota.
+  if (parsed.data.website) {
+    return c.json({ success: true, status: 'accepted', requestId: c.get('requestId') });
+  }
+
+  if (!parsed.data.turnstileToken) {
+    return c.json(
+      {
+        code: 'CONTACT_VERIFICATION_REQUIRED',
+        message: 'Complete the verification before sending your message.',
+        requestId: c.get('requestId'),
+      },
+      400,
+    );
+  }
+
+  if (!c.env.TURNSTILE_SECRET_KEY || !c.env.RESEND_API_KEY || !c.env.CONTACT_FROM_EMAIL) {
+    return c.json(
+      {
+        code: 'CONTACT_UNAVAILABLE',
+        message: 'Message delivery is temporarily unavailable.',
+        requestId: c.get('requestId'),
+      },
+      503,
+    );
+  }
+
+  const verification = await fetch('https://challenges.cloudflare.com/turnstile/v0/siteverify', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      secret: c.env.TURNSTILE_SECRET_KEY,
+      response: parsed.data.turnstileToken,
+      remoteip: c.req.header('CF-Connecting-IP'),
+      idempotency_key: c.get('requestId'),
+    }),
+  });
+  const verificationResult = (await verification.json().catch(() => ({}))) as {
+    success?: boolean;
+    action?: string;
+  };
+  if (!verification.ok || !verificationResult.success || verificationResult.action !== 'contact') {
+    return c.json(
+      {
+        code: 'CONTACT_VERIFICATION_FAILED',
+        message: 'Verification failed. Please try again.',
+        requestId: c.get('requestId'),
+      },
+      403,
+    );
+  }
+
+  const { D1ProfileRepository } = await import('@usmanalii/database');
+  const profile = await new D1ProfileRepository(c.env.DB).getOwnerContactTarget();
+  if (!profile?.contactEmail) {
+    return c.json(
+      {
+        code: 'CONTACT_UNAVAILABLE',
+        message: 'No contact destination has been configured.',
+        requestId: c.get('requestId'),
+      },
+      503,
+    );
+  }
+
+  const delivery = await fetch('https://api.resend.com/emails', {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${c.env.RESEND_API_KEY}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      from: c.env.CONTACT_FROM_EMAIL,
+      to: [profile.contactEmail],
+      reply_to: parsed.data.email,
+      subject: parsed.data.subject || `Portfolio message from ${parsed.data.name}`,
+      text: `Name: ${parsed.data.name}\nEmail: ${parsed.data.email}\n\n${parsed.data.message}`,
+    }),
+  });
+
+  if (!delivery.ok) {
+    console.error(JSON.stringify({ event: 'contact_delivery_failed', status: delivery.status }));
+    return c.json(
+      {
+        code: 'CONTACT_DELIVERY_FAILED',
+        message: 'The message could not be delivered. Please try again later.',
+        requestId: c.get('requestId'),
+      },
+      502,
+    );
+  }
+
   return c.json({
     success: true,
     status: 'sent',
-    message: 'Thank you for reaching out.',
+    message: 'Your message was sent successfully.',
     requestId: c.get('requestId'),
   });
 });
@@ -742,8 +854,28 @@ publicRoutes.get('/projects/:slug', async (c) => {
 
 /** GET /api/v1/public/graph/visualization — Get sanitized public graph projection */
 publicRoutes.get('/graph/visualization', async (c) => {
-  const { D1GraphRepository } = await import('@usmanalii/database');
-  const repo = new D1GraphRepository(c.env.DB);
-  const projection = await repo.getPublicGraphProjection();
+  const { D1CareerGraphRepository } = await import('@usmanalii/database');
+  const repo = new D1CareerGraphRepository(c.env.DB);
+  const focusType = c.req.query('focusType') as
+    | 'universe'
+    | 'identity'
+    | 'role'
+    | 'project'
+    | 'skill'
+    | 'capability'
+    | 'evidence'
+    | 'journey'
+    | 'artifact'
+    | 'adr'
+    | 'experiment'
+    | 'debugging_lesson'
+    | 'deployment'
+    | undefined;
+  const projection = await repo.getProjection('00000000-0000-0000-0000-000000000001', {
+    publicOnly: true,
+    focusType: focusType || 'universe',
+    focusId: c.req.query('focusId') || null,
+    depth: Math.min(Math.max(Number(c.req.query('depth') || 2), 1), 5),
+  });
   return c.json({ data: projection, requestId: c.get('requestId') });
 });

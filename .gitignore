@@ -5,6 +5,7 @@ node_modules/
 
 # Build outputs
 dist/
+dist-staging/
 .output/
 .vercel/
 .astro/
@@ -22,10 +23,16 @@ dist/
 # Allow example files
 !.dev.vars.example
 !.env.example
+!wrangler.staging.toml.example
 
 # Cloudflare / Wrangler
 .wrangler/
 *.d1
+wrangler.staging.toml
+wrangler.local.toml
+wrangler.production.toml
+*.staging.toml
+*.production.toml
 
 # Turbo
 .turbo/

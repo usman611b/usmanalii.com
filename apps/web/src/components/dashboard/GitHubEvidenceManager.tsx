@@ -37,6 +37,7 @@ export interface EvidenceCandidate {
 }
 
 export const GitHubEvidenceManager: React.FC = () => {
+  const [isLocal, setIsLocal] = useState(false);
   const [status, setStatus] = useState<{
     hasToken?: boolean;
     status?: string;
@@ -47,6 +48,9 @@ export const GitHubEvidenceManager: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [syncing, setSyncing] = useState(false);
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+  const [accessState, setAccessState] = useState<
+    'ready' | 'authentication_required' | 'unavailable'
+  >('ready');
 
   // Form states
   const [githubUserId, setGithubUserId] = useState<string>('');
@@ -67,6 +71,26 @@ export const GitHubEvidenceManager: React.FC = () => {
         fetch('/api/v1/private/integrations/github/candidates?state=pending_review'),
       ]);
 
+      if (
+        [statusRes, reposRes, candRes].some(
+          (response) => response.status === 401 || response.status === 403,
+        )
+      ) {
+        setAccessState('authentication_required');
+        setMessage({
+          type: 'error',
+          text: 'Owner authentication is required. Open this dashboard through the Cloudflare Access-protected environment.',
+        });
+        return;
+      }
+
+      if (!statusRes.ok) {
+        setAccessState('unavailable');
+        throw new Error(`GitHub integration status is unavailable (${statusRes.status}).`);
+      }
+
+      setAccessState('ready');
+
       if (statusRes.ok) {
         const sData = await statusRes.json();
         setStatus(sData);
@@ -86,14 +110,22 @@ export const GitHubEvidenceManager: React.FC = () => {
         const cData = await candRes.json();
         setCandidates(cData.candidates || []);
       }
-    } catch {
-      setMessage({ type: 'error', text: 'Failed to load GitHub integration data.' });
+    } catch (cause) {
+      setMessage({
+        type: 'error',
+        text: cause instanceof Error ? cause.message : 'Failed to load GitHub integration data.',
+      });
     } finally {
       setLoading(false);
     }
   };
 
   useEffect(() => {
+    setIsLocal(
+      window.location.hostname === 'localhost' ||
+        window.location.hostname === '127.0.0.1' ||
+        window.location.hostname === '[::1]',
+    );
     loadData();
   }, []);
 
@@ -233,6 +265,30 @@ export const GitHubEvidenceManager: React.FC = () => {
     return (
       <div className="p-8 text-center text-xs text-[#9CAAC1]">
         Loading GitHub integration settings...
+      </div>
+    );
+  }
+
+  if (accessState !== 'ready') {
+    return (
+      <div className="rounded-2xl border border-[#FF5AA5]/30 bg-[#08111F] p-8" role="alert">
+        <h2 className="text-lg font-bold text-white">GitHub integration is not available</h2>
+        <p className="mt-3 text-sm text-[#9CAAC1]">{message?.text}</p>
+        <button
+          type="button"
+          onClick={loadData}
+          className="mt-5 rounded-lg border border-[#45F3FF]/50 px-4 py-2 text-sm text-[#45F3FF]"
+        >
+          Retry connection
+        </button>
+        {isLocal && accessState === 'authentication_required' && (
+          <a
+            href="/dashboard/local-login"
+            className="ml-3 inline-block rounded-lg bg-[#45F3FF] px-4 py-2 text-sm font-bold text-[#05060A]"
+          >
+            Local owner login
+          </a>
+        )}
       </div>
     );
   }

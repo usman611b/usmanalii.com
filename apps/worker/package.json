@@ -5,12 +5,12 @@
   "description": "Cloudflare Worker API — routes, authentication, jobs and webhook handlers.",
   "type": "module",
   "scripts": {
-    "dev": "wrangler dev --env local",
+    "dev": "wrangler dev --env local --port 8788 --persist-to=../../.wrangler/codex-local-dev",
     "typecheck": "tsc --noEmit",
     "lint": "eslint src --max-warnings=0",
     "lint:fix": "eslint src --fix",
     "test": "vitest run",
-    "build": "wrangler deploy --dry-run --outdir=dist",
+    "build": "wrangler deploy --dry-run --env=\"\" --outdir=dist",
     "clean": "rm -rf dist *.tsbuildinfo"
   },
   "dependencies": {

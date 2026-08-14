@@ -156,6 +156,10 @@ export interface PublicProfileDto {
   readonly location: string | null;
   readonly timezone: string;
   readonly contactUrl: string | null;
+  readonly githubUrl: string | null;
+  readonly linkedinUrl: string | null;
+  readonly xUrl: string | null;
+  readonly instagramUrl: string | null;
   // SECURITY: contactEmail NOT included (served separately via contact endpoint)
   // SECURITY: ownerId NOT included
 }
@@ -254,6 +258,32 @@ export interface PublicRecruiterProjectionDto {
 // SECURITY: None of these accept owner_id from client
 // ---------------------------------------------------------------------------
 
+const brandedProfileUrl = (hosts: readonly string[]) =>
+  z
+    .string()
+    .url()
+    .max(500)
+    .refine((value) => {
+      try {
+        const url = new URL(value);
+        return url.protocol === 'https:' && hosts.includes(url.hostname.toLowerCase());
+      } catch {
+        return false;
+      }
+    }, 'Use an HTTPS profile URL for the selected platform.');
+
+const profileAssetUrl = z
+  .string()
+  .max(500)
+  .refine((value) => {
+    if (/^\/(?!\/)[^\\]*$/.test(value)) return true;
+    try {
+      return new URL(value).protocol === 'https:';
+    } catch {
+      return false;
+    }
+  }, 'Use an HTTPS URL or a safe site-relative path beginning with /.');
+
 export const UpdateProfileRequestSchema = z.object({
   displayName: z.string().min(1).max(100).optional(),
   headline: z.string().max(250).nullable().optional(),
@@ -261,17 +291,36 @@ export const UpdateProfileRequestSchema = z.object({
   currentFocus: z.string().max(500).nullable().optional(),
   availabilityState: z.enum(['available', 'open', 'unavailable', 'busy']).optional(),
   preferredRoles: z.string().max(500).nullable().optional(),
-  profileImageUrl: z.string().url().max(500).nullable().optional(),
-  resumeAssetUrl: z.string().url().max(500).nullable().optional(),
+  profileImageUrl: profileAssetUrl.nullable().optional(),
+  resumeAssetUrl: profileAssetUrl.nullable().optional(),
   location: z.string().max(150).nullable().optional(),
   timezone: z.string().max(50).optional(),
   contactEmail: z.string().email().max(254).nullable().optional(),
   contactUrl: z.string().url().max(500).nullable().optional(),
+  githubUrl: brandedProfileUrl(['github.com']).nullable().optional(),
+  linkedinUrl: brandedProfileUrl(['linkedin.com', 'www.linkedin.com']).nullable().optional(),
+  xUrl: brandedProfileUrl(['x.com', 'twitter.com']).nullable().optional(),
+  instagramUrl: brandedProfileUrl(['instagram.com', 'www.instagram.com']).nullable().optional(),
   visibility: VisibilitySchema.optional(),
   versionNo: z.number().int().min(1),
 });
 
 export type UpdateProfileRequest = z.infer<typeof UpdateProfileRequestSchema>;
+
+export const CreateProfileRequestSchema = z.object({
+  displayName: z.string().trim().min(1).max(100),
+});
+
+export type CreateProfileRequest = z.infer<typeof CreateProfileRequestSchema>;
+
+export const ContactMessageRequestSchema = z.object({
+  name: z.string().trim().min(2).max(100),
+  email: z.string().trim().email().max(254),
+  subject: z.string().trim().min(2).max(150).optional(),
+  message: z.string().trim().min(10).max(4000),
+  website: z.string().max(200).optional(),
+  turnstileToken: z.string().max(2048).optional(),
+});
 
 export const CreateExperienceRequestSchema = z.object({
   company: z.string().min(1).max(150),
@@ -405,15 +454,33 @@ export const UpdateResumeVariantRequestSchema = CreateResumeVariantRequestSchema
 
 export type UpdateResumeVariantRequest = z.infer<typeof UpdateResumeVariantRequestSchema>;
 
-export const ContactFormSchema = z.object({
-  name: z.string().min(1).max(100),
-  email: z.string().email().max(254),
-  message: z.string().min(10).max(2000),
-  turnstileToken: z.string().min(1), // Cloudflare Turnstile — required
-  // SECURITY: No owner_id, no visibility, no publication state accepted
+export const ContactFormSchema = ContactMessageRequestSchema.extend({
+  turnstileToken: z.string().min(1).max(2048),
+  // SECURITY: No owner_id, no visibility, no publication state accepted.
 });
 
 export type ContactFormRequest = z.infer<typeof ContactFormSchema>;
+
+const CareerRoleSlugSchema = z
+  .string()
+  .trim()
+  .min(1)
+  .max(100)
+  .regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/);
+const CareerRoleColorSchema = z.string().regex(/^#[0-9a-fA-F]{6}$/);
+
+export const CreateCareerRoleRequestSchema = z.object({
+  name: z.string().trim().min(1).max(100),
+  slug: CareerRoleSlugSchema,
+  description: z.string().trim().max(1000).nullable().optional(),
+  color: CareerRoleColorSchema.default('#8B5CF6'),
+});
+
+export const UpdateCareerRoleRequestSchema = CreateCareerRoleRequestSchema.extend({
+  visibility: VisibilitySchema,
+  publicationState: z.enum(['draft', 'published', 'archived']),
+  versionNo: z.number().int().min(1),
+});
 
 export const PublicSearchSchema = z.object({
   q: z.string().min(1).max(200),

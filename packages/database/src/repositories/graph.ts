@@ -311,6 +311,20 @@ export class D1GraphRepository {
       )
       .all();
 
+    const { results: capabilitySkillEdges } = await this.db
+      .prepare(
+        `
+      SELECT r.capability_id, r.skill_id, r.relationship_type
+      FROM capability_skill_relationships r
+      JOIN capabilities c ON r.capability_id = c.id
+      JOIN skills s ON r.skill_id = s.id
+      WHERE r.approval_state = 'accepted' AND r.archived_at IS NULL
+        AND c.visibility = 'public' AND c.state = 'published' AND c.archived_at IS NULL
+        AND s.visibility = 'public' AND s.archived_at IS NULL
+    `,
+      )
+      .all();
+
     const nodes = [
       ...(publicSkills || []).map((s) => ({
         id: s.id as string,
@@ -326,7 +340,7 @@ export class D1GraphRepository {
       })),
     ];
 
-    const edges = (skillEdges || [])
+    const skillRelationshipEdges = (skillEdges || [])
       .filter(
         (e) =>
           publicNodeIds.has(e.source_skill_id as string) &&
@@ -337,6 +351,20 @@ export class D1GraphRepository {
         targetId: e.target_skill_id as string,
         relationshipType: e.relationship_type as string,
       }));
+
+    const capabilityRelationshipEdges = (capabilitySkillEdges || [])
+      .filter(
+        (edge) =>
+          publicNodeIds.has(edge.capability_id as string) &&
+          publicNodeIds.has(edge.skill_id as string),
+      )
+      .map((edge) => ({
+        sourceId: edge.skill_id as string,
+        targetId: edge.capability_id as string,
+        relationshipType: edge.relationship_type as string,
+      }));
+
+    const edges = [...skillRelationshipEdges, ...capabilityRelationshipEdges];
 
     return { nodes, edges };
   }

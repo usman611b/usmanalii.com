@@ -53,4 +53,18 @@ describe('Accessibility & Keyboard Navigation Verification', () => {
     expect(css).toContain('animation-duration: 0.01ms !important');
     expect(css).toContain('transition-duration: 0.01ms !important');
   });
+
+  it('Career graph is lazy, pauses outside the viewport, and retains a semantic table fallback', () => {
+    const graph = readFileSync(join(__dirname, 'components/SkillsEvidenceGraph.tsx'), 'utf8');
+    const scene = readFileSync(
+      join(__dirname, 'components/career-graph/CareerGraph3DScene.tsx'),
+      'utf8',
+    );
+
+    expect(graph).toContain("lazy(() => import('./career-graph/CareerGraph3DScene'))");
+    expect(graph).toContain('new IntersectionObserver');
+    expect(graph).toContain("document.addEventListener('visibilitychange'");
+    expect(graph).toContain('<table>');
+    expect(scene).toContain("frameloop={props.active ? 'always' : 'never'}");
+  });
 });

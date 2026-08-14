@@ -1,6 +1,7 @@
 ---
 import BaseLayout from '../layouts/BaseLayout.astro';
 import { ArchitectureCanvas } from '../components/ArchitectureCanvas';
+import { ModeSwitcher } from '../components/ModeSwitcher';
 
 interface ProjectCaseStudy {
   title: string;
@@ -23,44 +24,79 @@ const eligibleProjectCaseStudy = null as unknown as ProjectCaseStudy | null;
 ---
 
 <BaseLayout
-  title="Technical Architecture & Project Case Study — USMAN ALI"
-  description="Technical architecture, ADRs, experiments, and debugging lessons for verified systems."
+  title="Technical Deep Dive — USMAN ALI"
+  description="Technical architecture, ADRs, experiments, debugging lessons, and source provenance for verified engineering systems."
   currentPath="/deep-dive"
 >
-  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 space-y-8 font-mono-tech">
+  <!-- Deep-dive mode context banner -->
+  <div
+    class="border-b"
+    style="border-color: var(--border-magenta); background: rgba(255,45,170,0.04);"
+  >
+    <div class="max-w-[1280px] mx-auto px-4 sm:px-6 lg:px-8 py-3 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+      <div class="flex items-center gap-3">
+        <span
+          class="badge badge-magenta"
+          aria-label="Currently in Deep Dive mode"
+        >
+          Deep Dive Mode
+        </span>
+        <span class="text-xs" style="color: var(--text-muted);">
+          Architecture · ADRs · Provenance · Source
+        </span>
+      </div>
+      <div class="flex items-center gap-3 text-xs" style="color: var(--text-muted);">
+        <span style="font-family: var(--font-mono);">Switch mode:</span>
+        <ModeSwitcher initialMode="deep-dive" client:load />
+      </div>
+    </div>
+  </div>
+
+  <div class="public-page-shell max-w-[1280px] mx-auto px-4 sm:px-6 lg:px-8 py-12 space-y-10">
     {
       eligibleProjectCaseStudy ? (
-        <div class="space-y-6">
-          <div class="space-y-4">
+        <div class="space-y-8">
+
+          <!-- Case Study Header -->
+          <header class="space-y-4 max-w-3xl">
             <div class="flex flex-wrap items-center gap-3 text-xs">
-              <span class="px-2.5 py-0.5 rounded-full bg-[#B8FF5A]/15 text-[#B8FF5A] border border-[#B8FF5A]/30 font-bold flex items-center gap-1.5">
-                <span class="w-1.5 h-1.5 rounded-full bg-[#B8FF5A]" />
+              <span class="badge badge-lime">
+                <span class="w-1.5 h-1.5 rounded-full" style="background: var(--lime);" />
                 VERIFIED EVIDENCE
               </span>
-              <span class="text-[#9CAAC1]">
-                STATUS: <span class="text-white">{eligibleProjectCaseStudy?.status}</span>
+              <span style="color: var(--text-muted); font-family: var(--font-mono);">
+                STATUS: <span style="color: var(--text-primary);">{eligibleProjectCaseStudy?.status}</span>
               </span>
             </div>
 
-            <h1 class="text-6xl sm:text-7xl lg:text-8xl font-display font-bold tracking-tight text-white uppercase leading-none">
+            <h1
+              class="font-display uppercase leading-none"
+              style="font-family: var(--font-display); font-size: clamp(3rem, 7vw, 6rem); color: var(--text-primary);"
+            >
               {eligibleProjectCaseStudy?.title}
             </h1>
-            <p class="text-xl text-[#9CAAC1] max-w-3xl font-sans">
+            <p class="text-lg leading-relaxed" style="color: var(--text-secondary); max-width: 60ch;">
               {eligibleProjectCaseStudy?.summary}
             </p>
-          </div>
+          </header>
 
+          <hr class="luminous-rule" aria-hidden="true" />
+
+          <!-- Architecture grid -->
           <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
             <div class="lg:col-span-8">
               <ArchitectureCanvas client:load />
             </div>
 
-            <div class="lg:col-span-4 rounded-2xl glass-panel p-5 space-y-4">
+            <div
+              class="lg:col-span-4 rounded-xl p-5 space-y-4"
+              style="background: var(--surface-card); border: 1px solid var(--hairline);"
+            >
               <div class="flex items-center justify-between text-xs">
-                <span class="text-[#8B5CFF] font-bold tracking-wider uppercase">
-                  ARCHITECTURE DECISIONS
+                <span style="color: var(--violet); font-family: var(--font-mono); font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase;">
+                  Architecture Decisions
                 </span>
-                <a href="/evidence" class="text-[#8B5CFF] hover:underline">
+                <a href="/evidence" style="color: var(--violet);" class="hover:underline">
                   View all →
                 </a>
               </div>
@@ -68,10 +104,10 @@ const eligibleProjectCaseStudy = null as unknown as ProjectCaseStudy | null;
               <div class="space-y-4 text-xs">
                 {eligibleProjectCaseStudy?.adrs?.map(
                   (adr: { id: string; title: string; summary: string }) => (
-                    <div class="border-b border-white/10 pb-3 space-y-1">
-                      <div class="text-[#45F3FF] font-bold">{adr.id}</div>
-                      <div class="text-white font-semibold">{adr.title}</div>
-                      <div class="text-[11px] text-[#9CAAC1] font-sans">{adr.summary}</div>
+                    <div class="border-b pb-3 space-y-1" style="border-color: var(--hairline);">
+                      <div style="color: var(--cyan); font-weight: 700; font-family: var(--font-mono);">{adr.id}</div>
+                      <div class="font-semibold" style="color: var(--text-primary);">{adr.title}</div>
+                      <div style="color: var(--text-muted);">{adr.summary}</div>
                     </div>
                   ),
                 )}
@@ -80,37 +116,83 @@ const eligibleProjectCaseStudy = null as unknown as ProjectCaseStudy | null;
           </div>
         </div>
       ) : (
-        <div class="max-w-3xl mx-auto py-16 text-center space-y-6">
-          <div class="inline-flex items-center space-x-2 px-3 py-1 rounded-md bg-[#08111F] border border-[#8B5CFF]/30 text-xs text-[#8B5CFF] uppercase">
-            <span class="w-2 h-2 rounded-full bg-[#8B5CFF] animate-pulse" />
-            <span>PROJECT CASE STUDY ENGINE</span>
+        <div class="deep-dive-observatory max-w-4xl mx-auto py-16 text-center space-y-8">
+          <div
+            class="inline-flex items-center gap-2 px-3 py-1 rounded-lg text-xs font-semibold uppercase"
+            style="background: rgba(255,45,170,0.08); border: 1px solid var(--border-magenta); color: var(--magenta); font-family: var(--font-mono);"
+          >
+            <span class="w-1.5 h-1.5 rounded-full" style="background: var(--magenta);" />
+            Deep Dive Engine
           </div>
 
-          <h1 class="text-5xl sm:text-6xl font-display font-bold text-white uppercase tracking-tight">
-            PROJECT DEEP-DIVE INDEX
+          <h1
+            class="font-display uppercase leading-none"
+            style="font-family: var(--font-display); font-size: clamp(2.5rem, 6vw, 5rem); color: var(--text-primary);"
+          >
+            Project Deep-Dive
           </h1>
 
-          <p class="text-base text-[#9CAAC1] font-sans leading-relaxed">
-            Detailed architectural deep dives, ADR decision trees, load-testing experiments, and
-            debugging lessons for owner-approved project records.
+          <p class="text-base leading-relaxed" style="color: var(--text-secondary); max-width: 56ch; margin: 0 auto;">
+            Technical architecture maps, ADR decision trees, load-testing experiments,
+            and debugging lessons — for owner-approved project case studies.
           </p>
 
-          <div class="p-8 rounded-2xl glass-panel border border-white/10 text-center space-y-4">
-            <div class="text-[#45F3FF] font-bold text-xs uppercase">
-              No Public Project Case Study Selected
+          <!-- Honest empty state card -->
+          <div
+            class="p-8 rounded-2xl text-center space-y-5"
+            style="background: var(--surface-card); border: 1px dashed var(--border-magenta);"
+          >
+            <div
+              class="text-xs font-semibold uppercase tracking-widest"
+              style="color: var(--magenta); font-family: var(--font-mono);"
+            >
+              No public case study selected
             </div>
-            <p class="text-xs text-[#9CAAC1] font-sans max-w-md mx-auto">
-              Project case studies and architecture decision records are published from approved
-              database revisions.
+            <p class="text-sm" style="color: var(--text-muted); max-width: 40ch; margin: 0 auto;">
+              Project case studies and architecture decision records are published
+              from approved database revisions. No data is manufactured.
             </p>
-            <div class="pt-2">
-              <a
-                href="/projects"
-                class="px-5 py-2.5 rounded-lg bg-[#45F3FF] text-[#05060A] font-bold text-xs uppercase tracking-wider hover:opacity-90 transition-opacity"
-              >
-                Browse Projects Index →
+
+            <!-- Evidence chain overview -->
+            <div
+              class="mt-4 text-xs p-4 rounded-lg text-left space-y-2"
+              style="background: var(--elevated); border: 1px solid var(--hairline); font-family: var(--font-mono); color: var(--text-muted);"
+            >
+              <div>chain: Project → ADRs → Experiments → Debugging Lessons → Outcomes</div>
+              <div>verified: every record links to supporting evidence in the ledger</div>
+              <div>published: case studies require owner approval before public access</div>
+            </div>
+
+            <div class="pt-2 flex gap-3 justify-center">
+              <a href="/projects" class="btn btn-outline-cyan">
+                Browse Projects →
+              </a>
+              <a href="/evidence" class="btn btn-ghost">
+                Evidence Ledger
               </a>
             </div>
+          </div>
+
+          <!-- What deep-dive exposes -->
+          <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 text-left">
+            {
+              [
+                { icon: '◈', label: 'Architecture', color: 'var(--cyan)', desc: 'System design, dependency maps, infrastructure choices' },
+                { icon: '◉', label: 'Decisions', color: 'var(--violet)', desc: 'ADRs, trade-off analysis, rejected alternatives' },
+                { icon: '◇', label: 'Evidence', color: 'var(--magenta)', desc: 'Experiments, debugging lessons, deployment artifacts' },
+              ].map((item) => (
+                <div
+                  class="rounded-xl p-4 space-y-2"
+                  style={`background: var(--surface-card); border: 1px solid var(--hairline);`}
+                >
+                  <div style={`color: ${item.color}; font-family: var(--font-mono); font-size: 18px;`}>
+                    {item.icon}
+                  </div>
+                  <div class="text-sm font-semibold" style="color: var(--text-primary);">{item.label}</div>
+                  <div class="text-xs" style="color: var(--text-muted);">{item.desc}</div>
+                </div>
+              ))
+            }
           </div>
         </div>
       )

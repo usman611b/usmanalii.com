@@ -29,6 +29,9 @@ export function csrfProtection(allowedOrigins?: readonly string[]): MiddlewareHa
     const allowed = allowedOrigins || [
       'http://localhost:4321',
       'http://localhost:8787',
+      'http://localhost:8788',
+      'http://127.0.0.1:4321',
+      'http://127.0.0.1:8788',
       'https://usmanalii.com',
       'https://staging.usmanalii.com',
     ];

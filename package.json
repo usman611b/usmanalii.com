@@ -8,6 +8,11 @@
     "pnpm": ">=9.15.0"
   },
   "scripts": {
+    "db:init:local": "node infrastructure/scripts/initialize-local-dev-database.mjs",
+    "auth:init:local": "node infrastructure/scripts/initialize-local-auth.mjs",
+    "cloudflare:config:check": "node infrastructure/scripts/verify-cloudflare-config.mjs",
+    "migrations:staging:plan": "node infrastructure/scripts/apply-remote-staging-migrations.mjs",
+    "migrations:staging:remote-plan": "node infrastructure/scripts/apply-remote-staging-migrations.mjs --remote-plan --config=infrastructure/wrangler/wrangler.staging.toml",
     "build": "turbo run build",
     "dev": "turbo run dev --parallel",
     "typecheck": "turbo run typecheck",
@@ -17,7 +22,7 @@
     "format:check": "node infrastructure/scripts/check-format-incremental.mjs",
     "format:check:all": "prettier --check \"**/*.{ts,tsx,astro,json,md,yaml,yml,css}\" --ignore-path .prettierignore",
     "test": "turbo run test",
-    "test:sequential": "pnpm -r --workspace-concurrency=1 --if-present test",
+    "test:sequential": "node infrastructure/scripts/run-workspace-tests-sequential.mjs",
     "test:coverage": "turbo run test:coverage",
     "test:e2e": "turbo run test:e2e",
     "clean": "turbo run clean && rm -rf node_modules",

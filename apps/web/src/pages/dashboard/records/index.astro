@@ -1,81 +1,10 @@
 ---
 import DashboardLayout from '../../../layouts/DashboardLayout.astro';
+import { ProfessionalRecordsManager } from '../../../components/dashboard/ProfessionalRecordsManager';
 ---
 
 <DashboardLayout
   title="Professional Records — Dashboard"
-  description="Manage work experience, education, and credential records."
-  currentPath="/dashboard/records"
+  description="Manage canonical work, education, and credential records."
+  currentPath="/dashboard/records"><ProfessionalRecordsManager client:load /></DashboardLayout
 >
-  <div class="space-y-8 font-mono-tech">
-    <div class="flex items-center justify-between border-b border-white/10 pb-6">
-      <div>
-        <span class="text-xs font-bold text-[#8B5CFF] uppercase tracking-wider"
-          >CANONICAL RECORDS</span
-        >
-        <h1 class="text-3xl font-display font-bold text-white uppercase tracking-wide">
-          Work, Education &amp; Credentials
-        </h1>
-        <p class="text-xs text-[#9CAAC1]">
-          Owner-managed professional history with ordering, visibility, and optimistic concurrency.
-        </p>
-      </div>
-
-      <div class="flex gap-2">
-        <button
-          class="px-4 py-2 bg-[#45F3FF] text-[#05060A] font-bold text-xs rounded hover:opacity-90 transition-opacity"
-        >
-          + Add Record
-        </button>
-      </div>
-    </div>
-
-    <div class="space-y-6">
-      <div class="p-6 rounded-xl glass-panel space-y-4">
-        <h2 class="text-sm font-bold text-white uppercase tracking-wider text-[#45F3FF]">
-          Work Experience
-        </h2>
-        <div
-          class="p-4 bg-white/5 rounded-lg border border-white/10 flex items-center justify-between"
-        >
-          <div>
-            <h3 class="text-xs font-bold text-white">Senior Systems Engineer &amp; Architect</h3>
-            <p class="text-[11px] text-[#9CAAC1]">Cloudflare Edge Systems • 2022 — Present</p>
-          </div>
-          <div class="flex items-center gap-2">
-            <span class="px-2 py-0.5 bg-[#45F3FF]/10 text-[#45F3FF] text-[10px] font-bold rounded"
-              >PUBLIC</span
-            >
-            <button class="px-3 py-1 bg-white/10 text-white text-xs rounded hover:bg-white/20"
-              >Edit</button
-            >
-          </div>
-        </div>
-      </div>
-
-      <div class="p-6 rounded-xl glass-panel space-y-4">
-        <h2 class="text-sm font-bold text-white uppercase tracking-wider text-[#FF3DA4]">
-          Education &amp; Academic Records
-        </h2>
-        <div
-          class="p-4 bg-white/5 rounded-lg border border-white/10 flex items-center justify-between"
-        >
-          <div>
-            <h3 class="text-xs font-bold text-white">
-              B.S. Computer Science / Software Engineering
-            </h3>
-            <p class="text-[11px] text-[#9CAAC1]">University • 2018 — 2022</p>
-          </div>
-          <div class="flex items-center gap-2">
-            <span class="px-2 py-0.5 bg-[#45F3FF]/10 text-[#45F3FF] text-[10px] font-bold rounded"
-              >PUBLIC</span
-            >
-            <button class="px-3 py-1 bg-white/10 text-white text-xs rounded hover:bg-white/20"
-              >Edit</button
-            >
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
-</DashboardLayout>

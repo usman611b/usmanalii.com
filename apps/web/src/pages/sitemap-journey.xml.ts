@@ -8,16 +8,6 @@ export const GET: APIRoute = async () => {
     <changefreq>daily</changefreq>
     <priority>0.9</priority>
   </url>
-  <url>
-    <loc>https://usmanalii.com/journey/monorepo-security-architecture</loc>
-    <lastmod>2026-08-08</lastmod>
-    <priority>0.8</priority>
-  </url>
-  <url>
-    <loc>https://usmanalii.com/journey/building-versioned-json-block-content-engine</loc>
-    <lastmod>2026-08-08</lastmod>
-    <priority>0.8</priority>
-  </url>
 </urlset>`;
 
   return new Response(sitemapXml, {

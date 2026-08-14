@@ -1,93 +1,17 @@
 ---
 import BaseLayout from '../../layouts/BaseLayout.astro';
-import { ModeSwitcher } from '../../components/ModeSwitcher';
-
+import { RecordDetail } from '../../components/RecordDetail';
+const slug = Astro.url.searchParams.get('slug') ?? Astro.params.slug;
 export function getStaticPaths() {
-  return [
-    { params: { slug: 'design-secure-multi-tenant-apis' } },
-    { params: { slug: 'diagnose-production-failures' } },
-  ];
+  return [{ params: { slug: 'record' } }];
 }
-
-const { slug } = Astro.params;
-
-const capability = {
-  title:
-    slug === 'design-secure-multi-tenant-apis'
-      ? 'Design Secure Multi-Tenant APIs'
-      : 'Diagnose Production Reliability Failures',
-  slug,
-  outcomeStatement:
-    slug === 'design-secure-multi-tenant-apis'
-      ? 'Delivers multi-tenant APIs with zero IDOR vulnerabilities and Cloudflare Access verification.'
-      : 'Resolves production incidents without masking errors or introducing silent fallbacks.',
-  description: 'Bounded outcome statement backed by verifiable engineering evidence.',
-  stage: 'demonstrated',
-  stageExplanation:
-    'Stage "demonstrated" reached based on independently inspectable outcome evidence across production systems.',
-  evidenceItems: [
-    {
-      id: 'ev-1',
-      title: 'Monorepo Security Architecture & CSP Boundary',
-      provider: 'usmanalii.com',
-      type: 'adr',
-    },
-  ],
-};
 ---
 
-<BaseLayout title={`${capability.title} — Capabilities`} currentPath="/capabilities">
-  <div class="py-16 px-4 sm:px-6 lg:px-8 max-w-5xl mx-auto space-y-8">
-    <div
-      class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-b border-white/10 pb-6"
-    >
-      <div>
-        <a href="/capabilities" class="text-xs text-[#22D3EE] hover:underline mb-2 block"
-          >← Back to Capabilities Directory</a
-        >
-        <h1 class="text-3xl font-bold text-white tracking-tight">{capability.title}</h1>
-        <p class="text-xs text-white font-semibold mt-1">Outcome: {capability.outcomeStatement}</p>
-      </div>
-      <ModeSwitcher client:load />
-    </div>
-
-    <!-- Stage Explanation Panel -->
-    <div class="p-6 rounded-2xl glass-panel border border-white/10 space-y-3">
-      <div class="flex items-center justify-between">
-        <h2 class="text-sm font-bold text-white uppercase tracking-wider">
-          Evidence-Backed Stage Explanation
-        </h2>
-        <span
-          class="px-2.5 py-1 rounded bg-[#22D3EE]/10 text-[#22D3EE] border border-[#22D3EE]/20 font-semibold text-xs capitalize"
-        >
-          {capability.stage}
-        </span>
-      </div>
-      <p class="text-xs text-[#9CAAC1] leading-relaxed">{capability.stageExplanation}</p>
-    </div>
-
-    <!-- Supporting Evidence List -->
-    <div class="space-y-4">
-      <h2 class="text-lg font-bold text-white">
-        Supporting Verifiable Evidence ({capability.evidenceItems.length})
-      </h2>
-      <div class="space-y-3">
-        {
-          capability.evidenceItems.map((ev) => (
-            <div class="p-4 rounded-xl bg-[#101A31] border border-white/10 flex items-center justify-between text-xs">
-              <div>
-                <span class="font-bold text-white">{ev.title}</span>
-                <p class="text-[11px] text-[#9CAAC1] mt-0.5">
-                  Provider: {ev.provider} | Type: {ev.type}
-                </p>
-              </div>
-              <a href={`/dashboard/evidence/${ev.id}`} class="text-[#22D3EE] hover:underline">
-                View Evidence →
-              </a>
-            </div>
-          ))
-        }
-      </div>
-    </div>
-  </div>
-</BaseLayout>
+<BaseLayout title="Capability — USMAN ALI" currentPath="/capabilities"
+  ><main class="public-page-shell mx-auto max-w-7xl px-4 py-12">
+    <RecordDetail
+      endpoint={`/api/v1/public/capabilities/${encodeURIComponent(slug ?? '')}`}
+      client:load
+    />
+  </main></BaseLayout
+>

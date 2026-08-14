@@ -1,144 +1,367 @@
-import React, { useEffect, useRef } from 'react';
+import React, { lazy, Suspense, useEffect, useMemo, useRef, useState } from 'react';
+import { createCareerGraphLayout } from './career-graph/layout';
+import {
+  CAREER_NODE_STYLE,
+  type CareerGraphNode,
+  type CareerGraphProjection,
+  type CareerNodeType,
+} from './career-graph/types';
 
-interface SkillNode {
-  id: string;
-  label: string;
-  x: number;
-  y: number;
-  r: number;
-  color: string;
-  isPrimary?: boolean;
+const CareerGraph3DScene = lazy(() => import('./career-graph/CareerGraph3DScene'));
+
+type Focus = { type: CareerNodeType | 'universe'; id: string | null; label: string };
+type RenderMode = '3d' | 'table';
+
+const EMPTY: CareerGraphProjection = {
+  nodes: [],
+  edges: [],
+  focus: { type: 'universe', id: null },
+  truncated: false,
+};
+
+function supportsWebGL() {
+  try {
+    const canvas = document.createElement('canvas');
+    return Boolean(canvas.getContext('webgl2') || canvas.getContext('webgl'));
+  } catch {
+    return false;
+  }
 }
 
-const SKILL_NODES: SkillNode[] = [
-  { id: 'sd', label: 'System Design', x: 0.42, y: 0.55, r: 18, color: '#45F3FF', isPrimary: true },
-  { id: 'be', label: 'Backend Eng', x: 0.72, y: 0.58, r: 14, color: '#8B5CFF', isPrimary: true },
-  { id: 'api', label: 'APIs', x: 0.38, y: 0.2, r: 8, color: '#45F3FF' },
-  { id: 'scale', label: 'Scalability', x: 0.22, y: 0.32, r: 9, color: '#45F3FF' },
-  { id: 'data', label: 'Data Modeling', x: 0.18, y: 0.55, r: 8, color: '#45F3FF' },
-  { id: 'rel', label: 'Reliability', x: 0.24, y: 0.78, r: 9, color: '#45F3FF' },
-  { id: 'lead', label: 'Leadership', x: 0.88, y: 0.62, r: 10, color: '#FF3DA4' },
-  { id: 'ment', label: 'Mentoring', x: 0.88, y: 0.28, r: 7, color: '#FF3DA4' },
-  { id: 'hire', label: 'Hiring', x: 0.94, y: 0.46, r: 7, color: '#FF3DA4' },
-  { id: 'strat', label: 'Strategy', x: 0.92, y: 0.78, r: 7, color: '#FF3DA4' },
-];
+function prefersDataSaving() {
+  const connection = (navigator as Navigator & { connection?: { saveData?: boolean } }).connection;
+  return Boolean(connection?.saveData);
+}
 
-const SKILL_EDGES: [number, number][] = [
-  [0, 1],
-  [0, 2],
-  [0, 3],
-  [0, 4],
-  [0, 5],
-  [1, 6],
-  [1, 7],
-  [1, 8],
-  [1, 9],
-];
-
-export const SkillsEvidenceGraph: React.FC = () => {
-  const canvasRef = useRef<HTMLCanvasElement | null>(null);
-
-  useEffect(() => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    const ctx = canvas.getContext('2d');
-    if (!ctx) return;
-
-    let animFrameId: number;
-    let time = 0;
-
-    const resize = () => {
-      const parent = canvas.parentElement;
-      if (parent) {
-        canvas.width = parent.clientWidth * window.devicePixelRatio;
-        canvas.height = parent.clientHeight * window.devicePixelRatio;
-      }
-    };
-
-    resize();
-    window.addEventListener('resize', resize);
-
-    const render = () => {
-      time += 0.012;
-      const w = canvas.width;
-      const h = canvas.height;
-
-      ctx.clearRect(0, 0, w, h);
-
-      const points = SKILL_NODES.map((n, i) => {
-        const dx = Math.sin(time + i) * 4;
-        const dy = Math.cos(time + i * 1.2) * 4;
-        return {
-          ...n,
-          px: n.x * w + dx,
-          py: n.y * h + dy,
-        };
-      });
-
-      // Draw connections
-      SKILL_EDGES.forEach(([aIdx, bIdx]) => {
-        const pA = points[aIdx];
-        const pB = points[bIdx];
-        if (!pA || !pB) return;
-
-        ctx.beginPath();
-        ctx.moveTo(pA.px, pA.py);
-        ctx.lineTo(pB.px, pB.py);
-        ctx.strokeStyle = pA.color + '44';
-        ctx.lineWidth = 1.5 * window.devicePixelRatio;
-        ctx.stroke();
-      });
-
-      // Draw nodes
-      points.forEach((p) => {
-        const r = p.r * window.devicePixelRatio;
-
-        // Outer glow
-        ctx.beginPath();
-        ctx.arc(p.px, p.py, r * 1.6, 0, Math.PI * 2);
-        ctx.fillStyle = p.color + '25';
-        ctx.fill();
-
-        // Core
-        ctx.beginPath();
-        ctx.arc(p.px, p.py, r, 0, Math.PI * 2);
-        ctx.fillStyle = '#070A11';
-        ctx.strokeStyle = p.color;
-        ctx.lineWidth = 2 * window.devicePixelRatio;
-        ctx.fill();
-        ctx.stroke();
-
-        // Label
-        ctx.font = `${Math.round((p.isPrimary ? 11 : 9) * window.devicePixelRatio)}px "JetBrains Mono", monospace`;
-        ctx.fillStyle = '#F4F1EA';
-        ctx.textAlign = 'center';
-        ctx.fillText(p.label, p.px, p.py + (r + 14 * window.devicePixelRatio));
-      });
-
-      animFrameId = requestAnimationFrame(render);
-    };
-
-    render();
-
-    return () => {
-      window.removeEventListener('resize', resize);
-      cancelAnimationFrame(animFrameId);
-    };
-  }, []);
-
+function GraphFallback({
+  nodes,
+  selectedId,
+}: {
+  nodes: CareerGraphNode[];
+  selectedId: string | null;
+}) {
   return (
-    <div className="relative w-full h-full min-h-[280px] rounded-2xl glass-panel overflow-hidden p-5 flex flex-col justify-between">
-      <div className="flex items-center justify-between z-10">
-        <div>
-          <h3 className="text-sm font-bold text-white font-mono-tech tracking-wide">
-            Skills ↔ Evidence
-          </h3>
-          <p className="text-xs text-[#9CAAC1]">How skills are proven by real evidence.</p>
-        </div>
-        <span className="text-xs font-mono-tech text-[#8B5CFF]">GRAPH HEALTHY</span>
-      </div>
-
-      <canvas ref={canvasRef} className="absolute inset-0 w-full h-full" />
+    <div className="career-graph-fallback" role="img" aria-label="Static career graph overview">
+      <div className="career-graph-fallback-core" />
+      {nodes.slice(0, 18).map((node, index) => {
+        const style = CAREER_NODE_STYLE[node.type];
+        const angle = (index / Math.min(nodes.length, 18)) * Math.PI * 2;
+        return (
+          <span
+            key={node.id}
+            className={node.id === selectedId ? 'is-selected' : ''}
+            style={
+              {
+                '--node-color': style.color,
+                '--node-x': `${50 + Math.cos(angle) * (25 + (index % 3) * 6)}%`,
+                '--node-y': `${50 + Math.sin(angle) * (24 + (index % 2) * 8)}%`,
+              } as React.CSSProperties
+            }
+          >
+            {node.label}
+          </span>
+        );
+      })}
     </div>
   );
-};
+}
+
+export function SkillsEvidenceGraph({
+  endpointUrl = '/api/v1/public/graph/visualization',
+  privateView = false,
+}: {
+  endpointUrl?: string;
+  privateView?: boolean;
+}) {
+  const rootRef = useRef<HTMLElement | null>(null);
+  const [projection, setProjection] = useState<CareerGraphProjection>(EMPTY);
+  const [history, setHistory] = useState<Focus[]>([
+    { type: 'universe', id: null, label: 'Career Universe' },
+  ]);
+  const [depth, setDepth] = useState(3);
+  const [selected, setSelected] = useState<string | null>(null);
+  const [mode, setMode] = useState<RenderMode>('3d');
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+  const [webgl, setWebgl] = useState(false);
+  const [reducedMotion, setReducedMotion] = useState(true);
+  const [dataSaving, setDataSaving] = useState(false);
+  const [allow3d, setAllow3d] = useState(false);
+  const [visible, setVisible] = useState(false);
+  const [pageVisible, setPageVisible] = useState(true);
+  const focus = history.at(-1)!;
+
+  useEffect(() => {
+    const motion = window.matchMedia('(prefers-reduced-motion: reduce)');
+    const updateMotion = () => {
+      setReducedMotion(motion.matches);
+      if (motion.matches) setAllow3d(false);
+    };
+    updateMotion();
+    setWebgl(supportsWebGL());
+    const saving = prefersDataSaving();
+    setDataSaving(saving);
+    setAllow3d(!saving && !motion.matches);
+    motion.addEventListener('change', updateMotion);
+    return () => motion.removeEventListener('change', updateMotion);
+  }, []);
+
+  useEffect(() => {
+    if (!rootRef.current) return;
+    const observer = new IntersectionObserver(
+      ([entry]) => setVisible(Boolean(entry?.isIntersecting)),
+      {
+        rootMargin: '120px',
+      },
+    );
+    observer.observe(rootRef.current);
+    return () => observer.disconnect();
+  }, []);
+
+  useEffect(() => {
+    const updateVisibility = () => setPageVisible(document.visibilityState === 'visible');
+    updateVisibility();
+    document.addEventListener('visibilitychange', updateVisibility);
+    return () => document.removeEventListener('visibilitychange', updateVisibility);
+  }, []);
+
+  useEffect(() => {
+    const controller = new AbortController();
+    const query = new URLSearchParams({ focusType: focus.type, depth: String(depth) });
+    if (focus.id) query.set('focusId', focus.id);
+    setLoading(true);
+    setError('');
+    fetch(`${endpointUrl}?${query}`, { credentials: 'include', signal: controller.signal })
+      .then(async (response) => {
+        const body = (await response.json().catch(() => ({}))) as {
+          data?: CareerGraphProjection;
+          message?: string;
+        };
+        if (!response.ok || !body.data)
+          throw new Error(body.message || `Graph unavailable (${response.status}).`);
+        setProjection(body.data);
+        setSelected(
+          body.data.focus.id ?? body.data.nodes.find(({ type }) => type === 'identity')?.id ?? null,
+        );
+      })
+      .catch((cause: Error) => {
+        if (!controller.signal.aborted) setError(cause.message);
+      })
+      .finally(() => {
+        if (!controller.signal.aborted) setLoading(false);
+      });
+    return () => controller.abort();
+  }, [depth, endpointUrl, focus.id, focus.type]);
+
+  const selectedNode = projection.nodes.find(({ id }) => id === selected) ?? null;
+  const connectedIds = useMemo(() => {
+    if (!selected) return new Set<string>();
+    const ids = new Set([selected]);
+    for (const edge of projection.edges) {
+      if (edge.sourceId === selected) ids.add(edge.targetId);
+      if (edge.targetId === selected) ids.add(edge.sourceId);
+    }
+    return ids;
+  }, [projection.edges, selected]);
+  const positions = useMemo(
+    () => createCareerGraphLayout(projection.nodes, projection.edges, projection.focus.id),
+    [projection.edges, projection.focus.id, projection.nodes],
+  );
+  const types = [...new Set(projection.nodes.map(({ type }) => type))];
+  const render3d = mode === '3d' && allow3d && webgl;
+
+  function focusNode(node: CareerGraphNode) {
+    setHistory((current) => [...current, { type: node.type, id: node.id, label: node.label }]);
+  }
+
+  function resetUniverse() {
+    setHistory([{ type: 'universe', id: null, label: 'Career Universe' }]);
+  }
+
+  return (
+    <section
+      ref={rootRef}
+      className="career-graph-shell"
+      aria-label={privateView ? 'Private career knowledge graph' : 'Public career knowledge graph'}
+    >
+      <header className="career-graph-toolbar">
+        <div>
+          <p className="section-eyebrow">Living professional system</p>
+          <h2>Career Knowledge Universe</h2>
+          <p>Drag to orbit. Scroll to zoom. Select a node, then open its verified connections.</p>
+        </div>
+        <div className="career-graph-controls">
+          <button type="button" onClick={resetUniverse} disabled={history.length === 1}>
+            Universe
+          </button>
+          <button
+            type="button"
+            onClick={() =>
+              setHistory((current) => (current.length > 1 ? current.slice(0, -1) : current))
+            }
+            disabled={history.length === 1}
+          >
+            Back
+          </button>
+          <label>
+            Detail
+            <input
+              type="range"
+              min="1"
+              max="5"
+              value={depth}
+              onChange={(event) => setDepth(Number(event.target.value))}
+            />
+          </label>
+          <button
+            type="button"
+            aria-pressed={mode === 'table'}
+            onClick={() => setMode(mode === 'table' ? '3d' : 'table')}
+          >
+            {mode === 'table' ? '3D universe' : 'Table'}
+          </button>
+        </div>
+      </header>
+
+      <nav className="career-graph-breadcrumbs" aria-label="Graph location">
+        {history.map((item, index) => (
+          <button
+            type="button"
+            key={`${item.id ?? 'universe'}-${index}`}
+            onClick={() => setHistory((current) => current.slice(0, index + 1))}
+            aria-current={index === history.length - 1 ? 'page' : undefined}
+          >
+            {item.label}
+          </button>
+        ))}
+      </nav>
+
+      <div className="career-graph-legend" role="list" aria-label="Node types">
+        {types.map((type) => (
+          <span
+            role="listitem"
+            key={type}
+            style={{ '--node-color': CAREER_NODE_STYLE[type].color } as React.CSSProperties}
+          >
+            {CAREER_NODE_STYLE[type].label}
+          </span>
+        ))}
+      </div>
+
+      <div className="career-graph-stage">
+        {loading && <div className="career-graph-state">Mapping verified relationships...</div>}
+        {!loading && error && <div className="career-graph-state career-graph-error">{error}</div>}
+        {!loading && !error && projection.nodes.length === 0 && (
+          <div className="career-graph-state">
+            {privateView
+              ? 'Create a career role and assign projects to begin your universe.'
+              : 'No public career graph has been published yet.'}
+          </div>
+        )}
+
+        {!loading && !error && projection.nodes.length > 0 && mode === '3d' && (
+          <>
+            {render3d ? (
+              <Suspense fallback={<div className="career-graph-state">Opening 3D universe...</div>}>
+                <CareerGraph3DScene
+                  nodes={projection.nodes}
+                  edges={projection.edges}
+                  focusId={projection.focus.id}
+                  selectedId={selected}
+                  active={visible && pageVisible}
+                  reducedMotion={reducedMotion}
+                  onSelect={(id) => setSelected(id || null)}
+                  onFocus={focusNode}
+                />
+              </Suspense>
+            ) : (
+              <GraphFallback nodes={projection.nodes} selectedId={selected} />
+            )}
+            {dataSaving && !reducedMotion && !allow3d && webgl && (
+              <button
+                type="button"
+                className="career-graph-enable-3d"
+                onClick={() => setAllow3d(true)}
+              >
+                Enable interactive 3D
+              </button>
+            )}
+          </>
+        )}
+
+        {!loading && !error && projection.nodes.length > 0 && mode === 'table' && (
+          <div className="career-graph-table-wrap">
+            <table>
+              <caption className="sr-only">Current career graph nodes</caption>
+              <thead>
+                <tr>
+                  <th>Type</th>
+                  <th>Record</th>
+                  <th>State</th>
+                  <th>Explore</th>
+                </tr>
+              </thead>
+              <tbody>
+                {projection.nodes.map((node) => (
+                  <tr key={node.id}>
+                    <td>{CAREER_NODE_STYLE[node.type].label}</td>
+                    <td>{node.label}</td>
+                    <td>{node.state || 'Active'}</td>
+                    <td>
+                      <button type="button" onClick={() => focusNode(node)}>
+                        Focus
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+
+        {selectedNode && mode === '3d' && (
+          <aside className="career-graph-inspector" aria-live="polite">
+            <span style={{ color: CAREER_NODE_STYLE[selectedNode.type].color }}>
+              {CAREER_NODE_STYLE[selectedNode.type].label}
+            </span>
+            <strong>{selectedNode.label}</strong>
+            {selectedNode.subtitle && <p>{selectedNode.subtitle}</p>}
+            <small>{connectedIds.size - 1} connected records</small>
+            <div>
+              <button type="button" onClick={() => focusNode(selectedNode)}>
+                Zoom into node
+              </button>
+              {selectedNode.href && <a href={selectedNode.href}>Open record</a>}
+            </div>
+          </aside>
+        )}
+
+        {!loading && !error && projection.nodes.length > 0 && mode === '3d' && (
+          <div className="career-graph-minimap" aria-hidden="true">
+            {projection.nodes.slice(0, 42).map((node) => {
+              const position = positions.get(node.id) ?? [0, 0, 0];
+              return (
+                <i
+                  key={node.id}
+                  className={node.id === selected ? 'is-selected' : ''}
+                  style={
+                    {
+                      '--node-color': CAREER_NODE_STYLE[node.type].color,
+                      '--map-x': `${50 + Math.max(-42, Math.min(42, position[0] * 2.1))}%`,
+                      '--map-y': `${50 + Math.max(-42, Math.min(42, position[1] * 2.1))}%`,
+                    } as React.CSSProperties
+                  }
+                />
+              );
+            })}
+          </div>
+        )}
+      </div>
+      {projection.truncated && (
+        <p className="career-graph-truncated">
+          More records exist. Focus a cluster to load its bounded detail view.
+        </p>
+      )}
+    </section>
+  );
+}

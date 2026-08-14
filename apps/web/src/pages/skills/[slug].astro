@@ -1,92 +1,17 @@
 ---
 import BaseLayout from '../../layouts/BaseLayout.astro';
-import { ModeSwitcher } from '../../components/ModeSwitcher';
-
+import { RecordDetail } from '../../components/RecordDetail';
+const slug = Astro.url.searchParams.get('slug') ?? Astro.params.slug;
 export function getStaticPaths() {
-  return [{ params: { slug: 'typescript' } }, { params: { slug: 'api-security' } }];
+  return [{ params: { slug: 'record' } }];
 }
-
-const { slug } = Astro.params;
-
-const skill = {
-  name: slug === 'typescript' ? 'TypeScript' : 'API Security & OAuth/Access',
-  slug,
-  category: slug === 'typescript' ? 'programming_language' : 'security',
-  description: 'Statically typed microservices architecture and zero-trust security boundaries.',
-  strengthClassification: 'strong_evidence',
-  strengthExplanation:
-    'Evidence strength classified as strong evidence based on 9 source-verified items, recent demonstrations, and 2 distinct providers.',
-  evidenceItems: [
-    {
-      id: 'ev-1',
-      title: 'Monorepo Security Architecture & CSP Boundary',
-      provider: 'usmanalii.com',
-      type: 'adr',
-    },
-    {
-      id: 'ev-2',
-      title: 'RS256 Cloudflare Access JWT Integration Commit',
-      provider: 'github',
-      type: 'commit',
-    },
-  ],
-};
 ---
 
-<BaseLayout title={`${skill.name} — Skills Taxonomy`} currentPath="/skills">
-  <div class="py-16 px-4 sm:px-6 lg:px-8 max-w-5xl mx-auto space-y-8">
-    <div
-      class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-b border-white/10 pb-6"
-    >
-      <div>
-        <a href="/skills" class="text-xs text-[#22D3EE] hover:underline mb-2 block"
-          >← Back to Skills Directory</a
-        >
-        <h1 class="text-3xl font-bold text-white tracking-tight">{skill.name}</h1>
-        <p class="text-xs text-[#9CAAC1] mt-1 capitalize">
-          Category: {skill.category.replace('_', ' ')}
-        </p>
-      </div>
-      <ModeSwitcher client:load />
-    </div>
-
-    <!-- Evidence Strength Explanation Panel -->
-    <div class="p-6 rounded-2xl glass-panel border border-white/10 space-y-3">
-      <div class="flex items-center justify-between">
-        <h2 class="text-sm font-bold text-white uppercase tracking-wider">
-          Evidence Strength Assessment
-        </h2>
-        <span
-          class="px-2.5 py-1 rounded bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 font-semibold text-xs capitalize"
-        >
-          {skill.strengthClassification.replace('_', ' ')}
-        </span>
-      </div>
-      <p class="text-xs text-[#9CAAC1] leading-relaxed">{skill.strengthExplanation}</p>
-    </div>
-
-    <!-- Supporting Evidence List -->
-    <div class="space-y-4">
-      <h2 class="text-lg font-bold text-white">
-        Eligible Supporting Evidence ({skill.evidenceItems.length})
-      </h2>
-      <div class="space-y-3">
-        {
-          skill.evidenceItems.map((ev) => (
-            <div class="p-4 rounded-xl bg-[#101A31] border border-white/10 flex items-center justify-between text-xs">
-              <div>
-                <span class="font-bold text-white">{ev.title}</span>
-                <p class="text-[11px] text-[#9CAAC1] mt-0.5">
-                  Provider: {ev.provider} | Type: {ev.type}
-                </p>
-              </div>
-              <a href={`/dashboard/evidence/${ev.id}`} class="text-[#22D3EE] hover:underline">
-                View Evidence →
-              </a>
-            </div>
-          ))
-        }
-      </div>
-    </div>
-  </div>
-</BaseLayout>
+<BaseLayout title="Skill — USMAN ALI" currentPath="/skills"
+  ><main class="public-page-shell mx-auto max-w-7xl px-4 py-12">
+    <RecordDetail
+      endpoint={`/api/v1/public/skills/${encodeURIComponent(slug ?? '')}`}
+      client:load
+    />
+  </main></BaseLayout
+>

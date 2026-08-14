@@ -1,73 +1,10 @@
 ---
 import DashboardLayout from '../../../layouts/DashboardLayout.astro';
+import { ClaimsManager } from '../../../components/dashboard/ClaimsManager';
 ---
 
 <DashboardLayout
   title="Claims Library — Dashboard"
-  description="Manage owner-approved professional statements, support links, exceptions, and eligibility rules."
-  currentPath="/dashboard/claims"
+  description="Manage owner-approved professional statements and evidence eligibility."
+  currentPath="/dashboard/claims"><ClaimsManager client:load /></DashboardLayout
 >
-  <div class="space-y-8 font-mono-tech">
-    <div class="flex items-center justify-between border-b border-white/10 pb-6">
-      <div>
-        <span class="text-xs font-bold text-[#8B5CFF] uppercase tracking-wider"
-          >PROVED ASSERTIONS</span
-        >
-        <h1 class="text-3xl font-display font-bold text-white uppercase tracking-wide">
-          Claims Library
-        </h1>
-        <p class="text-xs text-[#9CAAC1]">
-          Owner-approved statements backed by verifiable evidence or audited exceptions.
-        </p>
-      </div>
-
-      <button
-        class="px-5 py-2.5 bg-[#45F3FF] text-[#05060A] font-bold text-xs rounded-lg uppercase tracking-wider hover:opacity-90 transition-opacity"
-      >
-        + New Claim
-      </button>
-    </div>
-
-    <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
-      <div class="lg:col-span-2 space-y-4">
-        <div class="p-6 rounded-xl glass-panel space-y-4 border border-white/10">
-          <div class="flex items-start justify-between">
-            <div class="space-y-1">
-              <span
-                class="px-2 py-0.5 bg-[#45F3FF]/10 text-[#45F3FF] text-[10px] font-bold rounded uppercase"
-                >APPROVED &amp; PUBLISHED</span
-              >
-              <h2 class="text-sm font-bold text-white pt-1">
-                Designed and deployed Cloudflare Worker REST API
-              </h2>
-              <p class="text-xs text-[#9CAAC1]">Audience: Recruiter | Context: Portfolio System</p>
-            </div>
-            <span class="px-2 py-1 bg-green-500/20 text-green-400 text-[10px] font-bold rounded"
-              >ELIGIBLE</span
-            >
-          </div>
-
-          <div class="pt-3 border-t border-white/10 text-xs flex items-center justify-between">
-            <span class="text-[#9CAAC1]">Supporting Evidence: 1 Active Commit Link</span>
-            <button class="text-[#45F3FF] hover:underline font-bold"
-              >Inspect Support &amp; Health →</button
-            >
-          </div>
-        </div>
-      </div>
-
-      <div class="space-y-4">
-        <div class="p-6 rounded-xl glass-panel space-y-3">
-          <h2 class="text-xs font-bold text-white uppercase tracking-wider text-[#8B5CFF]">
-            Eligibility Engine Rules
-          </h2>
-          <ul class="text-xs text-[#9CAAC1] space-y-2 list-disc list-inside">
-            <li>Requires owner approval &amp; wording snapshot.</li>
-            <li>Requires healthy, unrevoked, un-archived evidence links.</li>
-            <li>Exceptions cannot cover employment, credentials, or metrics.</li>
-          </ul>
-        </div>
-      </div>
-    </div>
-  </div>
-</DashboardLayout>

@@ -54,6 +54,24 @@ describe('GitHub Client & Sync Service (M6 Gates 3 & 4)', () => {
     );
   });
 
+  test('GitHubClient preserves the runtime receiver required by Cloudflare fetch', async () => {
+    const runtimeFetch = vi.fn(function (this: unknown) {
+      if (this !== globalThis) throw new TypeError('Illegal invocation');
+      return Promise.resolve(
+        new Response('[]', {
+          status: 200,
+          headers: { 'Content-Type': 'application/json' },
+        }),
+      );
+    });
+    const client = new GitHubClient({ token: 'test-token', fetchFn: runtimeFetch as typeof fetch });
+
+    const response = await client.get<unknown[]>('/user/repos');
+
+    expect(response.status).toBe(200);
+    expect(runtimeFetch).toHaveBeenCalledOnce();
+  });
+
   test('GitHubClient handles 304 Not Modified', async () => {
     const mockFetch = vi.fn().mockResolvedValue({
       ok: true,

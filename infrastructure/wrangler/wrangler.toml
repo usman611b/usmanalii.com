@@ -18,7 +18,7 @@ compatibility_date = "2024-12-01"
 compatibility_flags = ["nodejs_compat"]
 
 [triggers]
-crons = ["*/10 * * * *"]
+crons = []
 
 # ---------------------------------------------------------------------------
 # D1 Databases
@@ -74,7 +74,7 @@ vars = { ENVIRONMENT = "local", LOG_LEVEL = "debug" }
 vars = { ENVIRONMENT = "preview", LOG_LEVEL = "info" }
 
 [env.preview.triggers]
-crons = ["*/10 * * * *"]
+crons = []
 
 [[env.preview.d1_databases]]
 binding = "DB"
@@ -95,10 +95,7 @@ bucket_name = "usmanalii-public-preview"
 # ---------------------------------------------------------------------------
 [env.staging]
 vars = { ENVIRONMENT = "staging", LOG_LEVEL = "info" }
-route = { pattern = "staging.usmanalii.com/*", zone_name = "usmanalii.com" }
-
-[env.staging.triggers]
-crons = ["*/10 * * * *"]
+route = { pattern = "staging.usmanalii.com/api/*", zone_name = "usmanalii.com" }
 
 [[env.staging.d1_databases]]
 binding = "DB"
@@ -106,12 +103,16 @@ database_name = "usmanalii-staging"
 database_id = "STAGING_DB_ID_REPLACE_IN_CF_DASHBOARD"
 
 [[env.staging.r2_buckets]]
+binding = "ARTIFACTS_BUCKET"
+bucket_name = "usmanalii-artifacts-staging"
+
+[[env.staging.r2_buckets]]
 binding = "R2_PRIVATE"
-bucket_name = "usmanalii-private-staging"
+bucket_name = "usmanalii-artifacts-staging"
 
 [[env.staging.r2_buckets]]
 binding = "R2_PUBLIC"
-bucket_name = "usmanalii-public-staging"
+bucket_name = "usmanalii-artifacts-staging"
 
 # ---------------------------------------------------------------------------
 # Production
@@ -124,12 +125,16 @@ vars = { ENVIRONMENT = "production", LOG_LEVEL = "warn" }
 route = { pattern = "usmanalii.com/api/*", zone_name = "usmanalii.com" }
 
 [env.production.triggers]
-crons = ["*/10 * * * *"]
+crons = ["0 0 * * *"]
 
 [[env.production.d1_databases]]
 binding = "DB"
 database_name = "usmanalii-production"
 database_id = "PRODUCTION_DB_ID_REPLACE_IN_CF_DASHBOARD"
+
+[[env.production.r2_buckets]]
+binding = "ARTIFACTS_BUCKET"
+bucket_name = "usmanalii-artifacts-prod"
 
 [[env.production.r2_buckets]]
 binding = "R2_PRIVATE"

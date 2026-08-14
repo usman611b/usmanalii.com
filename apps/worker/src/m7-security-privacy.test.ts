@@ -32,11 +32,12 @@ describe('Worker M7 API Security, Authorization & Privacy Gates (Gate 3)', () =>
     }
   });
 
-  it('serves public profile projection without exposing ownerId or private contactEmail', async () => {
+  it('does not invent a public profile when no database projection is available', async () => {
     const res = await app.request('/api/v1/public/profile', { method: 'GET' }, dummyEnv);
-    expect(res.status).toBe(200);
+    expect(res.status).toBe(404);
     const json = (await res.json()) as Record<string, unknown>;
-    expect(json.displayName).toBe('Usman Ali');
+    expect(json.code).toBe('RESOURCE_NOT_FOUND');
+    expect(json).not.toHaveProperty('displayName');
     expect(json).not.toHaveProperty('ownerId');
     expect(json).not.toHaveProperty('contactEmail');
     expect(json).not.toHaveProperty('owner_id');

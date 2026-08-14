@@ -21,7 +21,15 @@ interface ActivityHeatmapProps {
   readonly endpointUrl?: string;
 }
 
-// Generate deterministic zeroed 365-day fallback cells for graceful degradation
+// M8 intensity palette — green scale, accessible
+const INTENSITY_STYLES: Record<number, { background: string; label: string }> = {
+  0: { background: 'rgba(255,255,255,0.04)', label: 'No activity' },
+  1: { background: '#0e3a22', label: 'Low activity' },
+  2: { background: '#1a5e35', label: 'Moderate activity' },
+  3: { background: '#26a641', label: 'High activity' },
+  4: { background: '#39d353', label: 'Very high activity' },
+};
+
 function createFallbackProjection(): ActivityProjection {
   const now = new Date();
   const cells: ActivityCell[] = [];
@@ -50,87 +58,145 @@ export const ActivityHeatmap: React.FC<ActivityHeatmapProps> = ({
 }) => {
   const [projection, setProjection] = useState<ActivityProjection>(createFallbackProjection());
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [reloadKey, setReloadKey] = useState(0);
   const [hoveredCell, setHoveredCell] = useState<ActivityCell | null>(null);
 
   useEffect(() => {
-    let isMounted = true;
-    const fetchActivity = async () => {
+    let mounted = true;
+    const run = async () => {
       try {
         setLoading(true);
+        setError(null);
         const res = await fetch(endpointUrl);
-        if (res.ok) {
-          const data = (await res.json()) as { projection?: ActivityProjection };
-          if (isMounted && data.projection) {
-            setProjection(data.projection);
-          }
+        if (!res.ok) throw new Error(`Activity service returned ${res.status}.`);
+        const data = (await res.json()) as { projection?: ActivityProjection };
+        if (!data.projection) throw new Error('Activity service returned an invalid projection.');
+        if (mounted) setProjection(data.projection);
+      } catch (cause) {
+        if (mounted) {
+          setProjection(createFallbackProjection());
+          setError(cause instanceof Error ? cause.message : 'Activity data could not be loaded.');
         }
-      } catch {
-        // Fallback to zeroed projection on network error or missing local worker API
       } finally {
-        if (isMounted) {
-          setLoading(false);
-        }
+        if (mounted) setLoading(false);
       }
     };
-
-    fetchActivity();
+    run();
     return () => {
-      isMounted = false;
+      mounted = false;
     };
-  }, [endpointUrl]);
-
-  const intensityColors = {
-    0: 'bg-[#070A11] border border-white/5',
-    1: 'bg-[#0e4429] border border-[#0e4429]',
-    2: 'bg-[#006d32] border border-[#006d32]',
-    3: 'bg-[#26a641] border border-[#26a641]',
-    4: 'bg-[#39d353] border border-[#39d353]',
-  };
+  }, [endpointUrl, reloadKey]);
 
   if (loading) {
     return (
-      <div className="p-6 rounded-2xl glass-panel animate-pulse flex items-center justify-center min-h-[160px] font-mono-tech">
-        <div className="text-xs text-[#9CAAC1]">Loading activity ledger projection...</div>
+      <div
+        className="rounded-xl p-6 flex items-center justify-center"
+        style={{
+          background: 'var(--surface-card)',
+          border: '1px solid var(--hairline)',
+          minHeight: 160,
+        }}
+        aria-label="Loading activity heatmap"
+        aria-busy="true"
+        role="status"
+      >
+        <div className="space-y-2 w-full">
+          <div className="skeleton h-3 w-48 rounded" />
+          <div className="skeleton h-16 w-full rounded" />
+        </div>
       </div>
     );
   }
 
+  if (error)
+    return (
+      <div className="activity-unavailable" role="status">
+        <div className="activity-unavailable-copy">
+          <span className="observatory-service-beacon" aria-hidden="true" />
+          <div>
+            <strong>Activity projection is temporarily unavailable.</strong>
+            <p>The grid is retained for layout only; these cells do not represent zero activity.</p>
+            <span className="sr-only">{error}</span>
+          </div>
+          <button
+            type="button"
+            onClick={() => setReloadKey((value) => value + 1)}
+            className="btn btn-ghost text-xs"
+          >
+            Retry
+          </button>
+        </div>
+        <div className="activity-unavailable-grid" aria-hidden="true">
+          {Array.from({ length: 140 }, (_, index) => (
+            <span key={index} />
+          ))}
+        </div>
+      </div>
+    );
+
   return (
-    <div className="p-6 rounded-2xl glass-panel space-y-4 font-mono-tech">
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 border-b border-white/10 pb-4">
+    <div
+      className="rounded-xl p-5 space-y-4"
+      style={{ background: 'var(--surface-card)', border: '1px solid var(--hairline)' }}
+    >
+      {/* Header */}
+      <div
+        className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 border-b pb-4"
+        style={{ borderColor: 'var(--hairline)' }}
+      >
         <div>
-          <h3 className="text-sm font-bold text-white tracking-wide uppercase flex items-center gap-2">
-            <span>Engineering Activity Heatmap</span>
-            <span className="text-[10px] px-2 py-0.5 rounded bg-[#45F3FF]/15 text-[#45F3FF] border border-[#45F3FF]/30 font-bold">
-              {projection.timezone}
-            </span>
+          <h3
+            className="text-sm font-semibold flex items-center gap-2"
+            style={{ color: 'var(--text-primary)', fontFamily: 'var(--font-mono)' }}
+          >
+            Engineering Activity Heatmap
+            <span className="badge badge-cyan text-[10px] px-2 py-0.5">{projection.timezone}</span>
           </h3>
-          <p className="text-xs text-[#9CAAC1] mt-1 font-sans">
-            Deterministic projection derived from append-only Evidence Ledger events.
+          <p className="text-[11px] mt-0.5" style={{ color: 'var(--text-muted)' }}>
+            Derived from append-only Evidence Ledger events.{' '}
+            {!isPrivateView && <span>Activity presence shown; counts masked for public view.</span>}
           </p>
         </div>
 
-        <div className="text-xs text-[#9CAAC1] flex items-center gap-4">
+        <div className="flex items-center gap-4 text-xs" style={{ color: 'var(--text-muted)' }}>
           <div>
-            <span className="text-white font-bold">{projection.activeDaysCount}</span> active days
+            <span className="font-bold tabular-nums" style={{ color: 'var(--text-primary)' }}>
+              {projection.activeDaysCount}
+            </span>{' '}
+            active days
           </div>
-          {!isPrivateView && (
-            <div className="text-[10px] text-[#45F3FF] uppercase font-bold">Public ledger</div>
+          {isPrivateView && (
+            <div>
+              <span className="font-bold tabular-nums" style={{ color: 'var(--text-primary)' }}>
+                {projection.totalActivities}
+              </span>{' '}
+              total events
+            </div>
           )}
         </div>
       </div>
 
-      {/* Grid Container */}
-      <div className="overflow-x-auto pb-2">
+      {/* Heatmap grid */}
+      <div className="overflow-x-auto pb-1">
+        {/* Screen-reader accessible summary */}
+        <p className="sr-only">
+          Activity heatmap for {projection.startDate} to {projection.endDate}.
+          {projection.activeDaysCount} active days out of 365. Use arrow keys to navigate cells.
+        </p>
+
         <div
-          aria-label="Engineering activity heatmap for past year"
-          className="grid grid-flow-col grid-rows-7 gap-1.5 min-w-[720px]"
+          role="grid"
+          aria-label="Engineering activity heatmap — past year"
+          className="grid grid-flow-col grid-rows-7 gap-1"
+          style={{ minWidth: 700 }}
         >
           {projection.cells.map((cell, idx) => {
+            const style = INTENSITY_STYLES[cell.intensity] ?? INTENSITY_STYLES[0]!;
             const label = `${cell.date}: ${
               cell.count > 0
                 ? isPrivateView
-                  ? `${cell.count} activities`
+                  ? `${cell.count} activity events (${cell.eventTypes.slice(0, 3).join(', ')})`
                   : 'Active'
                 : 'No activity'
             }`;
@@ -139,42 +205,67 @@ export const ActivityHeatmap: React.FC<ActivityHeatmapProps> = ({
               <button
                 key={cell.date || idx}
                 type="button"
+                role="gridcell"
                 aria-label={label}
                 onMouseEnter={() => setHoveredCell(cell)}
+                onMouseLeave={() => setHoveredCell(null)}
                 onFocus={() => setHoveredCell(cell)}
-                className={`w-3 h-3 rounded-[2px] transition-all hover:scale-125 focus:outline-none focus:ring-2 focus:ring-[#45F3FF] ${
-                  intensityColors[cell.intensity]
-                }`}
+                onBlur={() => setHoveredCell(null)}
+                className="w-3 h-3 rounded-sm transition-all duration-[80ms] hover:scale-125 focus:outline-none focus:ring-1"
+                style={{
+                  background: style.background,
+                  border: cell.intensity === 0 ? '1px solid rgba(255,255,255,0.05)' : 'none',
+                  boxShadow: cell.intensity > 2 ? `0 0 4px ${style.background}` : 'none',
+                  outline: 'none',
+                }}
               />
             );
           })}
         </div>
       </div>
 
-      {/* Footer & Active Tooltip */}
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between text-xs text-[#9CAAC1] pt-2">
-        <div className="min-h-[20px] font-medium text-white/90">
+      {/* Footer: tooltip + legend */}
+      <div
+        className="flex flex-col sm:flex-row items-start sm:items-center justify-between text-xs pt-1"
+        style={{ color: 'var(--text-muted)' }}
+      >
+        {/* Tooltip */}
+        <div className="min-h-[18px] font-medium" aria-live="polite" aria-atomic="true">
           {hoveredCell ? (
             <span>
-              <strong className="text-[#45F3FF]">{hoveredCell.date}</strong>:{' '}
+              <strong style={{ color: 'var(--cyan)', fontFamily: 'var(--font-mono)' }}>
+                {hoveredCell.date}
+              </strong>
+              {': '}
               {hoveredCell.count > 0
                 ? isPrivateView
-                  ? `${hoveredCell.count} event(s) (${hoveredCell.eventTypes.join(', ')})`
-                  : 'Verified Activity Registered'
+                  ? `${hoveredCell.count} event${hoveredCell.count !== 1 ? 's' : ''} — ${hoveredCell.eventTypes.join(', ')}`
+                  : 'Verified activity registered'
                 : 'No activity registered'}
             </span>
           ) : (
-            <span>Hover or focus on a day cell to view activity summary</span>
+            <span>Hover or focus a cell to view activity summary</span>
           )}
         </div>
 
-        <div className="flex items-center space-x-1.5 mt-2 sm:mt-0">
+        {/* Legend */}
+        <div
+          className="flex items-center gap-1.5 mt-2 sm:mt-0 flex-shrink-0"
+          aria-label="Activity intensity legend"
+        >
           <span className="text-[10px] uppercase tracking-wider">Less</span>
-          <span className="w-2.5 h-2.5 rounded-[2px] bg-[#070A11] border border-white/5" />
-          <span className="w-2.5 h-2.5 rounded-[2px] bg-[#0e4429]" />
-          <span className="w-2.5 h-2.5 rounded-[2px] bg-[#006d32]" />
-          <span className="w-2.5 h-2.5 rounded-[2px] bg-[#26a641]" />
-          <span className="w-2.5 h-2.5 rounded-[2px] bg-[#39d353]" />
+          {[0, 1, 2, 3, 4].map((level) => (
+            <span
+              key={level}
+              className="w-2.5 h-2.5 rounded-sm"
+              style={{
+                background: INTENSITY_STYLES[level]!.background,
+                border: level === 0 ? '1px solid rgba(255,255,255,0.08)' : 'none',
+              }}
+              aria-label={INTENSITY_STYLES[level]!.label}
+              title={INTENSITY_STYLES[level]!.label}
+            />
+          ))}
           <span className="text-[10px] uppercase tracking-wider">More</span>
         </div>
       </div>

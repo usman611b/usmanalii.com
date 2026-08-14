@@ -8,8 +8,8 @@ import { ActivityHeatmap } from '../components/ActivityHeatmap';
   description="Public GitHub engineering activity contribution matrix."
   currentPath="/activity"
 >
-  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 space-y-8">
-    <div class="space-y-4">
+  <div class="public-page-shell max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 space-y-8">
+    <header class="public-page-header space-y-4">
       <div
         class="inline-flex items-center space-x-2 px-3 py-1 rounded-md bg-[#08111F] border border-[#45F3FF]/30 font-mono-tech text-xs text-[#45F3FF]"
       >
@@ -18,14 +18,14 @@ import { ActivityHeatmap } from '../components/ActivityHeatmap';
       </div>
 
       <h1
-        class="text-6xl sm:text-7xl font-display font-bold tracking-tight text-white uppercase leading-none"
+        class="public-page-title text-6xl sm:text-7xl font-display font-bold tracking-tight text-white uppercase leading-none"
       >
         ENGINEERING ACTIVITY
       </h1>
       <p class="text-base text-[#9CAAC1] max-w-2xl">
         Daily signal of execution across public and synchronized private engineering repositories.
       </p>
-    </div>
+    </header>
 
     <!-- Heatmap Panel -->
     <div class="rounded-2xl glass-panel p-6 space-y-4 font-mono-tech">

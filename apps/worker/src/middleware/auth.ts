@@ -67,6 +67,28 @@ export function authenticate(overrides?: {
     const audTag = overrides?.audTag || c.env.CF_ACCESS_AUD_TAG;
     const ownerEmail = overrides?.ownerEmail || c.env.OWNER_EMAIL;
 
+    if (c.env.ENVIRONMENT === 'local' && isLocalRequest(c.req.url)) {
+      const localToken = readCookie(c.req.header('Cookie'), 'local_owner_session');
+      if (
+        c.env.LOCAL_OWNER_TOKEN &&
+        c.env.LOCAL_OWNER_TOKEN.length >= 32 &&
+        localToken &&
+        (await constantTimeTokenMatch(c.env.LOCAL_OWNER_TOKEN, localToken))
+      ) {
+        const now = new Date();
+        c.set('authContext', {
+          authenticatedSubject: ownerEmail || 'local-owner@localhost.invalid',
+          ownerId: '00000000-0000-0000-0000-000000000001' as import('@usmanalii/domain').EntityId,
+          isOwner: true,
+          requestId,
+          validatedAt: now,
+          expiresAt: new Date(now.getTime() + 8 * 3600 * 1000),
+        });
+        await next();
+        return;
+      }
+    }
+
     // Extract token from Cf-Access-Jwt-Assertion header or Bearer header
     const accessHeader = c.req.header('Cf-Access-Jwt-Assertion');
     const authHeader = c.req.header('Authorization');
@@ -108,11 +130,18 @@ export function authenticate(overrides?: {
     );
 
     if (!validation.valid) {
+      const errorCode =
+        validation.reason === 'expired'
+          ? 'AUTH_TOKEN_EXPIRED'
+          : validation.reason === 'owner_mismatch'
+            ? 'AUTH_OWNER_MISMATCH'
+            : 'AUTH_INVALID_TOKEN';
       const logEntry = createLogEntry('warn', 'JWT verification failed', {
         environment: c.env.ENVIRONMENT || 'local',
         requestId,
         route: c.req.path,
-        errorCode: 'AUTH_INVALID_TOKEN',
+        useCase: `access_jwt_${validation.reason}`,
+        errorCode,
         statusCode: 401,
       });
       console.warn(JSON.stringify(logEntry));
@@ -139,6 +168,33 @@ export function authenticate(overrides?: {
     c.set('authContext', authContext);
     await next();
   };
+}
+
+function isLocalRequest(url: string): boolean {
+  const hostname = new URL(url).hostname;
+  return hostname === '127.0.0.1' || hostname === 'localhost';
+}
+
+function readCookie(header: string | undefined, name: string): string | null {
+  if (!header) return null;
+  for (const part of header.split(';')) {
+    const [key, ...rest] = part.trim().split('=');
+    if (key === name) return decodeURIComponent(rest.join('='));
+  }
+  return null;
+}
+
+async function constantTimeTokenMatch(expected: string, supplied: string): Promise<boolean> {
+  const encoder = new TextEncoder();
+  const [expectedHash, suppliedHash] = await Promise.all([
+    crypto.subtle.digest('SHA-256', encoder.encode(expected)),
+    crypto.subtle.digest('SHA-256', encoder.encode(supplied)),
+  ]);
+  const left = new Uint8Array(expectedHash);
+  const right = new Uint8Array(suppliedHash);
+  let difference = left.length ^ right.length;
+  for (let index = 0; index < left.length; index += 1) difference |= left[index]! ^ right[index]!;
+  return difference === 0;
 }
 
 /**

@@ -64,7 +64,10 @@ export class GitHubClient {
   constructor(options: GitHubClientOptions = {}) {
     this.baseUrl = (options.baseUrl || 'https://api.github.com').replace(/\/+$/, '');
     this.token = options.token;
-    this.fetchFn = options.fetchFn || globalThis.fetch;
+    // Cloudflare Workers' native fetch is Web IDL branded and must retain the global runtime as
+    // its receiver. Calling an unbound reference as `this.fetchFn(...)` changes `this` to the
+    // GitHubClient instance and throws an `Illegal invocation` error.
+    this.fetchFn = (options.fetchFn || globalThis.fetch).bind(globalThis);
     this.timeoutMs = options.timeoutMs || 15000;
   }
 

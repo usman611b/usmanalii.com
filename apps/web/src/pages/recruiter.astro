@@ -1,105 +1,39 @@
 ---
 import BaseLayout from '../layouts/BaseLayout.astro';
+import { PublicIdentityView } from '../components/PublicIdentityView';
+import { ModeSwitcher } from '../components/ModeSwitcher';
 ---
 
 <BaseLayout
-  title="Recruiter Mode — USMAN ALI"
-  description="Evidence-backed 90-second executive summary for recruiters, engineering hiring managers, and evaluators."
+  title="Recruiter Mode — Usman Ali"
+  description="Evidence-backed recruiter projection — capabilities, verified projects, and résumé. Designed for a 60-second scan."
   currentPath="/recruiter"
 >
-  <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-12 space-y-8">
-    <div class="p-8 rounded-2xl glass-panel space-y-6 font-mono-tech">
-      <div
-        class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-b border-white/10 pb-6"
-      >
-        <div class="space-y-1">
-          <span class="text-xs font-bold text-[#8B5CFF] uppercase tracking-wider">
-            RECRUITER QUICK SCAN (&lt;90 SECONDS)
-          </span>
-          <h1 class="text-4xl font-display font-bold text-white uppercase tracking-wide">
-            USMAN ALI
-          </h1>
-          <p class="text-sm text-[#9CAAC1]">Systems Architect &amp; Senior Software Engineer</p>
-        </div>
-
-        <div class="flex items-center gap-3">
-          <a
-            href="/resume"
-            class="px-5 py-2.5 bg-[#45F3FF] text-[#05060A] font-bold text-xs rounded-lg uppercase tracking-wider hover:opacity-90 transition-opacity"
-          >
-            Résumé / Downloads
-          </a>
-          <a
-            href="/about"
-            class="px-5 py-2.5 bg-white/10 text-white font-bold text-xs rounded-lg uppercase tracking-wider hover:bg-white/20 transition-colors"
-          >
-            Full Profile
-          </a>
-        </div>
+  <!-- Recruiter mode context banner -->
+  <div
+    class="border-b"
+    style="border-color: var(--border-violet); background: rgba(139,92,246,0.05);"
+  >
+    <div
+      class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-3 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3"
+    >
+      <div class="flex items-center gap-3">
+        <span class="badge badge-violet" aria-label="Currently in Recruiter Mode">
+          Recruiter Mode
+        </span>
+        <span class="text-xs" style="color: var(--text-muted);">
+          Outcome-first scan — designed for 60–90 seconds
+        </span>
       </div>
-
-      <div class="grid grid-cols-1 md:grid-cols-2 gap-8 text-xs">
-        <div class="space-y-4">
-          <h2 class="text-xs font-bold uppercase tracking-wider text-[#45F3FF]">
-            SELECTED APPROVED CLAIMS &amp; OUTCOMES
-          </h2>
-          <ul class="space-y-3 text-[#9CAAC1]">
-            <li class="p-3 bg-white/5 rounded-lg border border-white/10 space-y-1">
-              <span class="text-white font-bold block">Distributed Edge Architecture</span>
-              <span
-                >Built zero-paid-dependency Personal Career OS on Cloudflare Workers &amp; D1.</span
-              >
-              <a href="/evidence" class="text-[#45F3FF] hover:underline text-[10px] block pt-1"
-                >View Evidence Ledger →</a
-              >
-            </li>
-            <li class="p-3 bg-white/5 rounded-lg border border-white/10 space-y-1">
-              <span class="text-white font-bold block">Strict Type Safety &amp; Monorepo</span>
-              <span>100% TypeScript strict mode across 10 monorepo packages.</span>
-              <a href="/journey" class="text-[#45F3FF] hover:underline text-[10px] block pt-1"
-                >View Engineering Records →</a
-              >
-            </li>
-            <li class="p-3 bg-white/5 rounded-lg border border-white/10 space-y-1">
-              <span class="text-white font-bold block">Cryptographic Security</span>
-              <span>RS256 WebCrypto Access JWT authentication and audit immutability.</span>
-              <a href="/deep-dive" class="text-[#45F3FF] hover:underline text-[10px] block pt-1"
-                >View Security ADRs →</a
-              >
-            </li>
-          </ul>
-        </div>
-
-        <div class="space-y-4">
-          <h2 class="text-xs font-bold uppercase tracking-wider text-[#FF66BC]">
-            FEATURED PROJECTS &amp; CAPABILITIES
-          </h2>
-          <ul class="space-y-3 text-[#9CAAC1]">
-            <li class="p-3 bg-white/5 rounded-lg border border-white/10 space-y-1">
-              <span class="text-white font-bold block">usmanalii.com — Personal Career OS</span>
-              <span>Static-first, evidence-backed personal software architecture.</span>
-              <a
-                href="/projects/portfolio-os"
-                class="text-[#FF66BC] hover:underline text-[10px] block pt-1">Read Case Study →</a
-              >
-            </li>
-            <li class="p-3 bg-white/5 rounded-lg border border-white/10 space-y-1">
-              <span class="text-white font-bold block">Central Claim Eligibility Engine</span>
-              <span>Pure functional rule engine validating evidence health and embargoes.</span>
-              <a href="/capabilities" class="text-[#FF66BC] hover:underline text-[10px] block pt-1"
-                >View Capabilities →</a
-              >
-            </li>
-          </ul>
-        </div>
-      </div>
-
-      <div
-        class="pt-6 border-t border-white/10 flex items-center justify-between text-xs text-[#9CAAC1]"
-      >
-        <span>Location: Karachi, Pakistan (Asia/Karachi)</span>
-        <span class="text-[#45F3FF]">Availability: Open for Senior/Staff Engineering Roles</span>
+      <div class="flex items-center gap-3 text-xs" style="color: var(--text-muted);">
+        <span style="font-family: var(--font-mono);">Switch mode:</span>
+        <ModeSwitcher initialMode="recruiter" client:load />
       </div>
     </div>
   </div>
+
+  <main class="public-page-shell max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-12 space-y-8">
+    <h1 class="sr-only">Usman Ali — Recruiter Profile</h1>
+    <PublicIdentityView mode="recruiter" client:load />
+  </main>
 </BaseLayout>

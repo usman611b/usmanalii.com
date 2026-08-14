@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 
 export type DisplayMode = 'general' | 'recruiter' | 'deep-dive';
 
@@ -6,29 +6,72 @@ interface ModeSwitcherProps {
   initialMode?: DisplayMode;
 }
 
+const MODES: Array<{
+  id: DisplayMode;
+  label: string;
+  shortLabel: string;
+  color: string;
+  borderColor: string;
+  bgColor: string;
+  description: string;
+}> = [
+  {
+    id: 'general',
+    label: 'General',
+    shortLabel: 'General',
+    color: 'var(--cyan)',
+    borderColor: 'var(--border-cyan)',
+    bgColor: 'rgba(37, 230, 255, 0.10)',
+    description: 'Narrative and evidence overview',
+  },
+  {
+    id: 'recruiter',
+    label: 'Recruiter',
+    shortLabel: 'Recruiter',
+    color: '#A78BFA',
+    borderColor: 'var(--border-violet)',
+    bgColor: 'rgba(139, 92, 246, 0.10)',
+    description: 'Outcome-first 90-second scan',
+  },
+  {
+    id: 'deep-dive',
+    label: 'Deep Dive',
+    shortLabel: 'Deep',
+    color: 'var(--magenta)',
+    borderColor: 'var(--border-magenta)',
+    bgColor: 'rgba(255, 45, 170, 0.10)',
+    description: 'Architecture, ADRs, and provenance',
+  },
+];
+
 export const ModeSwitcher: React.FC<ModeSwitcherProps> = ({ initialMode = 'general' }) => {
   const [mode, setMode] = useState<DisplayMode>(initialMode);
 
   useEffect(() => {
-    // Read from URL param if present
+    if (window.location.pathname === '/recruiter') {
+      setMode('recruiter');
+      return;
+    }
+    if (window.location.pathname === '/deep-dive') {
+      setMode('deep-dive');
+      return;
+    }
+    if (window.location.pathname !== '/') {
+      setMode('general');
+      return;
+    }
     const params = new URLSearchParams(window.location.search);
     const urlMode = params.get('mode') as DisplayMode | null;
     if (urlMode && ['general', 'recruiter', 'deep-dive'].includes(urlMode)) {
       setMode(urlMode);
-    } else {
-      // Read from cookie
-      const match = document.cookie.match(/view_mode=(general|recruiter|deep-dive)/);
-      if (match && match[1]) {
-        setMode(match[1] as DisplayMode);
-      }
+      return;
     }
   }, []);
 
-  const handleModeChange = (newMode: DisplayMode) => {
+  const handleModeChange = useCallback((newMode: DisplayMode) => {
     setMode(newMode);
     document.cookie = `view_mode=${newMode}; path=/; max-age=31536000; SameSite=Lax`;
 
-    // Navigate to appropriate surface or update URL
     if (newMode === 'recruiter') {
       window.location.href = '/recruiter';
     } else if (newMode === 'deep-dive') {
@@ -36,55 +79,43 @@ export const ModeSwitcher: React.FC<ModeSwitcherProps> = ({ initialMode = 'gener
     } else {
       window.location.href = '/';
     }
-  };
+  }, []);
 
   return (
     <div
-      className="inline-flex items-center p-0.5 bg-[#08111F] rounded-lg border border-white/10 text-xs font-medium font-mono-tech"
+      className="inline-flex items-center p-0.5 rounded-lg border border-[var(--hairline)] bg-[var(--obsidian)]"
       role="radiogroup"
       aria-label="View Mode Switcher"
     >
-      <button
-        type="button"
-        role="radio"
-        aria-checked={mode === 'general'}
-        onClick={() => handleModeChange('general')}
-        className={`px-3 py-1 rounded-md transition-all duration-200 ${
-          mode === 'general'
-            ? 'bg-[#45F3FF]/15 text-[#45F3FF] border border-[#45F3FF]/30 font-semibold shadow-sm'
-            : 'text-[#9CAAC1] hover:text-white'
-        }`}
-      >
-        General
-      </button>
-
-      <button
-        type="button"
-        role="radio"
-        aria-checked={mode === 'recruiter'}
-        onClick={() => handleModeChange('recruiter')}
-        className={`px-3 py-1 rounded-md transition-all duration-200 ${
-          mode === 'recruiter'
-            ? 'bg-[#8B5CFF]/15 text-[#8B5CFF] border border-[#8B5CFF]/30 font-semibold shadow-sm'
-            : 'text-[#9CAAC1] hover:text-white'
-        }`}
-      >
-        Recruiter
-      </button>
-
-      <button
-        type="button"
-        role="radio"
-        aria-checked={mode === 'deep-dive'}
-        onClick={() => handleModeChange('deep-dive')}
-        className={`px-3 py-1 rounded-md transition-all duration-200 ${
-          mode === 'deep-dive'
-            ? 'bg-[#FF3DA4]/15 text-[#FF3DA4] border border-[#FF3DA4]/30 font-semibold shadow-sm'
-            : 'text-[#9CAAC1] hover:text-white'
-        }`}
-      >
-        Deep Dive
-      </button>
+      {MODES.map((m) => {
+        const isActive = mode === m.id;
+        return (
+          <button
+            key={m.id}
+            type="button"
+            role="radio"
+            aria-checked={isActive}
+            aria-label={`Switch to ${m.label} mode — ${m.description}`}
+            onClick={() => handleModeChange(m.id)}
+            className="px-3 py-1.5 rounded-md text-[11px] font-semibold tracking-wide font-[var(--font-mono)] uppercase transition-all duration-[150ms] whitespace-nowrap"
+            style={
+              isActive
+                ? {
+                    background: m.bgColor,
+                    color: m.color,
+                    border: `1px solid ${m.borderColor}`,
+                  }
+                : {
+                    background: 'transparent',
+                    color: 'var(--text-muted)',
+                    border: '1px solid transparent',
+                  }
+            }
+          >
+            {m.shortLabel}
+          </button>
+        );
+      })}
     </div>
   );
 };
