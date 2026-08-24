@@ -1,0 +1,8 @@
+---
+import DashboardLayout from '../../layouts/DashboardLayout.astro';
+import { JournalModeration } from '../../components/dashboard/JournalModeration';
+---
+
+<DashboardLayout title="Reader Responses — Command Center" activeSection="comments">
+  <JournalModeration client:load />
+</DashboardLayout>

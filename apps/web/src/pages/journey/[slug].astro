@@ -1,17 +1,11 @@
 ---
 import BaseLayout from '../../layouts/BaseLayout.astro';
-import { RecordDetail } from '../../components/RecordDetail';
-const slug = Astro.url.searchParams.get('slug') ?? Astro.params.slug;
+import { JournalArticle } from '../../components/JournalArticle';
 export function getStaticPaths() {
   return [{ params: { slug: 'record' } }];
 }
 ---
 
-<BaseLayout title="Journey Entry — USMAN ALI" currentPath="/journey"
-  ><main class="public-page-shell mx-auto max-w-7xl px-4 py-12">
-    <RecordDetail
-      endpoint={`/api/v1/public/journey/${encodeURIComponent(slug ?? '')}`}
-      client:load
-    />
-  </main></BaseLayout
->
+<BaseLayout title="Engineering Journal Entry — USMAN ALI" currentPath="/journey">
+  <main class="public-page-shell journal-page-shell"><JournalArticle client:load /></main>
+</BaseLayout>

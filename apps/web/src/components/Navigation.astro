@@ -9,6 +9,7 @@ const { currentPath = '/' } = Astro.props;
 
 const navLinks = [
   { href: '/projects', label: 'Work' },
+  { href: '/journey', label: 'Journal' },
   { href: '/evidence', label: 'Evidence' },
   { href: '/skills', label: 'System' },
   { href: '/about', label: 'About' },
@@ -276,8 +277,8 @@ const navLinks = [
   const menu = document.getElementById('mobile-menu') as HTMLElement | null;
   const closeBtn = document.getElementById('mobile-menu-close') as HTMLButtonElement | null;
   const backdrop = document.getElementById('mobile-menu-backdrop') as HTMLElement | null;
-  const hamburger = document.getElementById('icon-hamburger') as SVGElement | null;
-  const closeIcon = document.getElementById('icon-close') as SVGElement | null;
+  const hamburger = document.querySelector<SVGElement>('#icon-hamburger');
+  const closeIcon = document.querySelector<SVGElement>('#icon-close');
 
   let previouslyFocused: HTMLElement | null = null;
 

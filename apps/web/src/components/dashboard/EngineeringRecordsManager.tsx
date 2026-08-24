@@ -120,9 +120,13 @@ const specs: Record<Kind, { title: string; resultKey: string; primary: string; f
           label: 'Target type',
           type: 'select',
           required: true,
-          options: ['project', 'evidence', 'artifact', 'skill', 'capability'],
+          options: ['project', 'evidence', 'artifact', 'skill', 'capability', 'journey'],
         },
-        { key: 'targetId', label: 'Target record ID', required: true },
+        {
+          key: 'targetId',
+          label: 'Target record ID (use the canonical ID from its dashboard page)',
+          required: true,
+        },
         {
           key: 'relationshipType',
           label: 'Relationship type',

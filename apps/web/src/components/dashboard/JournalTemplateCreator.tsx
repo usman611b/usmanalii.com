@@ -1,6 +1,6 @@
 import { useState } from 'react';
 
-type Template = {
+export type Template = {
   contentType: 'journal' | 'deep_dive' | 'retrospective' | 'note';
   label: string;
   description: string;
@@ -42,6 +42,52 @@ const templates: Template[] = [
 const slugFor = (type: Template['contentType']) =>
   `${type.replaceAll('_', '-')}-${new Date().toISOString().replace(/\D/g, '').slice(0, 14)}`;
 
+const block = (
+  type: string,
+  fields: Record<string, unknown> = {},
+): Record<string, unknown> & { id: string; type: string } => ({
+  id: crypto.randomUUID(),
+  type,
+  ...fields,
+});
+
+export function templateBlocks(template: Template) {
+  if (template.contentType === 'deep_dive') {
+    return [
+      block('heading', { level: 2, text: 'Context' }),
+      block('paragraph', { text: '' }),
+      block('heading', { level: 2, text: 'Architecture' }),
+      block('architecture_diagram', {
+        title: 'System architecture',
+        nodes: ['Input', 'Process', 'Store', 'Deliver'],
+        text: '',
+      }),
+      block('heading', { level: 2, text: 'What went wrong' }),
+      block('paragraph', { text: '' }),
+      block('heading', { level: 2, text: 'Decision' }),
+      block('paragraph', { text: '' }),
+      block('code_block', { language: 'TypeScript', caption: 'implementation.ts', code: '' }),
+      block('quote', { text: '', cite: '' }),
+      block('heading', { level: 2, text: 'Outcome' }),
+      block('paragraph', { text: '' }),
+      block('metrics', {
+        title: 'Outcome metrics',
+        items: ['Value | Metric | Measurement window'],
+      }),
+      block('relationship_tag', {
+        entityType: 'project',
+        entityId: '',
+        label: 'Related project',
+      }),
+      block('embed_artifact', { artifactId: '', caption: 'Supporting artifact' }),
+    ];
+  }
+  return template.headings.flatMap((heading) => [
+    block('heading', { level: 2, text: heading }),
+    block('paragraph', { text: '' }),
+  ]);
+}
+
 export function JournalTemplateCreator() {
   const [creating, setCreating] = useState<string | null>(null);
   const [error, setError] = useState('');
@@ -49,10 +95,7 @@ export function JournalTemplateCreator() {
   const create = async (template: Template) => {
     setCreating(template.contentType);
     setError('');
-    const blocks = template.headings.flatMap((heading) => [
-      { id: crypto.randomUUID(), type: 'heading', level: 2, text: heading },
-      { id: crypto.randomUUID(), type: 'paragraph', text: '' },
-    ]);
+    const blocks = templateBlocks(template);
     try {
       const response = await fetch('/api/v1/private/content', {
         method: 'POST',

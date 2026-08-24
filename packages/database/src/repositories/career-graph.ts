@@ -517,6 +517,8 @@ export class D1CareerGraphRepository {
           WHEN 'capability' THEN 'capability:' || pr.source_id
           WHEN 'evidence' THEN 'evidence:' || pr.source_id
           WHEN 'artifact' THEN 'artifact:' || pr.source_id
+          WHEN 'journey' THEN 'journey:' || pr.source_id
+          WHEN 'content_item' THEN 'journey:' || pr.source_id
           ELSE 'project:' || pr.source_id
         END AS source_id,
         CASE pr.target_type
@@ -525,6 +527,8 @@ export class D1CareerGraphRepository {
           WHEN 'capability' THEN 'capability:' || pr.target_id
           WHEN 'evidence' THEN 'evidence:' || pr.target_id
           WHEN 'artifact' THEN 'artifact:' || pr.target_id
+          WHEN 'journey' THEN 'journey:' || pr.target_id
+          WHEN 'content_item' THEN 'journey:' || pr.target_id
           ELSE 'project:' || pr.target_id
         END AS target_id,
         pr.relationship_type, pr.relevance,

@@ -181,7 +181,7 @@ export class D1ProjectRepository {
     const sql = `
       INSERT INTO projects (
         id, owner_id, title, slug, description, status, visibility, state,
-        started_at, completed_at, role_description, is_collaboration,
+        detailed_context, started_at, completed_at, role_description, is_collaboration,
         problem_statement, goals, non_goals, constraints, contribution_statement,
         collaboration_context, recruiter_summary, deep_dive_content, repository_references,
         live_demo_references, hero_artifact_id, case_study_body, case_study_format,
@@ -189,7 +189,7 @@ export class D1ProjectRepository {
         created_at, updated_at, version_no
       ) VALUES (
         ?, ?, ?, ?, ?, ?, ?, ?,
-        ?, ?, ?, ?,
+        ?, ?, ?, ?, ?,
         ?, ?, ?, ?, ?,
         ?, ?, ?, ?,
         ?, ?, ?, 'json_blocks', 1,
@@ -209,6 +209,7 @@ export class D1ProjectRepository {
         input.lifecycleState || 'active',
         input.visibility || 'private',
         input.publicationState || 'draft',
+        input.detailedContext || null,
         input.startDate || null,
         input.endDate || null,
         input.role || null,
@@ -277,6 +278,7 @@ export class D1ProjectRepository {
         title = COALESCE(?, title),
         slug = COALESCE(?, slug),
         description = COALESCE(?, description),
+        detailed_context = COALESCE(?, detailed_context),
         status = COALESCE(?, status),
         visibility = COALESCE(?, visibility),
         state = COALESCE(?, state),
@@ -309,6 +311,7 @@ export class D1ProjectRepository {
         input.title || null,
         input.slug || null,
         input.shortSummary || null,
+        input.detailedContext || null,
         input.lifecycleState || null,
         input.visibility || null,
         input.publicationState || null,

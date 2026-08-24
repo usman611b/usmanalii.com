@@ -16,6 +16,7 @@ import {
   D1ProjectRepository,
   D1EngineeringRecordRepository,
   D1ProjectRelationshipRepository,
+  D1ProfileRepository,
 } from '@usmanalii/database';
 import {
   ContentBodyV1Schema,
@@ -45,7 +46,7 @@ import {
 import { githubRoutes } from './github.js';
 import { UpdateProfileRequestSchema } from '@usmanalii/contracts';
 
-type OwnedLinkKind = 'project' | 'evidence' | 'artifact' | 'skill' | 'capability';
+type OwnedLinkKind = 'project' | 'evidence' | 'artifact' | 'skill' | 'capability' | 'journey';
 
 const OWNED_LINK_TABLES: Record<OwnedLinkKind, string> = {
   project: 'projects',
@@ -53,6 +54,7 @@ const OWNED_LINK_TABLES: Record<OwnedLinkKind, string> = {
   artifact: 'artifacts',
   skill: 'skills',
   capability: 'capabilities',
+  journey: 'content_items',
 };
 
 export async function validateOwnedLinkIds(
@@ -164,6 +166,20 @@ const UpdateContentItemSchema = z.object({
   versionNo: z.number().int().min(1, 'versionNo is required for concurrency control.'),
 });
 
+const JournalPresentationSchema = z.object({
+  coverImageUrl: z.string().trim().max(1000).nullable().optional(),
+  isFeatured: z.boolean().default(false),
+  commentsEnabled: z.boolean().default(true),
+  seoTitle: z.string().trim().max(120).nullable().optional(),
+  seoDescription: z.string().trim().max(300).nullable().optional(),
+  tags: z.array(z.string().trim().min(1).max(50)).max(12).default([]),
+});
+
+const JournalCommentModerationSchema = z.object({
+  moderationState: z.enum(['approved', 'rejected', 'spam', 'deleted']),
+  reviewerNote: z.string().trim().max(500).nullable().optional(),
+});
+
 /** GET /api/v1/private/content — List owner content items */
 privateRoutes.get('/content', async (c) => {
   const authContext = c.get('authContext')!;
@@ -245,11 +261,179 @@ privateRoutes.get('/content/:id', async (c) => {
 
   const revisions = await repo.listRevisions(authContext.ownerId, id);
   const blocks = found.latestBodySnapshot ? JSON.parse(found.latestBodySnapshot) : [];
+  const [presentation, tagsResult] = await Promise.all([
+    c.env.DB.prepare(
+      `SELECT cover_image_url, is_featured, comments_enabled, seo_title, seo_description
+       FROM content_items WHERE id = ? AND owner_id = ?`,
+    )
+      .bind(id, authContext.ownerId)
+      .first<Record<string, unknown>>(),
+    c.env.DB.prepare(
+      `SELECT jt.name, jt.slug FROM journal_entry_tags jet
+       JOIN journal_tags jt ON jt.id = jet.tag_id
+       WHERE jet.content_item_id = ? AND jt.owner_id = ? ORDER BY jet.ordering, jt.name`,
+    )
+      .bind(id, authContext.ownerId)
+      .all<{ name: string; slug: string }>(),
+  ]);
 
   return c.json({
-    item: found.item,
+    item: {
+      ...found.item,
+      coverImageUrl: presentation?.cover_image_url ? String(presentation.cover_image_url) : null,
+      isFeatured: Number(presentation?.is_featured ?? 0) === 1,
+      commentsEnabled: Number(presentation?.comments_enabled ?? 1) === 1,
+      seoTitle: presentation?.seo_title ? String(presentation.seo_title) : null,
+      seoDescription: presentation?.seo_description ? String(presentation.seo_description) : null,
+      tags: tagsResult.results ?? [],
+    },
     blocks,
     revisions,
+    requestId: c.get('requestId'),
+  });
+});
+
+privateRoutes.put('/content/:id/presentation', async (c) => {
+  const authContext = c.get('authContext')!;
+  const id = c.req.param('id');
+  const parsed = JournalPresentationSchema.safeParse(await c.req.json().catch(() => ({})));
+  if (!parsed.success) {
+    return c.json(
+      {
+        code: 'INVALID_PAYLOAD',
+        message: 'Journal presentation fields are invalid.',
+        errors: parsed.error.errors,
+        requestId: c.get('requestId'),
+      },
+      400,
+    );
+  }
+  const owned = await c.env.DB.prepare(
+    `SELECT id FROM content_items WHERE id = ? AND owner_id = ? AND deleted_at IS NULL`,
+  )
+    .bind(id, authContext.ownerId)
+    .first<{ id: string }>();
+  if (!owned)
+    return c.json(
+      { code: 'NOT_FOUND', message: 'Content item not found.', requestId: c.get('requestId') },
+      404,
+    );
+  if (parsed.data.coverImageUrl) {
+    try {
+      const url = new URL(parsed.data.coverImageUrl, 'https://usmanalii.com');
+      if (!['http:', 'https:'].includes(url.protocol)) throw new Error('unsafe');
+    } catch {
+      return c.json(
+        {
+          code: 'INVALID_COVER_URL',
+          message: 'Cover image must use a safe HTTP or HTTPS URL.',
+          requestId: c.get('requestId'),
+        },
+        400,
+      );
+    }
+  }
+  const now = new Date().toISOString();
+  const statements: D1PreparedStatement[] = [
+    c.env.DB.prepare(
+      `UPDATE content_items SET cover_image_url = ?, is_featured = ?, comments_enabled = ?,
+         seo_title = ?, seo_description = ?, updated_at = ?
+       WHERE id = ? AND owner_id = ?`,
+    ).bind(
+      parsed.data.coverImageUrl || null,
+      parsed.data.isFeatured ? 1 : 0,
+      parsed.data.commentsEnabled ? 1 : 0,
+      parsed.data.seoTitle || null,
+      parsed.data.seoDescription || null,
+      now,
+      id,
+      authContext.ownerId,
+    ),
+    c.env.DB.prepare(`DELETE FROM journal_entry_tags WHERE content_item_id = ?`).bind(id),
+  ];
+  const uniqueTags = [...new Set(parsed.data.tags.map((tag) => tag.trim()).filter(Boolean))];
+  uniqueTags.forEach((tag, index) => {
+    const slug = tag
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/(^-|-$)/g, '');
+    const tagId = crypto.randomUUID();
+    statements.push(
+      c.env.DB.prepare(
+        `INSERT INTO journal_tags (id, owner_id, name, slug, created_at) VALUES (?, ?, ?, ?, ?)
+         ON CONFLICT(owner_id, slug) DO UPDATE SET name = excluded.name`,
+      ).bind(tagId, authContext.ownerId, tag, slug, now),
+      c.env.DB.prepare(
+        `INSERT INTO journal_entry_tags (content_item_id, tag_id, ordering, created_at)
+         SELECT ?, id, ?, ? FROM journal_tags WHERE owner_id = ? AND slug = ?`,
+      ).bind(id, index, now, authContext.ownerId, slug),
+    );
+  });
+  await c.env.DB.batch(statements);
+  return c.json({
+    success: true,
+    message: 'Journal presentation settings saved.',
+    requestId: c.get('requestId'),
+  });
+});
+
+privateRoutes.get('/comments', async (c) => {
+  const authContext = c.get('authContext')!;
+  const requestedState = c.req.query('state') || 'pending';
+  const state = ['pending', 'approved', 'rejected', 'spam', 'deleted'].includes(requestedState)
+    ? requestedState
+    : 'pending';
+  const result = await c.env.DB.prepare(
+    `SELECT jc.id, jc.content_item_id AS contentItemId, jc.parent_comment_id AS parentCommentId,
+            jc.author_name AS authorName, jc.author_email AS authorEmail,
+            jc.author_website AS authorWebsite, jc.body,
+            jc.moderation_state AS moderationState, jc.created_at AS createdAt,
+            jc.reviewer_note AS reviewerNote, ci.title AS entryTitle, ci.slug AS entrySlug
+     FROM journal_comments jc JOIN content_items ci ON ci.id = jc.content_item_id
+     WHERE ci.owner_id = ? AND jc.moderation_state = ?
+     ORDER BY jc.created_at DESC LIMIT 200`,
+  )
+    .bind(authContext.ownerId, state)
+    .all<Record<string, unknown>>();
+  return c.json({
+    comments: result.results ?? [],
+    count: result.results?.length ?? 0,
+    requestId: c.get('requestId'),
+  });
+});
+
+privateRoutes.patch('/comments/:id', async (c) => {
+  const authContext = c.get('authContext')!;
+  const parsed = JournalCommentModerationSchema.safeParse(await c.req.json().catch(() => ({})));
+  if (!parsed.success)
+    return c.json(
+      {
+        code: 'INVALID_PAYLOAD',
+        message: 'Choose a valid moderation decision.',
+        requestId: c.get('requestId'),
+      },
+      400,
+    );
+  const result = await c.env.DB.prepare(
+    `UPDATE journal_comments SET moderation_state = ?, reviewer_note = ?, reviewed_at = ?
+     WHERE id = ? AND content_item_id IN (SELECT id FROM content_items WHERE owner_id = ?)`,
+  )
+    .bind(
+      parsed.data.moderationState,
+      parsed.data.reviewerNote || null,
+      new Date().toISOString(),
+      c.req.param('id'),
+      authContext.ownerId,
+    )
+    .run();
+  if (Number(result.meta?.changes ?? 0) === 0)
+    return c.json(
+      { code: 'NOT_FOUND', message: 'Comment not found.', requestId: c.get('requestId') },
+      404,
+    );
+  return c.json({
+    success: true,
+    moderationState: parsed.data.moderationState,
     requestId: c.get('requestId'),
   });
 });
@@ -523,7 +707,20 @@ privateRoutes.post('/content/:id/preview-token', async (c) => {
   const expiresAt = Date.now() + 3600 * 1000; // 1 hour
   const purpose = 'preview';
   const tokenPayload = `${id}:${authContext.ownerId}:${found.item.versionNo}:${purpose}:${expiresAt}`;
-  const secretKey = c.env.PREVIEW_SECRET || c.env.CF_ACCESS_AUD_TAG || 'preview-secret-key';
+  const secretKey =
+    c.env.PREVIEW_SECRET ||
+    (c.env.ENVIRONMENT === 'local' ? c.env.LOCAL_OWNER_TOKEN : undefined) ||
+    (c.env.ENVIRONMENT === 'test' ? 'test-preview-secret' : undefined);
+  if (!secretKey) {
+    return c.json(
+      {
+        code: 'PREVIEW_NOT_CONFIGURED',
+        message: 'Secure preview is not configured.',
+        requestId: c.get('requestId'),
+      },
+      503,
+    );
+  }
 
   const key = await crypto.subtle.importKey(
     'raw',
@@ -546,7 +743,7 @@ privateRoutes.post('/content/:id/preview-token', async (c) => {
     token,
     expiresAt,
     versionNo: found.item.versionNo,
-    previewUrl: `/dashboard/journal/${id}/edit?preview=true&token=${encodeURIComponent(token)}`,
+    previewUrl: `/journey/preview?id=${encodeURIComponent(id)}&token=${encodeURIComponent(token)}`,
     requestId: c.get('requestId'),
   });
 });
@@ -625,7 +822,20 @@ privateRoutes.get('/content/:id/preview', async (c) => {
   }
 
   const tokenPayload = `${tokenId}:${tokenOwnerId}:${tokenVersionNoStr}:${purpose}:${expiresAtStr}`;
-  const secretKey = c.env.PREVIEW_SECRET || c.env.CF_ACCESS_AUD_TAG || 'preview-secret-key';
+  const secretKey =
+    c.env.PREVIEW_SECRET ||
+    (c.env.ENVIRONMENT === 'local' ? c.env.LOCAL_OWNER_TOKEN : undefined) ||
+    (c.env.ENVIRONMENT === 'test' ? 'test-preview-secret' : undefined);
+  if (!secretKey) {
+    return c.json(
+      {
+        code: 'PREVIEW_NOT_CONFIGURED',
+        message: 'Secure preview is not configured.',
+        requestId: c.get('requestId'),
+      },
+      503,
+    );
+  }
 
   const key = await crypto.subtle.importKey(
     'raw',
@@ -680,9 +890,84 @@ privateRoutes.get('/content/:id/preview', async (c) => {
     ? JSON.parse(found.latestBodySnapshot)
     : [];
 
+  const relationshipBlocks = blocks.filter((block) => block.type === 'relationship_tag');
+  const relationshipIds = (entityType: string) =>
+    relationshipBlocks
+      .filter((block) => block.entityType === entityType)
+      .map((block) => String(block.entityId));
+  const artifactIds = blocks
+    .filter((block) => block.type === 'embed_artifact')
+    .map((block) => String(block.artifactId));
+  const selectIds = async (sql: string, selectedIds: string[]) => {
+    if (!selectedIds.length) return [] as Record<string, unknown>[];
+    const placeholders = selectedIds.map(() => '?').join(', ');
+    const result = await c.env.DB.prepare(sql.replace('__IDS__', placeholders))
+      .bind(...selectedIds)
+      .all<Record<string, unknown>>();
+    return result.results ?? [];
+  };
+
+  const [presentation, tagsResult, author, projects, capabilities, skills, evidence, artifacts] =
+    await Promise.all([
+      c.env.DB.prepare(
+        `SELECT cover_image_url, is_featured, comments_enabled, seo_title, seo_description
+       FROM content_items WHERE id = ? AND owner_id = ?`,
+      )
+        .bind(id, authContext.ownerId)
+        .first<Record<string, unknown>>(),
+      c.env.DB.prepare(
+        `SELECT jt.name, jt.slug FROM journal_entry_tags jet
+       JOIN journal_tags jt ON jt.id = jet.tag_id
+       WHERE jet.content_item_id = ? AND jt.owner_id = ? ORDER BY jet.ordering, jt.name`,
+      )
+        .bind(id, authContext.ownerId)
+        .all<{ name: string; slug: string }>(),
+      new D1ProfileRepository(c.env.DB).getPublicProfile(),
+      selectIds(
+        `SELECT id, title, slug, description AS shortSummary FROM projects WHERE id IN (__IDS__) AND visibility = 'public' AND state = 'published' AND deleted_at IS NULL`,
+        relationshipIds('project'),
+      ),
+      selectIds(
+        `SELECT id, title, slug, outcome_statement AS outcomeStatement FROM capabilities WHERE id IN (__IDS__) AND visibility = 'public' AND state = 'published' AND archived_at IS NULL`,
+        relationshipIds('capability'),
+      ),
+      selectIds(
+        `SELECT id, name, slug, category FROM skills WHERE id IN (__IDS__) AND visibility = 'public' AND lifecycle_state <> 'archived' AND archived_at IS NULL`,
+        relationshipIds('skill'),
+      ),
+      selectIds(
+        `SELECT id, title, description, evidence_type AS evidenceType, verification_state AS verificationState FROM evidence_items WHERE id IN (__IDS__) AND visibility = 'public' AND verification_state IN ('owner_verified', 'source_verified', 'automatically_observed') AND archived_at IS NULL AND deleted_at IS NULL`,
+        relationshipIds('evidence'),
+      ),
+      selectIds(
+        `SELECT id, title, artifact_type AS artifactType, media_type AS mediaType FROM artifacts WHERE id IN (__IDS__) AND visibility = 'public' AND archived_at IS NULL AND deleted_at IS NULL`,
+        artifactIds,
+      ),
+    ]);
+
   return c.json({
-    item: found.item,
+    item: {
+      ...found.item,
+      coverImageUrl: presentation?.cover_image_url ? String(presentation.cover_image_url) : null,
+      isFeatured: Number(presentation?.is_featured ?? 0) === 1,
+      commentsEnabled: Number(presentation?.comments_enabled ?? 1) === 1,
+      seoTitle: presentation?.seo_title ? String(presentation.seo_title) : null,
+      seoDescription: presentation?.seo_description ? String(presentation.seo_description) : null,
+    },
     blocks,
+    tags: tagsResult.results ?? [],
+    projects,
+    capabilities,
+    skills,
+    evidence,
+    artifacts,
+    author: author
+      ? {
+          displayName: author.displayName,
+          headline: author.headline,
+          profileImageUrl: author.profileImageUrl,
+        }
+      : null,
     isPreview: true,
     requestId: c.get('requestId'),
   });
@@ -713,12 +998,18 @@ privateRoutes.get('/relationships/available', async (c) => {
       `SELECT id, title AS label, 'evidence' AS type, visibility FROM evidence_items WHERE owner_id = ? AND archived_at IS NULL`,
     )
     .bind(authContext.ownerId);
+  const artifactsStmt = db
+    .prepare(
+      `SELECT id, title AS label, 'artifact' AS type, visibility FROM artifacts WHERE owner_id = ? AND archived_at IS NULL AND deleted_at IS NULL`,
+    )
+    .bind(authContext.ownerId);
 
-  const [skills, caps, projects, evidence] = await Promise.all([
+  const [skills, caps, projects, evidence, artifacts] = await Promise.all([
     skillsStmt.all<{ id: string; label: string; type: string; visibility: string }>(),
     capsStmt.all<{ id: string; label: string; type: string; visibility: string }>(),
     projectsStmt.all<{ id: string; label: string; type: string; visibility: string }>(),
     evidenceStmt.all<{ id: string; label: string; type: string; visibility: string }>(),
+    artifactsStmt.all<{ id: string; label: string; type: string; visibility: string }>(),
   ]);
 
   return c.json({
@@ -726,6 +1017,7 @@ privateRoutes.get('/relationships/available', async (c) => {
     capabilities: caps.results || [],
     projects: projects.results || [],
     evidence: evidence.results || [],
+    artifacts: artifacts.results || [],
     requestId: c.get('requestId'),
   });
 });
@@ -1482,7 +1774,7 @@ privateRoutes.post('/projects/:id/relationships', async (c) => {
     );
   }
 
-  if (!['project', 'evidence', 'artifact', 'skill', 'capability'].includes(targetType)) {
+  if (!['project', 'evidence', 'artifact', 'skill', 'capability', 'journey'].includes(targetType)) {
     return c.json(
       {
         code: 'INVALID_LINK_REFERENCE',
@@ -1560,7 +1852,7 @@ privateRoutes.get('/activity', async (c) => {
   const authContext = c.get('authContext')!;
   const timezone = c.req.query('timezone') || 'Asia/Karachi';
   const now = new Date();
-  const oneYearAgo = new Date(now.getTime() - 365 * 86400 * 1000).toISOString();
+  const oneYearAgo = new Date(now.getTime() - 364 * 86400 * 1000).toISOString();
   const nowIso = now.toISOString();
 
   // Query ALL owner activity events from D1 (including private)
@@ -1576,10 +1868,14 @@ privateRoutes.get('/activity', async (c) => {
     SELECT id, deployed_at as date_iso, 'deployment' as type, visibility, publication_state as state
     FROM deployments
     WHERE owner_id = ? AND deleted_at IS NULL
+    UNION ALL
+    SELECT id, created_at as date_iso, 'project_milestone' as type, visibility, state
+    FROM projects
+    WHERE owner_id = ? AND deleted_at IS NULL
   `;
 
   const { results } = await c.env.DB.prepare(sql)
-    .bind(authContext.ownerId, authContext.ownerId, authContext.ownerId)
+    .bind(authContext.ownerId, authContext.ownerId, authContext.ownerId, authContext.ownerId)
     .all<Record<string, unknown>>();
   const events = (results ?? []).map((row) => ({
     id: String(row.id),

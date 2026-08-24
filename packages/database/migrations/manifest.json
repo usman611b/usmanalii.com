@@ -20,6 +20,8 @@
     "016_github_evidence_integration_m6.sql": "14cc57da014073863d9c4e30ac649e00b6d13242f0296c783690849c798786e4",
     "017_professional_identity_resume_m7.sql": "744e266a8f6c5ef53ca9a8556e697ef388d111d2946ed6dcba8ced625c7d2750",
     "018_profile_social_contact_m7_6.sql": "b0ec52329359d7fc0df83b21de017e697a9aeb6b6632b6fb87273517a0997516",
-    "019_career_knowledge_graph.sql": "dbca0eb6417118db8a33b39e5400b729b2a3a2f0f17c24b369cead4af7d44e13"
+    "019_career_knowledge_graph.sql": "dbca0eb6417118db8a33b39e5400b729b2a3a2f0f17c24b369cead4af7d44e13",
+    "020_project_detail_and_activity_fix.sql": "5b0c2cd6a46e110c9ce5ab18b3e4a4e1d987c483614a1ec8984d01a532131478",
+    "021_engineering_journal_experience.sql": "9f7a8c064c95e9319caf18622cd5930b8a873ae1c8f0614ea53ba70c69c0fcb4"
   }
 }

@@ -23,7 +23,7 @@ export function ProjectForm({ mode }: { mode: 'create' | 'edit' }) {
       ? ''
       : new URLSearchParams(window.location.search).get('id') || '';
   const [draft, setDraft] = useState<Record<string, unknown>>({
-    lifecycleState: 'planned',
+    lifecycleState: 'active',
     visibility: 'private',
     publicationState: 'draft',
     ongoingStatus: false,

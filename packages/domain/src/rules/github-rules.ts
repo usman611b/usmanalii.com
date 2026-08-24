@@ -171,6 +171,19 @@ export interface DatedEventInput {
   readonly isPublished: boolean;
 }
 
+function formatDateInTimezone(date: Date, targetTimezone: string): string {
+  try {
+    return new Intl.DateTimeFormat('en-CA', {
+      timeZone: targetTimezone,
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+    }).format(date);
+  } catch {
+    return date.toISOString().slice(0, 10);
+  }
+}
+
 /**
  * Computes a timezone-aware Activity Heatmap projection.
  */
@@ -206,17 +219,7 @@ export function computeActivityHeatmap(
     }
 
     // Determine YYYY-MM-DD in target timezone
-    let dateStr = '';
-    try {
-      dateStr = new Intl.DateTimeFormat('en-CA', {
-        timeZone: targetTimezone,
-        year: 'numeric',
-        month: '2-digit',
-        day: '2-digit',
-      }).format(new Date(ev.dateIso));
-    } catch {
-      dateStr = ev.dateIso.slice(0, 10);
-    }
+    const dateStr = formatDateInTimezone(new Date(ev.dateIso), targetTimezone);
 
     const current = cellsMap.get(dateStr) ?? { count: 0, eventIds: new Set(), types: new Set() };
     if (!current.eventIds.has(ev.id)) {
@@ -232,24 +235,15 @@ export function computeActivityHeatmap(
   let activeDaysCount = 0;
 
   // Generate continuous daily range from start to end date
-  const loopStartMs = new Date(startDateIso).setHours(12, 0, 0, 0); // Noon to avoid DST shifts
-  const loopEndMs = new Date(endDateIso).setHours(12, 0, 0, 0);
+  const startDateKey = formatDateInTimezone(new Date(startDateIso), targetTimezone);
+  const endDateKey = formatDateInTimezone(new Date(endDateIso), targetTimezone);
+  const loopStartMs = Date.parse(`${startDateKey}T12:00:00.000Z`);
+  const loopEndMs = Date.parse(`${endDateKey}T12:00:00.000Z`);
   const dayMs = 86400000;
   const dayCount = Math.round((loopEndMs - loopStartMs) / dayMs) + 1;
 
   for (let dayIndex = 0; dayIndex < dayCount; dayIndex++) {
-    const dayPoint = new Date(loopStartMs + dayIndex * dayMs);
-    let dateKey = '';
-    try {
-      dateKey = new Intl.DateTimeFormat('en-CA', {
-        timeZone: targetTimezone,
-        year: 'numeric',
-        month: '2-digit',
-        day: '2-digit',
-      }).format(dayPoint);
-    } catch {
-      dateKey = dayPoint.toISOString().slice(0, 10);
-    }
+    const dateKey = new Date(loopStartMs + dayIndex * dayMs).toISOString().slice(0, 10);
 
     const cellData = cellsMap.get(dateKey);
     const count = cellData?.count ?? 0;
@@ -274,8 +268,8 @@ export function computeActivityHeatmap(
 
   return {
     timezone: targetTimezone,
-    startDate: startDateIso.slice(0, 10),
-    endDate: endDateIso.slice(0, 10),
+    startDate: startDateKey,
+    endDate: endDateKey,
     cells,
     totalActivities,
     activeDaysCount,

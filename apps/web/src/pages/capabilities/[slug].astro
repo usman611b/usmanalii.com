@@ -9,9 +9,6 @@ export function getStaticPaths() {
 
 <BaseLayout title="Capability — USMAN ALI" currentPath="/capabilities"
   ><main class="public-page-shell mx-auto max-w-7xl px-4 py-12">
-    <RecordDetail
-      endpoint={`/api/v1/public/capabilities/${encodeURIComponent(slug ?? '')}`}
-      client:load
-    />
+    <RecordDetail endpointBase="/api/v1/public/capabilities" fallbackKey={slug} client:load />
   </main></BaseLayout
 >

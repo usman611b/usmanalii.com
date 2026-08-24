@@ -1,0 +1,24 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import { DeepDiveProject } from '../../components/DeepDiveProject';
+
+export function getStaticPaths() {
+  return [{ params: { slug: 'record' } }];
+}
+---
+
+<BaseLayout
+  title="Project Technical Deep Dive — USMAN ALI"
+  description="A complete evidence-backed technical case study covering architecture, decisions, experiments, debugging, delivery, outcomes, and provenance."
+  currentPath="/deep-dive"
+>
+  <div class="deep-mode-banner">
+    <div>
+      <span class="badge badge-magenta">Deep Dive Mode</span>
+      <p>Published records only · Missing documentation is clearly identified</p>
+    </div>
+  </div>
+  <main class="public-page-shell deep-dive-shell">
+    <DeepDiveProject client:load />
+  </main>
+</BaseLayout>

@@ -39,6 +39,8 @@ function normalizeWebUrl(value: string | null) {
   if (!value) return null;
   const trimmed = value.trim();
   if (!trimmed) return null;
+  if (/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(trimmed)) return `mailto:${trimmed}`;
+  if (/^mailto:/i.test(trimmed)) return trimmed;
   return /^https?:\/\//i.test(trimmed) ? trimmed : `https://${trimmed}`;
 }
 

@@ -5,7 +5,7 @@
   "description": "usmanalii.com — Personal Career OS",
   "engines": {
     "node": ">=22.0.0",
-    "pnpm": ">=9.15.0"
+    "pnpm": "9.15.4"
   },
   "scripts": {
     "db:init:local": "node infrastructure/scripts/initialize-local-dev-database.mjs",
@@ -13,6 +13,7 @@
     "cloudflare:config:check": "node infrastructure/scripts/verify-cloudflare-config.mjs",
     "migrations:staging:plan": "node infrastructure/scripts/apply-remote-staging-migrations.mjs",
     "migrations:staging:remote-plan": "node infrastructure/scripts/apply-remote-staging-migrations.mjs --remote-plan --config=infrastructure/wrangler/wrangler.staging.toml",
+    "migrations:production:plan": "node infrastructure/scripts/apply-remote-production-migrations.mjs --config=infrastructure/wrangler/wrangler.production.toml",
     "build": "turbo run build",
     "dev": "turbo run dev --parallel",
     "typecheck": "turbo run typecheck",

@@ -30,6 +30,19 @@ describe('Cloudflare Worker GitHub API Routes & Security (M6)', () => {
             if (sql.includes('evidence_candidates')) {
               return { results: Array.from(candidates.values()) };
             }
+            if (sql.includes('FROM projects')) {
+              return {
+                results: [
+                  {
+                    id: 'project-created-today',
+                    date_iso: new Date().toISOString(),
+                    type: 'project_milestone',
+                    visibility: 'public',
+                    state: 'published',
+                  },
+                ],
+              };
+            }
             return { results: [] };
           },
           async run() {
@@ -182,6 +195,8 @@ describe('Cloudflare Worker GitHub API Routes & Security (M6)', () => {
     const body = (await res.json()) as any;
     expect(body.projection).toBeDefined();
     expect(body.projection.timezone).toBe('UTC');
-    expect(body.projection.cells).toBeDefined();
+    expect(body.projection.cells).toHaveLength(365);
+    expect(body.projection.activeDaysCount).toBe(1);
+    expect(body.projection.cells.at(-1).count).toBe(1);
   });
 });

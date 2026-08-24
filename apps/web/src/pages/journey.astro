@@ -1,6 +1,6 @@
 ---
 import BaseLayout from '../layouts/BaseLayout.astro';
-import { PublicRecordDirectory } from '../components/PublicRecordDirectory';
+import { JournalIndex } from '../components/JournalIndex';
 ---
 
 <BaseLayout
@@ -8,49 +8,5 @@ import { PublicRecordDirectory } from '../components/PublicRecordDirectory';
   description="Published engineering journal entries documenting what I learn, build, decide, debug, and ship."
   currentPath="/journey"
 >
-  <div class="public-page-shell max-w-[1280px] mx-auto px-4 sm:px-6 lg:px-8 py-14 space-y-10">
-    <!-- Page header — editorial -->
-    <header class="public-page-header space-y-4 max-w-2xl">
-      <div
-        class="inline-flex items-center gap-2 px-3 py-1 rounded-lg text-xs font-semibold tracking-widest uppercase"
-        style="background: rgba(139,92,246,0.08); border: 1px solid var(--border-violet); color: var(--violet); font-family: var(--font-mono);"
-      >
-        <span class="w-1.5 h-1.5 rounded-full" style="background: var(--violet);" aria-hidden="true"
-        ></span>
-        Published Journal Entries
-      </div>
-
-      <h1
-        class="public-page-title font-display uppercase leading-none"
-        style="font-family: var(--font-display); font-size: clamp(3rem, 7vw, 5rem); color: var(--text-primary);"
-      >
-        Learning Journey
-      </h1>
-
-      <p class="text-base leading-relaxed" style="color: var(--text-secondary); max-width: 60ch;">
-        A continuous record of engineering decisions, experiments, debugging lessons, and shipped
-        outcomes — loaded from the content database.
-      </p>
-    </header>
-
-    <!-- Living Record Spine separator -->
-    <div class="flex items-center gap-4" aria-hidden="true">
-      <div
-        class="flex-1 h-px"
-        style="background: linear-gradient(to right, transparent, var(--border-violet) 50%, transparent);"
-      >
-      </div>
-      <span
-        class="text-[10px] text-[var(--text-muted)] font-[var(--font-mono)] uppercase tracking-widest"
-        >Timeline</span
-      >
-      <div
-        class="flex-1 h-px"
-        style="background: linear-gradient(to right, transparent, var(--border-violet) 50%, transparent);"
-      >
-      </div>
-    </div>
-
-    <PublicRecordDirectory kind="journey" client:load />
-  </div>
+  <main class="public-page-shell journal-page-shell"><JournalIndex client:load /></main>
 </BaseLayout>

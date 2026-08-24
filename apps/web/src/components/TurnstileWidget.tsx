@@ -22,9 +22,11 @@ const SCRIPT_ID = 'cloudflare-turnstile-script';
 const SCRIPT_URL = 'https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit';
 
 export function TurnstileWidget({
+  action = 'contact',
   resetVersion,
   onTokenChange,
 }: {
+  action?: string;
   resetVersion: number;
   onTokenChange: (token: string | null) => void;
 }) {
@@ -40,7 +42,7 @@ export function TurnstileWidget({
       if (cancelled || widgetId || !containerRef.current || !turnstileWindow.turnstile) return;
       widgetId = turnstileWindow.turnstile.render(containerRef.current, {
         sitekey: SITE_KEY,
-        action: 'contact',
+        action,
         theme: 'dark',
         callback: (token) => onTokenChange(token),
         'expired-callback': () => onTokenChange(null),
@@ -65,7 +67,7 @@ export function TurnstileWidget({
       script?.removeEventListener('load', render);
       if (widgetId && turnstileWindow.turnstile) turnstileWindow.turnstile.remove(widgetId);
     };
-  }, [onTokenChange, resetVersion]);
+  }, [action, onTokenChange, resetVersion]);
 
   if (!SITE_KEY) {
     return (

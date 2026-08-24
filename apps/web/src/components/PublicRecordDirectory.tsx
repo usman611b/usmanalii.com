@@ -25,7 +25,7 @@ const SLUG_BASE: Record<RecordKind, string> = {
 function buildHref(kind: RecordKind, record: PublicRecord): string | undefined {
   if (kind === 'evidence') return undefined;
   const slug = text(record.slug);
-  return slug ? `${SLUG_BASE[kind]}/${slug}` : undefined;
+  return slug ? `${SLUG_BASE[kind]}/record?slug=${encodeURIComponent(slug)}` : undefined;
 }
 
 function RecordCard({

@@ -9,7 +9,9 @@ export function getStaticPaths() {
 
 <DashboardLayout title="Evidence — Command Center" activeSection="evidence"
   ><RecordDetail
-    endpoint={`/api/v1/private/evidence/${encodeURIComponent(id ?? '')}`}
+    endpointBase="/api/v1/private/evidence"
+    paramName="id"
+    fallbackKey={id}
     client:load
   /></DashboardLayout
 >

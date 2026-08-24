@@ -3,7 +3,25 @@ import { SocialLinks, type SocialProfile } from './SocialLinks';
 
 type PublicProfile = SocialProfile & {
   contactUrl?: string | null;
+  contactEmail?: string | null;
 };
+
+function resolveContactHref(profile: PublicProfile | null) {
+  const contactUrl = profile?.contactUrl?.trim();
+  const contactEmail = profile?.contactEmail?.trim();
+  if (contactUrl) {
+    try {
+      const parsed = new URL(contactUrl);
+      if (!parsed.username) return contactUrl;
+      if (!parsed.password && parsed.pathname === '/') {
+        return `mailto:${decodeURIComponent(parsed.username)}@${parsed.hostname}`;
+      }
+    } catch {
+      if (/^mailto:/i.test(contactUrl)) return contactUrl;
+    }
+  }
+  return contactEmail ? `mailto:${contactEmail}` : null;
+}
 
 const PORTRAIT_960 = '/usman-ali-portrait-960.webp';
 const PORTRAIT_1600 = '/usman-ali-portrait-1600.webp';
@@ -15,11 +33,20 @@ const nodes = [
   { x: 82, y: 42, label: 'DECISION LOGS', color: '#FF2DAA' },
   { x: 55, y: 66, label: 'ARCHITECTURE', color: '#25E6FF' },
   { x: 91, y: 68, label: 'SHIPPING', color: '#B8FF3D' },
-];
+] as const;
+
+const connections = [
+  [0, 1],
+  [0, 2],
+  [1, 3],
+  [1, 4],
+  [3, 5],
+  [4, 5],
+] as const;
 
 export function PortraitHero() {
-  const rootRef = useRef<HTMLElement | null>(null);
-  const [pointer, setPointer] = useState({ x: 0, y: 0 });
+  const portraitRef = useRef<HTMLDivElement | null>(null);
+  const networkRef = useRef<HTMLDivElement | null>(null);
   const [reducedMotion, setReducedMotion] = useState(false);
   const [contactUrl, setContactUrl] = useState<string | null>(null);
   const [socialProfile, setSocialProfile] = useState<SocialProfile>({});
@@ -38,7 +65,7 @@ export function PortraitHero() {
       .then(async (response) => (response.ok ? ((await response.json()) as PublicProfile) : null))
       .then((profile) => {
         if (active) {
-          setContactUrl(profile?.contactUrl ?? null);
+          setContactUrl(resolveContactHref(profile));
           setSocialProfile(profile ?? {});
         }
       })
@@ -53,18 +80,27 @@ export function PortraitHero() {
   function trackPointer(event: React.PointerEvent<HTMLElement>) {
     if (reducedMotion || event.pointerType === 'touch') return;
     const rect = event.currentTarget.getBoundingClientRect();
-    setPointer({
-      x: (event.clientX - rect.left) / rect.width - 0.5,
-      y: (event.clientY - rect.top) / rect.height - 0.5,
-    });
+    const x = (event.clientX - rect.left) / rect.width - 0.5;
+    const y = (event.clientY - rect.top) / rect.height - 0.5;
+    moveLayers(x, y);
+  }
+
+  function moveLayers(x: number, y: number) {
+    portraitRef.current?.animate(
+      { transform: `translate3d(${x * 12}px, ${y * 8}px, 0)` },
+      { duration: 420, easing: 'cubic-bezier(.2,.8,.2,1)', fill: 'forwards' },
+    );
+    networkRef.current?.animate(
+      { transform: `translate3d(${x * -8}px, ${y * -5}px, 0)` },
+      { duration: 520, easing: 'cubic-bezier(.2,.8,.2,1)', fill: 'forwards' },
+    );
   }
 
   return (
     <section
-      ref={rootRef}
       className="hero-observatory"
       onPointerMove={trackPointer}
-      onPointerLeave={() => setPointer({ x: 0, y: 0 })}
+      onPointerLeave={() => moveLayers(0, 0)}
       aria-labelledby="hero-title"
     >
       <div className="hero-grid" aria-hidden="true" />
@@ -82,17 +118,35 @@ export function PortraitHero() {
         <path d="M650 230 C880 70 1270 100 1510 350" stroke="url(#orbit)" opacity=".28" />
       </svg>
 
-      <div className="hero-constellation" aria-hidden="true">
-        {nodes.map((node) => (
-          <div
-            className="hero-node"
-            key={node.label}
-            style={{ left: `${node.x}%`, top: `${node.y}%`, color: node.color }}
-          >
-            <span />
-            <small>[{node.label}]</small>
+      <div ref={networkRef} className="hero-network-parallax" aria-hidden="true">
+        <div className="hero-network">
+          <svg className="hero-connections" viewBox="0 0 100 100" preserveAspectRatio="none">
+            <defs>
+              <linearGradient id="hero-network-gradient" x1="0" y1="0" x2="1" y2="1">
+                <stop offset="0" stopColor="#25E6FF" stopOpacity="0.2" />
+                <stop offset="0.58" stopColor="#8B5CF6" stopOpacity="0.72" />
+                <stop offset="1" stopColor="#FF2DAA" stopOpacity="0.48" />
+              </linearGradient>
+            </defs>
+            {connections.map(([from, to]) => (
+              <line
+                key={`${from}-${to}`}
+                x1={nodes[from].x}
+                y1={nodes[from].y}
+                x2={nodes[to].x}
+                y2={nodes[to].y}
+              />
+            ))}
+          </svg>
+          <div className="hero-constellation">
+            {nodes.map((node, index) => (
+              <div className={`hero-node hero-node--${index + 1}`} key={node.label}>
+                <span />
+                <small>[{node.label}]</small>
+              </div>
+            ))}
           </div>
-        ))}
+        </div>
       </div>
 
       <div className="hero-inner">
@@ -120,15 +174,7 @@ export function PortraitHero() {
           </div>
         </div>
 
-        <div
-          className="hero-portrait-stage"
-          style={{
-            transform: reducedMotion
-              ? undefined
-              : `translate3d(${pointer.x * 9}px, ${pointer.y * 6}px, 0)`,
-          }}
-          aria-hidden="true"
-        >
+        <div ref={portraitRef} className="hero-portrait-stage" aria-hidden="true">
           <div className="portrait-cyan" />
           <div className="portrait-magenta" />
           <img
@@ -140,7 +186,6 @@ export function PortraitHero() {
             width="1600"
             height="1600"
             loading="eager"
-            fetchPriority="high"
             decoding="async"
           />
         </div>

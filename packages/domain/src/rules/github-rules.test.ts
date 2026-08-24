@@ -222,6 +222,34 @@ describe('GitHub Domain Rules Engine & Attribution (M6 Gate 2)', () => {
     expect(projection.cells.find((cell) => cell.date === '2026-08-09')?.count).toBe(1);
   });
 
+  test('activity heatmap includes the current local date when UTC is still on the previous day', () => {
+    const endIso = '2026-08-14T21:30:00.000Z';
+    const projection = computeActivityHeatmap(
+      [
+        {
+          id: 'project-created',
+          dateIso: endIso,
+          type: 'project_milestone',
+          visibility: 'public',
+          isPublished: true,
+        },
+      ],
+      '2026-08-12T21:30:00.000Z',
+      endIso,
+      'Asia/Karachi',
+      true,
+    );
+
+    expect(projection.startDate).toBe('2026-08-13');
+    expect(projection.endDate).toBe('2026-08-15');
+    expect(projection.cells.map((cell) => cell.date)).toEqual([
+      '2026-08-13',
+      '2026-08-14',
+      '2026-08-15',
+    ]);
+    expect(projection.cells.at(-1)?.count).toBe(1);
+  });
+
   test('public activity heatmap excludes private and unpublished activity without count leakage', () => {
     const events = [
       {
