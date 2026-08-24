@@ -101,7 +101,10 @@ bucket_name = "usmanalii-artifacts-staging"
 # ---------------------------------------------------------------------------
 [env.production]
 vars = { ENVIRONMENT = "production", LOG_LEVEL = "warn" }
-route = { pattern = "usmanalii.com/api/*", zone_name = "usmanalii.com" }
+routes = [
+  { pattern = "usmanalii.com/api/*", zone_name = "usmanalii.com" },
+  { pattern = "www.usmanalii.com/api/*", zone_name = "usmanalii.com" },
+]
 
 [env.production.triggers]
 crons = ["0 0 * * *"]
