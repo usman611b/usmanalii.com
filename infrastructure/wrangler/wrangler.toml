@@ -151,8 +151,3 @@ bucket_name = "usmanalii-public-prod"
 [[env.production.queues.producers]]
 binding = "PUBLICATION_QUEUE"
 queue = "usmanalii-publication-prod"
-
-[[env.production.queues.consumers]]
-queue = "usmanalii-publication-prod"
-max_batch_size = 10
-max_batch_timeout = 30
