@@ -5522,6 +5522,7 @@ a.command-record:focus-visible {
 }
 .contact-turnstile {
   min-height: 65px;
+  width: 100%;
 }
 .turnstile-shell {
   display: grid;
@@ -5565,6 +5566,10 @@ a.command-record:focus-visible {
 .turnstile-shell--verified .turnstile-guidance > span {
   border-color: rgba(184, 255, 61, 0.45);
   color: var(--lime);
+}
+.turnstile-shell--recovering .turnstile-guidance,
+.turnstile-shell--recovering .turnstile-guidance > span {
+  color: var(--amber);
 }
 .turnstile-shell--error .turnstile-guidance,
 .turnstile-shell--error .turnstile-guidance > span {

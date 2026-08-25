@@ -1,8 +1,12 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { describe, expect, test } from 'vitest';
+import { afterEach, describe, expect, test, vi } from 'vitest';
 import { app } from './index.js';
 
 describe('Cloudflare Worker GitHub API Routes & Security (M6)', () => {
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
   const createMockEnv = (overrides: Record<string, unknown> = {}) => {
     const repos = new Map<string, any>();
     const candidates = new Map<string, any>();
@@ -187,6 +191,8 @@ describe('Cloudflare Worker GitHub API Routes & Security (M6)', () => {
   });
 
   test('GET /api/v1/public/activity returns public heatmap projection with count masking', async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date('2026-08-25T12:00:00.000Z'));
     const env = createMockEnv();
     const req = new Request('http://localhost/api/v1/public/activity?timezone=UTC');
     const res = await app.fetch(req, env);
