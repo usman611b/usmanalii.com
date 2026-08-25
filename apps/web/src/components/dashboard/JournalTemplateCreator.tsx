@@ -154,8 +154,13 @@ export function JournalTemplateCreator() {
       {error && (
         <div role="alert" className="template-alert">
           <span aria-hidden="true">!</span>
-          <div><strong>Draft not created</strong><p>{error}</p></div>
-          <button type="button" onClick={() => setError('')}>Dismiss</button>
+          <div>
+            <strong>Draft not created</strong>
+            <p>{error}</p>
+          </div>
+          <button type="button" onClick={() => setError('')}>
+            Dismiss
+          </button>
         </div>
       )}
       <div className="template-library-heading">
@@ -163,7 +168,9 @@ export function JournalTemplateCreator() {
           <span>Structured starters</span>
           <h2 id="template-library-title">Choose your writing mode</h2>
         </div>
-        <p>Every option creates a private draft. Nothing is published until you choose to publish it.</p>
+        <p>
+          Every option creates a private draft. Nothing is published until you choose to publish it.
+        </p>
       </div>
       <div className="template-grid">
         {templates.map((template, index) => (
@@ -181,7 +188,9 @@ export function JournalTemplateCreator() {
               <p>{template.description}</p>
             </div>
             <div className="template-outline" aria-label="Included sections">
-              {template.headings.map((heading) => <span key={heading}>{heading}</span>)}
+              {template.headings.map((heading) => (
+                <span key={heading}>{heading}</span>
+              ))}
             </div>
             <button
               type="button"
@@ -190,9 +199,15 @@ export function JournalTemplateCreator() {
               className="template-action"
             >
               {creating === template.contentType ? (
-                <><span className="template-spinner" aria-hidden="true" />Creating draft…</>
+                <>
+                  <span className="template-spinner" aria-hidden="true" />
+                  Creating draft…
+                </>
               ) : (
-                <>Use {template.label}<span aria-hidden="true">→</span></>
+                <>
+                  Use {template.label}
+                  <span aria-hidden="true">→</span>
+                </>
               )}
             </button>
           </article>

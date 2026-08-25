@@ -2,7 +2,7 @@
 # .dev.vars.example — Local development secrets template
 #
 # INSTRUCTIONS:
-#  1. Copy this file to .dev.vars (git-ignored)
+#  1. Copy this file to apps/worker/.dev.vars (git-ignored)
 #  2. Fill in the values for your local development environment
 #  3. NEVER commit .dev.vars to Git
 #  4. NEVER use production or real secrets in this file
@@ -25,6 +25,9 @@ OWNER_EMAIL=your-owner-email@example.com
 # Contact form delivery through Resend. Use a sender on a verified domain.
 RESEND_API_KEY=re_local-development-placeholder
 CONTACT_FROM_EMAIL=Portfolio Contact <contact@your-verified-domain.example>
+
+# Read-only GitHub token for repository discovery and evidence synchronization.
+GITHUB_TOKEN=github-local-development-placeholder
 
 # Cloudflare Turnstile server-side validation for the public contact form.
 # The matching PUBLIC_TURNSTILE_SITE_KEY belongs in the web build environment, not this Worker file.

@@ -244,6 +244,7 @@ describe('Worker API Integration & Security Tests', () => {
         body: JSON.stringify({
           name: 'Jane Recruiter',
           email: 'jane@company.com',
+          subject: '',
           message: 'Hello Usman, interested in your systems architecture role.',
           turnstileToken: 'test-token-123',
         }),

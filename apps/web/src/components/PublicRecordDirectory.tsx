@@ -23,10 +23,7 @@ const SLUG_BASE: Record<RecordKind, string> = {
   capabilities: '/capabilities',
 };
 
-export function buildPublicRecordHref(
-  kind: RecordKind,
-  record: PublicRecord,
-): string | undefined {
+export function buildPublicRecordHref(kind: RecordKind, record: PublicRecord): string | undefined {
   if (kind === 'evidence') {
     const id = text(record.id);
     return id ? `/evidence/record?id=${encodeURIComponent(id)}` : undefined;

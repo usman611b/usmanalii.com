@@ -168,8 +168,15 @@ export function JournalIndex() {
           <span className="observatory-service-beacon" />
           <div>
             <strong>The Journal is temporarily unavailable.</strong>
-            <p>The live service did not respond after three attempts. You can reconnect without reloading the page.</p>
-            <button type="button" className="journal-retry" onClick={() => setReloadKey((key) => key + 1)}>
+            <p>
+              The live service did not respond after three attempts. You can reconnect without
+              reloading the page.
+            </p>
+            <button
+              type="button"
+              className="journal-retry"
+              onClick={() => setReloadKey((key) => key + 1)}
+            >
               Retry live Journal <span aria-hidden="true">↻</span>
             </button>
           </div>

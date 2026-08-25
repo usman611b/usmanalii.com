@@ -1600,8 +1600,7 @@
   padding: 1.5rem;
   border: 1px solid rgba(139, 92, 246, 0.25);
   border-radius: 1rem;
-  background:
-    linear-gradient(145deg, rgba(139, 92, 246, 0.07), rgba(5, 11, 20, 0.9));
+  background: linear-gradient(145deg, rgba(139, 92, 246, 0.07), rgba(5, 11, 20, 0.9));
   backdrop-filter: blur(18px);
 }
 .recruiter-resume-signal > span {

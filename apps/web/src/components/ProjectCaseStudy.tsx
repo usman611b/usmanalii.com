@@ -299,11 +299,7 @@ function ConnectionGroup({
         <span>{records.length}</span>
       </header>
       {records.length ? (
-        <div
-          className="entity-scroll-list"
-          role="region"
-          aria-label={`${title} connections`}
-        >
+        <div className="entity-scroll-list" role="region" aria-label={`${title} connections`}>
           {records.map((record, index) => {
             const href = connectionHref(kind, record);
             const content = (

@@ -1,0 +1,29 @@
+name: Feature request
+description: Propose a focused improvement to the career operating system.
+title: 'feat: '
+labels:
+  - enhancement
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem
+      description: What user or system need is not currently met?
+    validations:
+      required: true
+  - type: textarea
+    id: outcome
+    attributes:
+      label: Desired outcome
+      description: Describe the observable result, not only an implementation.
+    validations:
+      required: true
+  - type: textarea
+    id: evidence
+    attributes:
+      label: Evidence and relationships
+      description: Which records, APIs, ADRs, or product requirements are related?
+  - type: textarea
+    id: risks
+    attributes:
+      label: Security, privacy, and migration considerations

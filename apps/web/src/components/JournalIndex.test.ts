@@ -24,8 +24,8 @@ describe('JournalIndex live loading', () => {
   it('fails closed when the API never returns canonical Journal data', async () => {
     const request = (async () => Response.json({ entries: [] })) as typeof fetch;
 
-    await expect(
-      fetchJournalEntries(request, undefined, async () => undefined),
-    ).rejects.toThrow('invalid data');
+    await expect(fetchJournalEntries(request, undefined, async () => undefined)).rejects.toThrow(
+      'invalid data',
+    );
   });
 });

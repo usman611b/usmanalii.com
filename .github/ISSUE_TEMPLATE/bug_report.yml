@@ -1,0 +1,47 @@
+name: Bug report
+description: Report a reproducible defect without including secrets or private data.
+title: 'bug: '
+labels:
+  - bug
+body:
+  - type: markdown
+    attributes:
+      value: Do not include API keys, access tokens, private records, or personal visitor data.
+  - type: textarea
+    id: behavior
+    attributes:
+      label: Observed behavior
+      description: What happened?
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behavior
+    validations:
+      required: true
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Reproduction
+      description: Provide the smallest safe sequence that reproduces the issue.
+    validations:
+      required: true
+  - type: dropdown
+    id: surface
+    attributes:
+      label: Surface
+      options:
+        - Public portfolio
+        - Command Center
+        - Worker API
+        - GitHub integration
+        - Deployment or infrastructure
+        - Documentation
+    validations:
+      required: true
+  - type: textarea
+    id: verification
+    attributes:
+      label: Safe diagnostics
+      description: Add redacted errors, request IDs, or screenshots if useful.

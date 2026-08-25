@@ -61,7 +61,10 @@ function LinkedText({ children }: { children: string }) {
         /^https?:\/\//.test(part) ? (
           <span key={`${part}-${index}`}>
             <a href={normalizeLinkedUrl(part).href} target="_blank" rel="noreferrer">
-              {normalizeLinkedUrl(part).href.replace(/^https?:\/\//, '').replace(/\/$/, '')} ↗
+              {normalizeLinkedUrl(part)
+                .href.replace(/^https?:\/\//, '')
+                .replace(/\/$/, '')}{' '}
+              ↗
             </a>
             {normalizeLinkedUrl(part).trailing}
           </span>
@@ -93,19 +96,25 @@ function relatedBlockHref(block: Block, data: JournalPayload): string | undefine
   };
   const record = groups[entityType]?.find((candidate) => String(candidate.id) === entityId);
   const slug = value(record?.slug);
-  if (entityType === 'project' && slug)
-    return `/projects/record?slug=${encodeURIComponent(slug)}`;
+  if (entityType === 'project' && slug) return `/projects/record?slug=${encodeURIComponent(slug)}`;
   if (entityType === 'skill' && slug) return `/skills/record?slug=${encodeURIComponent(slug)}`;
   if (entityType === 'capability' && slug)
     return `/capabilities/record?slug=${encodeURIComponent(slug)}`;
-  if (entityType === 'evidence')
-    return `/evidence/record?id=${encodeURIComponent(entityId)}`;
+  if (entityType === 'evidence') return `/evidence/record?id=${encodeURIComponent(entityId)}`;
   if (entityType === 'artifact')
     return `/api/v1/public/artifacts/${encodeURIComponent(entityId)}/download`;
   return undefined;
 }
 
-function ArticleBlock({ block, index, data }: { block: Block; index: number; data: JournalPayload }) {
+function ArticleBlock({
+  block,
+  index,
+  data,
+}: {
+  block: Block;
+  index: number;
+  data: JournalPayload;
+}) {
   const text = value(block.text);
   switch (block.type) {
     case 'heading': {
@@ -327,9 +336,7 @@ export function JournalArticle() {
       label: 'Evidence',
       records: data.evidence ?? [],
       href: (record: Relation) =>
-        record.id
-          ? `/evidence/record?id=${encodeURIComponent(String(record.id))}`
-          : undefined,
+        record.id ? `/evidence/record?id=${encodeURIComponent(String(record.id))}` : undefined,
     },
     {
       label: 'Artifacts',
@@ -425,10 +432,7 @@ export function JournalArticle() {
                   const name = value(record.title, value(record.name, `${label} record`));
                   const target = href(record);
                   return target ? (
-                    <a
-                      href={target}
-                      key={String(record.id ?? index)}
-                    >
+                    <a href={target} key={String(record.id ?? index)}>
                       {name}
                       <span>↗</span>
                     </a>

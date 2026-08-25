@@ -37,7 +37,7 @@ can appear publicly.
 | ------------------ | --------------------------------------------------------- |
 | Type safety        | 14 of 14 workspace packages passed                        |
 | Lint               | 14 of 14 workspace packages passed                        |
-| Tests              | 371 tests across 13 projects passed                       |
+| Tests              | 376 tests across 13 projects passed                       |
 | Production build   | 52 Astro pages and Worker dry run passed                  |
 | Database integrity | 23 migration checksums and ordered migration files passed |
 | Security scan      | No committed secret patterns detected                     |
@@ -45,15 +45,13 @@ can appear publicly.
 
 ## Release boundary
 
-Application code, automated verification, and production bundles are complete. Cloud deployment
-requires an authenticated Cloudflare Wrangler session. GitHub publication also requires a Git
-remote and an active owner-authorized GitHub integration; those external account states are not
-represented as complete until independently verified.
+Application code, automated verification, production bundles, Turnstile, Resend delivery bindings,
+and the owner-authorized GitHub integration are complete. GitHub source publication remains pending
+until the local repository is connected to its final remote and the release branch is pushed.
 
 ## Operational follow-up
 
 - Export and retain encrypted D1/R2 backups on an owner-approved independent destination.
 - Configure alerts for Worker errors, failed scheduled synchronization and availability checks.
-- Confirm the GitHub integration is active and that its least-privilege token remains valid.
 - Add the portfolio repository remote, publish the release commit and tag, and verify CI from a
   clean clone.

@@ -23,7 +23,8 @@ export async function fetchWithRetry(
         headers,
         signal: init.signal ?? null,
       });
-      const retryable = response.status === 408 || response.status === 429 || response.status >= 500;
+      const retryable =
+        response.status === 408 || response.status === 429 || response.status >= 500;
       if (response.ok || !retryable) return response;
       lastResponse = response;
     } catch (error) {

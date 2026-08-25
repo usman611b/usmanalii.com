@@ -110,7 +110,9 @@ export function TurnstileWidget({
     <div className={`turnstile-shell turnstile-shell--${status}`}>
       <div ref={containerRef} className="contact-turnstile" aria-label="Bot verification" />
       <div className="turnstile-guidance" role="status" aria-live="polite">
-        <span aria-hidden="true">{status === 'verified' ? '✓' : status === 'error' ? '!' : '01'}</span>
+        <span aria-hidden="true">
+          {status === 'verified' ? '✓' : status === 'error' ? '!' : '01'}
+        </span>
         <p>{message}</p>
         {status === 'error' ? (
           <button type="button" onClick={() => setRetryVersion((version) => version + 1)}>
