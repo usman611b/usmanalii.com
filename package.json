@@ -16,7 +16,7 @@
     "migrations:production:plan": "node infrastructure/scripts/apply-remote-production-migrations.mjs --config=infrastructure/wrangler/wrangler.production.toml",
     "build": "turbo run build",
     "dev": "turbo run dev --parallel",
-    "typecheck": "turbo run typecheck",
+    "typecheck": "pnpm --filter @usmanalii/database exec tsc --build --emitDeclarationOnly && turbo run typecheck",
     "lint": "turbo run lint",
     "lint:fix": "turbo run lint:fix",
     "format": "prettier --write \"**/*.{ts,tsx,astro,json,md,yaml,yml,css}\" --ignore-path .prettierignore",
