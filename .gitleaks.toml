@@ -15,11 +15,10 @@ regexes = [
   '''local-dev-placeholder-not-real-key'''
 ]
 
-[[rules]]
-description = "Cloudflare API tokens"
-id = "cloudflare-api-token"
-regex = '''[a-z0-9_-]{40,}'''
-keywords = ["CLOUDFLARE", "CF_API", "CF_TOKEN"]
+# Cloudflare credentials are covered by Gitleaks' maintained default
+# cloudflare-api-key, cloudflare-global-api-key, and origin CA rules.
+# Do not add a broad character-count rule here: it misclassifies commit hashes
+# and Markdown separators in architectural documentation.
 
 [[rules]]
 description = "Prevent real owner email in source"
