@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
+import { fetchJsonWithRetry } from '../lib/publicApi';
 
 type RecordKind = 'projects' | 'skills' | 'capabilities' | 'journey' | 'evidence';
 type PublicRecord = Record<string, unknown> & { id?: string; slug?: string };
@@ -101,11 +102,10 @@ export function PublicRecordDirectory({ kind }: { kind: RecordKind }) {
     setState('loading');
     setError('');
     try {
-      const response = await fetch(`/api/v1/public/${kind}`, {
-        headers: { Accept: 'application/json' },
-      });
-      if (!response.ok) throw new Error(`The ${kind} service returned ${response.status}.`);
-      const payload = (await response.json()) as { data?: PublicRecord[]; items?: PublicRecord[] };
+      const payload = await fetchJsonWithRetry<{
+        data?: PublicRecord[];
+        items?: PublicRecord[];
+      }>(`/api/v1/public/${kind}`);
       const data = payload.data ?? payload.items;
       setRecords(Array.isArray(data) ? data : []);
       setState('ready');

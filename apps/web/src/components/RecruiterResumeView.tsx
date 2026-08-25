@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState, type ReactNode } from 'react';
+import { fetchJsonWithRetry } from '../lib/publicApi';
 
 type RecruiterProjection = {
   profile: null | {
@@ -145,11 +146,7 @@ export function RecruiterResumeView() {
 
   useEffect(() => {
     let active = true;
-    fetch('/api/v1/public/recruiter', { headers: { Accept: 'application/json' } })
-      .then(async (response) => {
-        if (!response.ok) throw new Error(`Recruiter projection returned ${response.status}.`);
-        return response.json() as Promise<RecruiterProjection>;
-      })
+    fetchJsonWithRetry<RecruiterProjection>('/api/v1/public/recruiter')
       .then((projection) => active && setData(projection))
       .catch(
         (cause: unknown) =>

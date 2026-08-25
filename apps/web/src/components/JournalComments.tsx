@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState, type FormEvent } from 'react';
+import { fetchJsonWithRetry } from '../lib/publicApi';
 import { TurnstileWidget } from './TurnstileWidget';
 
 type Comment = {
@@ -29,10 +30,9 @@ export function JournalComments({
 
   useEffect(() => {
     if (!slug) return;
-    fetch(`/api/v1/public/journey/${encodeURIComponent(slug)}/comments`)
-      .then(async (response) =>
-        response.ok ? (response.json() as Promise<{ comments?: Comment[] }>) : { comments: [] },
-      )
+    fetchJsonWithRetry<{ comments?: Comment[] }>(
+      `/api/v1/public/journey/${encodeURIComponent(slug)}/comments`,
+    )
       .then((payload) => setComments(payload.comments ?? []))
       .catch(() => setComments([]));
   }, [slug]);

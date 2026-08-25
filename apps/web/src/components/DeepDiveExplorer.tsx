@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
+import { fetchJsonWithRetry } from '../lib/publicApi';
 
 type ProjectSummary = {
   id: string;
@@ -24,11 +25,7 @@ export function DeepDiveExplorer() {
 
   useEffect(() => {
     let active = true;
-    fetch('/api/v1/public/projects', { headers: { Accept: 'application/json' } })
-      .then(async (response) => {
-        if (!response.ok) throw new Error(`Project service returned ${response.status}.`);
-        return response.json() as Promise<{ data?: ProjectSummary[] }>;
-      })
+    fetchJsonWithRetry<{ data?: ProjectSummary[] }>('/api/v1/public/projects')
       .then((payload) => {
         if (!active) return;
         setProjects(payload.data ?? []);

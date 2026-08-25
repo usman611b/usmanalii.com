@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { fetchJsonWithRetry } from '../lib/publicApi';
 
 type Variant = {
   id: string;
@@ -13,10 +14,8 @@ export function PublicResumeDirectory() {
   const [error, setError] = useState('');
 
   useEffect(() => {
-    fetch('/api/v1/public/resumes')
-      .then(async (response) => {
-        if (!response.ok) throw new Error(`Unable to load résumés (${response.status}).`);
-        const body = (await response.json()) as { items: Variant[] };
+    fetchJsonWithRetry<{ items: Variant[] }>('/api/v1/public/resumes')
+      .then((body) => {
         setItems(body.items);
       })
       .catch((cause: Error) => setError(cause.message));

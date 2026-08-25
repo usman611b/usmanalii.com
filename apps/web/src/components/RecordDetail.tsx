@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { fetchWithRetry } from '../lib/publicApi';
 
 export interface RecordDetailProps {
   readonly endpoint?: string | undefined;
@@ -204,7 +205,7 @@ export function RecordDetail({
         active = false;
       };
     }
-    fetch(resolvedEndpoint, { headers: { Accept: 'application/json' } })
+    fetchWithRetry(resolvedEndpoint)
       .then(async (response) => {
         if (!response.ok) {
           throw new Error(

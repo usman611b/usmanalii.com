@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
+import { fetchJsonWithRetry } from '../lib/publicApi';
 import { SocialLinks, type SocialProfile } from './SocialLinks';
 
 type PublicProfile = SocialProfile & {
@@ -61,8 +62,7 @@ export function PortraitHero() {
 
   useEffect(() => {
     let active = true;
-    fetch('/api/v1/public/profile')
-      .then(async (response) => (response.ok ? ((await response.json()) as PublicProfile) : null))
+    fetchJsonWithRetry<PublicProfile>('/api/v1/public/profile')
       .then((profile) => {
         if (active) {
           setContactUrl(resolveContactHref(profile));

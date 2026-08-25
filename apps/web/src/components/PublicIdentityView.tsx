@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { fetchJsonWithRetry } from '../lib/publicApi';
 
 type Projection = {
   profile: null | {
@@ -81,11 +82,7 @@ export function PublicIdentityView({ mode }: { mode: 'about' | 'recruiter' }) {
   const [error, setError] = useState('');
 
   useEffect(() => {
-    fetch('/api/v1/public/recruiter')
-      .then(async (r) => {
-        if (!r.ok) throw new Error(`Unable to load profile (${r.status}).`);
-        return r.json() as Promise<Projection>;
-      })
+    fetchJsonWithRetry<Projection>('/api/v1/public/recruiter')
       .then((d) => {
         setData(d);
         setLoading(false);

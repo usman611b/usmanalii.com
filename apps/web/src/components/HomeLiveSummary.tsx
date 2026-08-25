@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { fetchJsonWithRetry } from '../lib/publicApi';
 
 type Item = Record<string, unknown>;
 type Summary = { evidence: Item[]; journey: Item[]; projects: Item[] };
@@ -49,9 +50,7 @@ export function HomeLiveSummary() {
   useEffect(() => {
     Promise.all(
       ['evidence', 'journey', 'projects'].map(async (kind) => {
-        const r = await fetch(`/api/v1/public/${kind}`);
-        if (!r.ok) throw new Error(`Unable to load ${kind} (${r.status}).`);
-        return r.json() as Promise<Record<string, unknown>>;
+        return fetchJsonWithRetry<Record<string, unknown>>(`/api/v1/public/${kind}`);
       }),
     )
       .then(([evidence = {}, journey = {}, projects = {}]) =>

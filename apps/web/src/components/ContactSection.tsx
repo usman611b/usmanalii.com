@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState, type FormEvent } from 'react';
+import { fetchJsonWithRetry } from '../lib/publicApi';
 import { SocialLinks, type SocialProfile } from './SocialLinks';
 import { TurnstileWidget } from './TurnstileWidget';
 
@@ -13,8 +14,7 @@ export function ContactSection() {
   const updateTurnstileToken = useCallback((token: string | null) => setTurnstileToken(token), []);
 
   useEffect(() => {
-    fetch('/api/v1/public/profile')
-      .then(async (response) => (response.ok ? ((await response.json()) as SocialProfile) : {}))
+    fetchJsonWithRetry<SocialProfile>('/api/v1/public/profile')
       .then(setProfile)
       .catch(() => setProfile({}));
   }, []);

@@ -1,4 +1,5 @@
 import React, { lazy, Suspense, useEffect, useMemo, useRef, useState } from 'react';
+import { fetchWithRetry } from '../lib/publicApi';
 import { createCareerGraphLayout } from './career-graph/layout';
 import {
   CAREER_NODE_STYLE,
@@ -131,7 +132,10 @@ export function SkillsEvidenceGraph({
     if (focus.id) query.set('focusId', focus.id);
     setLoading(true);
     setError('');
-    fetch(`${endpointUrl}?${query}`, { credentials: 'include', signal: controller.signal })
+    fetchWithRetry(`${endpointUrl}?${query}`, {
+      credentials: 'include',
+      signal: controller.signal,
+    })
       .then(async (response) => {
         const body = (await response.json().catch(() => ({}))) as {
           data?: CareerGraphProjection;

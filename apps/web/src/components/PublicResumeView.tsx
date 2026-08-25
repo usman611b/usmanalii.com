@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { fetchJsonWithRetry } from '../lib/publicApi';
 type Variant = {
   title: string;
   slug: string;
@@ -36,15 +37,14 @@ export function PublicResumeView() {
       return;
     }
     Promise.all([
-      fetch(`/api/v1/public/resumes/${encodeURIComponent(slug)}`),
-      fetch('/api/v1/public/recruiter'),
+      fetchJsonWithRetry<{ variant: Variant }>(
+        `/api/v1/public/resumes/${encodeURIComponent(slug)}`,
+      ),
+      fetchJsonWithRetry<Projection>('/api/v1/public/recruiter'),
     ])
-      .then(async ([vr, pr]) => {
-        if (!vr.ok) throw new Error('This résumé is not published.');
-        if (!pr.ok) throw new Error('Published professional records are unavailable.');
-        const vb = (await vr.json()) as { variant: Variant };
+      .then(([vb, pr]) => {
         setVariant(vb.variant);
-        setProjection((await pr.json()) as Projection);
+        setProjection(pr);
       })
       .catch((e: Error) => setError(e.message));
   }, [slug]);

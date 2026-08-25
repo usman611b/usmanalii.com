@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState, type ReactNode } from 'react';
+import { fetchWithRetry } from '../lib/publicApi';
 
 type UnknownRecord = Record<string, unknown>;
 type DeepDiveData = {
@@ -226,7 +227,7 @@ export function DeepDiveProject() {
       return;
     }
     let active = true;
-    fetch(endpoint, { headers: { Accept: 'application/json' } })
+    fetchWithRetry(endpoint)
       .then(async (response) => {
         if (!response.ok)
           throw new Error(

@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
+import { fetchWithRetry } from '../lib/publicApi';
 import { JournalComments } from './JournalComments';
 
 type Block = Record<string, unknown> & { id?: string; type?: string };
@@ -239,7 +240,7 @@ export function JournalArticle() {
       return;
     }
     let active = true;
-    fetch(endpoint, { headers: { Accept: 'application/json' } })
+    fetchWithRetry(endpoint)
       .then(async (response) => {
         if (!response.ok)
           throw new Error(

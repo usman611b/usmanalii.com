@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { fetchJsonWithRetry } from '../lib/publicApi';
 
 export interface ActivityCell {
   readonly date: string;
@@ -68,9 +69,7 @@ export const ActivityHeatmap: React.FC<ActivityHeatmapProps> = ({
       try {
         setLoading(true);
         setError(null);
-        const res = await fetch(endpointUrl);
-        if (!res.ok) throw new Error(`Activity service returned ${res.status}.`);
-        const data = (await res.json()) as { projection?: ActivityProjection };
+        const data = await fetchJsonWithRetry<{ projection?: ActivityProjection }>(endpointUrl);
         if (!data.projection) throw new Error('Activity service returned an invalid projection.');
         if (mounted) setProjection(data.projection);
       } catch (cause) {
