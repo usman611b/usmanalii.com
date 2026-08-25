@@ -31,11 +31,13 @@ export interface WorkerEnv {
   CF_ACCESS_TEAM_DOMAIN: string;
   CF_ACCESS_AUD_TAG: string;
   PREVIEW_SECRET?: string;
+  VISITOR_FINGERPRINT_SECRET?: string;
   ENVIRONMENT: string;
   GITHUB_TOKEN?: string;
   RESEND_API_KEY?: string;
   CONTACT_FROM_EMAIL?: string;
   TURNSTILE_SECRET_KEY?: string;
+  TURNSTILE_HOSTNAMES?: string;
   LOCAL_OWNER_TOKEN?: string;
 }
 

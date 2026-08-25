@@ -43,6 +43,15 @@ type Projection = {
     description: string | null;
     slug: string;
   }>;
+  featuredSkills: Array<{
+    id: string;
+    name: string;
+    slug: string;
+    description: string | null;
+    category?: string;
+    skillType?: string;
+    publicCapabilityCount: number;
+  }>;
   featuredProjects: Array<{
     id: string;
     title: string;
@@ -264,6 +273,52 @@ export function PublicIdentityView({ mode }: { mode: 'about' | 'recruiter' }) {
                     {claim.healthySupportCount !== 1 ? 's' : ''}
                   </p>
                 </article>
+              ))}
+            </div>
+          </Section>
+        )}
+
+        {/* Skills */}
+        {data.featuredSkills.length > 0 && (
+          <Section title="Skills" accent="var(--cyan)">
+            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+              {data.featuredSkills.map((skill) => (
+                <a
+                  key={skill.id}
+                  href={`/skills/record?slug=${encodeURIComponent(skill.slug)}`}
+                  className="block rounded-lg p-4"
+                  style={{
+                    background: 'rgba(37,230,255,0.035)',
+                    border: '1px solid var(--border-cyan)',
+                    textDecoration: 'none',
+                  }}
+                >
+                  <div className="flex items-start justify-between gap-3">
+                    <strong className="text-sm" style={{ color: 'var(--text-primary)' }}>
+                      {skill.name}
+                    </strong>
+                    <span
+                      className="shrink-0 text-[10px] uppercase"
+                      style={{ color: 'var(--cyan)', fontFamily: 'var(--font-mono)' }}
+                    >
+                      {skill.publicCapabilityCount} cap
+                    </span>
+                  </div>
+                  {skill.description ? (
+                    <p
+                      className="mt-2 text-xs leading-relaxed"
+                      style={{ color: 'var(--text-muted)' }}
+                    >
+                      {skill.description}
+                    </p>
+                  ) : null}
+                  <p
+                    className="mt-3 text-[10px] uppercase"
+                    style={{ color: 'var(--text-muted)', fontFamily: 'var(--font-mono)' }}
+                  >
+                    {(skill.category || skill.skillType || 'technical').replaceAll('_', ' ')} ↗
+                  </p>
+                </a>
               ))}
             </div>
           </Section>

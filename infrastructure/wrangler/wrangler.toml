@@ -65,7 +65,7 @@ max_batch_timeout = 30
 [env.local]
 # Uses Wrangler local emulator for D1 and R2
 # Run with: wrangler dev --env local
-vars = { ENVIRONMENT = "local", LOG_LEVEL = "debug" }
+vars = { ENVIRONMENT = "local", LOG_LEVEL = "debug", TURNSTILE_HOSTNAMES = "localhost,127.0.0.1" }
 
 # NEVER commit real secrets. Use .dev.vars for local-only values.
 # Copy .dev.vars.example to .dev.vars and fill in placeholder values.
@@ -125,7 +125,7 @@ bucket_name = "usmanalii-artifacts-staging"
 # preview/fork builds (Security §14).
 # ---------------------------------------------------------------------------
 [env.production]
-vars = { ENVIRONMENT = "production", LOG_LEVEL = "warn" }
+vars = { ENVIRONMENT = "production", LOG_LEVEL = "warn", TURNSTILE_HOSTNAMES = "usmanalii.com,www.usmanalii.com" }
 route = { pattern = "usmanalii.com/api/*", zone_name = "usmanalii.com" }
 
 [env.production.triggers]

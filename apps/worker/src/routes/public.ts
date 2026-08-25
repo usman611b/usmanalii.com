@@ -47,6 +47,7 @@ async function visitorFingerprint(c: {
   env: WorkerEnv;
 }): Promise<string> {
   const fingerprintSecret =
+    c.env.VISITOR_FINGERPRINT_SECRET ||
     c.env.PREVIEW_SECRET ||
     (c.env.ENVIRONMENT === 'local' ? c.env.LOCAL_OWNER_TOKEN : undefined) ||
     (c.env.ENVIRONMENT === 'test' ? 'test-fingerprint-secret' : undefined);
@@ -60,30 +61,59 @@ async function visitorFingerprint(c: {
   return Array.from(new Uint8Array(digest), (byte) => byte.toString(16).padStart(2, '0')).join('');
 }
 
-async function verifyJournalTurnstile(
+function configuredTurnstileHostnames(env: WorkerEnv): Set<string> {
+  const configured = (env.TURNSTILE_HOSTNAMES ?? '')
+    .split(',')
+    .map((hostname) => hostname.trim().toLowerCase())
+    .filter(Boolean);
+  if (configured.length > 0) return new Set(configured);
+  if (env.ENVIRONMENT === 'local' || env.ENVIRONMENT === 'test') {
+    return new Set(['localhost', '127.0.0.1']);
+  }
+  return new Set();
+}
+
+async function verifyTurnstile(
   c: {
     req: { header(name: string): string | undefined };
     env: WorkerEnv;
     get(name: 'requestId'): string;
   },
   token: string,
+  expectedAction: 'contact' | 'journal-comment',
 ): Promise<boolean> {
   if (!c.env.TURNSTILE_SECRET_KEY) return false;
-  const response = await fetch('https://challenges.cloudflare.com/turnstile/v0/siteverify', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      secret: c.env.TURNSTILE_SECRET_KEY,
-      response: token,
-      remoteip: c.req.header('CF-Connecting-IP'),
-      idempotency_key: c.get('requestId'),
-    }),
+  const allowedHostnames = configuredTurnstileHostnames(c.env);
+  if (allowedHostnames.size === 0) return false;
+  const body = new URLSearchParams({
+    secret: c.env.TURNSTILE_SECRET_KEY,
+    response: token,
+    idempotency_key: c.get('requestId'),
   });
-  const result = (await response.json().catch(() => ({}))) as {
-    success?: boolean;
-    action?: string;
-  };
-  return response.ok && result.success === true && result.action === 'journal-comment';
+  const remoteIp = c.req.header('CF-Connecting-IP');
+  if (remoteIp) body.set('remoteip', remoteIp);
+  try {
+    const response = await fetch('https://challenges.cloudflare.com/turnstile/v0/siteverify', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      signal: AbortSignal.timeout(10_000),
+      body,
+    });
+    const result = (await response.json().catch(() => ({}))) as {
+      success?: boolean;
+      action?: string;
+      hostname?: string;
+    };
+    return (
+      response.ok &&
+      result.success === true &&
+      result.action === expectedAction &&
+      typeof result.hostname === 'string' &&
+      allowedHostnames.has(result.hostname.toLowerCase())
+    );
+  } catch {
+    return false;
+  }
 }
 
 async function journalReactionCounts(db: D1Database, contentItemId: string) {
@@ -579,21 +609,7 @@ publicRoutes.post('/contact', async (c) => {
     );
   }
 
-  const verification = await fetch('https://challenges.cloudflare.com/turnstile/v0/siteverify', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      secret: c.env.TURNSTILE_SECRET_KEY,
-      response: parsed.data.turnstileToken,
-      remoteip: c.req.header('CF-Connecting-IP'),
-      idempotency_key: c.get('requestId'),
-    }),
-  });
-  const verificationResult = (await verification.json().catch(() => ({}))) as {
-    success?: boolean;
-    action?: string;
-  };
-  if (!verification.ok || !verificationResult.success || verificationResult.action !== 'contact') {
+  if (!(await verifyTurnstile(c, parsed.data.turnstileToken, 'contact'))) {
     return c.json(
       {
         code: 'CONTACT_VERIFICATION_FAILED',
@@ -983,7 +999,7 @@ publicRoutes.post('/journey/:slug/comments', async (c) => {
       403,
     );
   }
-  if (!(await verifyJournalTurnstile(c, parsed.data.turnstileToken))) {
+  if (!(await verifyTurnstile(c, parsed.data.turnstileToken, 'journal-comment'))) {
     return c.json(
       {
         code: 'COMMENT_VERIFICATION_FAILED',

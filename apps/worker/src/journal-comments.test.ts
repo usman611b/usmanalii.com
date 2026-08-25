@@ -61,6 +61,7 @@ function env(db: ReturnType<typeof createDb>) {
     CF_ACCESS_TEAM_DOMAIN: 'https://test-team.cloudflareaccess.com',
     CF_ACCESS_AUD_TAG: 'test-audience',
     TURNSTILE_SECRET_KEY: 'test-turnstile-secret',
+    TURNSTILE_HOSTNAMES: 'localhost,127.0.0.1',
   } as any;
 }
 
@@ -125,7 +126,10 @@ describe('Journal comment privacy, moderation, and rate limits', () => {
       vi
         .fn()
         .mockResolvedValue(
-          Response.json({ success: true, action: 'journal-comment' }, { status: 200 }),
+          Response.json(
+            { success: true, action: 'journal-comment', hostname: 'localhost' },
+            { status: 200 },
+          ),
         ),
     );
     const db = createDb({ entry: { id: 'entry-1', comments_enabled: 1 }, recentCount: 0 });
@@ -148,7 +152,10 @@ describe('Journal comment privacy, moderation, and rate limits', () => {
       vi
         .fn()
         .mockResolvedValue(
-          Response.json({ success: true, action: 'journal-comment' }, { status: 200 }),
+          Response.json(
+            { success: true, action: 'journal-comment', hostname: 'localhost' },
+            { status: 200 },
+          ),
         ),
     );
     const db = createDb({ entry: { id: 'entry-1', comments_enabled: 1 }, recentCount: 3 });

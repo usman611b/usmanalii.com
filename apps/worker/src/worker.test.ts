@@ -216,7 +216,9 @@ describe('Worker API Integration & Security Tests', () => {
     const resend = vi
       .spyOn(globalThis, 'fetch')
       .mockResolvedValueOnce(
-        new Response(JSON.stringify({ success: true, action: 'contact' }), { status: 200 }),
+        new Response(JSON.stringify({ success: true, action: 'contact', hostname: 'localhost' }), {
+          status: 200,
+        }),
       )
       .mockResolvedValueOnce(new Response(JSON.stringify({ id: 'email_test' }), { status: 200 }));
     const contactDb = {
@@ -250,6 +252,7 @@ describe('Worker API Integration & Security Tests', () => {
         ...env,
         DB: contactDb as any,
         TURNSTILE_SECRET_KEY: 'test-turnstile-secret',
+        TURNSTILE_HOSTNAMES: 'localhost,127.0.0.1',
         RESEND_API_KEY: 'test-resend-key',
         CONTACT_FROM_EMAIL: 'Portfolio <contact@usmanalii.com>',
       } as any,
@@ -297,11 +300,11 @@ describe('Worker API Integration & Security Tests', () => {
   });
 
   it('POST /api/v1/public/contact fails closed when Turnstile rejects the token', async () => {
-    const fetchSpy = vi
-      .spyOn(globalThis, 'fetch')
-      .mockResolvedValueOnce(
-        new Response(JSON.stringify({ success: false, action: 'contact' }), { status: 200 }),
-      );
+    const fetchSpy = vi.spyOn(globalThis, 'fetch').mockResolvedValueOnce(
+      new Response(JSON.stringify({ success: false, action: 'contact', hostname: 'localhost' }), {
+        status: 200,
+      }),
+    );
     const res = await worker.fetch(
       new Request('http://localhost/api/v1/public/contact', {
         method: 'POST',
@@ -320,6 +323,46 @@ describe('Worker API Integration & Security Tests', () => {
       {
         ...env,
         TURNSTILE_SECRET_KEY: 'test-turnstile-secret',
+        TURNSTILE_HOSTNAMES: 'localhost,127.0.0.1',
+        RESEND_API_KEY: 'test-resend-key',
+        CONTACT_FROM_EMAIL: 'Portfolio <contact@usmanalii.com>',
+      } as any,
+    );
+
+    expect(res.status).toBe(403);
+    expect(await res.json()).toMatchObject({ code: 'CONTACT_VERIFICATION_FAILED' });
+    expect(fetchSpy).toHaveBeenCalledTimes(1);
+    fetchSpy.mockRestore();
+  });
+
+  it('POST /api/v1/public/contact rejects a valid token issued for another hostname', async () => {
+    const fetchSpy = vi
+      .spyOn(globalThis, 'fetch')
+      .mockResolvedValueOnce(
+        Response.json(
+          { success: true, action: 'contact', hostname: 'attacker.example' },
+          { status: 200 },
+        ),
+      );
+    const res = await worker.fetch(
+      new Request('http://localhost/api/v1/public/contact', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Origin: 'http://localhost',
+          Host: 'localhost',
+        },
+        body: JSON.stringify({
+          name: 'Jane Recruiter',
+          email: 'jane@company.com',
+          message: 'Hello Usman, interested in your systems architecture role.',
+          turnstileToken: 'wrong-host-token',
+        }),
+      }),
+      {
+        ...env,
+        TURNSTILE_SECRET_KEY: 'test-turnstile-secret',
+        TURNSTILE_HOSTNAMES: 'localhost,127.0.0.1',
         RESEND_API_KEY: 'test-resend-key',
         CONTACT_FROM_EMAIL: 'Portfolio <contact@usmanalii.com>',
       } as any,

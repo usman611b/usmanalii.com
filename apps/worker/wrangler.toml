@@ -31,7 +31,7 @@ crons = []
 # Local development
 # ---------------------------------------------------------------------------
 [env.local]
-vars = { ENVIRONMENT = "local", LOG_LEVEL = "debug" }
+vars = { ENVIRONMENT = "local", LOG_LEVEL = "debug", TURNSTILE_HOSTNAMES = "localhost,127.0.0.1" }
 
 [[env.local.d1_databases]]
 binding = "DB"
@@ -100,7 +100,7 @@ bucket_name = "usmanalii-artifacts-staging"
 # SECURITY: Production resource IDs are set in Cloudflare dashboard.
 # ---------------------------------------------------------------------------
 [env.production]
-vars = { ENVIRONMENT = "production", LOG_LEVEL = "warn" }
+vars = { ENVIRONMENT = "production", LOG_LEVEL = "warn", TURNSTILE_HOSTNAMES = "usmanalii.com,www.usmanalii.com" }
 routes = [
   { pattern = "usmanalii.com/api/*", zone_name = "usmanalii.com" },
   { pattern = "www.usmanalii.com/api/*", zone_name = "usmanalii.com" },

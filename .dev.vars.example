@@ -30,6 +30,9 @@ CONTACT_FROM_EMAIL=Portfolio Contact <contact@your-verified-domain.example>
 # The matching PUBLIC_TURNSTILE_SITE_KEY belongs in the web build environment, not this Worker file.
 TURNSTILE_SECRET_KEY=replace-with-a-turnstile-test-secret-for-local-development
 
+# Separate salt for anonymous comment/reaction rate limits and duplicate detection.
+VISITOR_FINGERPRINT_SECRET=replace-with-a-long-random-local-development-secret
+
 # Localhost dashboard authentication only. Generate with: pnpm auth:init:local
 # Must be at least 32 random characters. Never deploy this variable.
 LOCAL_OWNER_TOKEN=generate-a-random-local-token-do-not-copy-this-placeholder
