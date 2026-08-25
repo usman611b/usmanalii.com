@@ -110,6 +110,14 @@ export interface SkillEntity {
   readonly parentId: EntityId | null; // taxonomy hierarchy
   readonly aliases: readonly string[];
   readonly visibility: Visibility;
+  readonly category?: string;
+  readonly skillType?: string;
+  readonly lifecycleState?: SkillLifecycleState;
+  readonly firstObservedAt?: ISODateTime | null;
+  readonly lastDemonstratedAt?: ISODateTime | null;
+  readonly ownerConfirmed?: boolean;
+  readonly externalIdentifier?: string | null;
+  readonly provenanceMetadata?: string;
   readonly createdAt: ISODateTime;
   readonly updatedAt: ISODateTime;
   readonly archivedAt: ISODateTime | null;

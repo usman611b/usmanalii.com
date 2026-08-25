@@ -18,10 +18,7 @@ async function api(path: string, options?: RequestInit) {
   return body;
 }
 export function ProjectForm({ mode }: { mode: 'create' | 'edit' }) {
-  const id =
-    typeof window === 'undefined'
-      ? ''
-      : new URLSearchParams(window.location.search).get('id') || '';
+  const [id, setId] = useState('');
   const [draft, setDraft] = useState<Record<string, unknown>>({
     lifecycleState: 'active',
     visibility: 'private',
@@ -32,6 +29,10 @@ export function ProjectForm({ mode }: { mode: 'create' | 'edit' }) {
   const [status, setStatus] = useState(mode === 'edit' ? 'Loading project…' : '');
   const [roles, setRoles] = useState<Array<{ id: string; name: string }>>([]);
   const [skills, setSkills] = useState<Array<{ id: string; label: string }>>([]);
+  const [artifacts, setArtifacts] = useState<Array<{ id: string; label: string }>>([]);
+  useEffect(() => {
+    setId(new URLSearchParams(window.location.search).get('id') || '');
+  }, []);
   useEffect(() => {
     Promise.all([api('graph/roles'), api('relationships/available')])
       .then(([roleBody, relationshipBody]) => {
@@ -46,6 +47,14 @@ export function ProjectForm({ mode }: { mode: 'create' | 'edit' }) {
             id: String(skill.id),
             label: String(skill.label),
           })),
+        );
+        setArtifacts(
+          ((relationshipBody.artifacts as Array<Record<string, unknown>>) || []).map(
+            (artifact) => ({
+              id: String(artifact.id),
+              label: String(artifact.label),
+            }),
+          ),
         );
       })
       .catch((error: Error) => setStatus(error.message));
@@ -111,7 +120,8 @@ export function ProjectForm({ mode }: { mode: 'create' | 'edit' }) {
             {mode === 'create' ? 'Create project' : String(draft.title || 'Edit project')}
           </h1>
           <p className="text-xs text-[#9CAAC1]">
-            Project facts and case-study content are stored in D1.
+            This is the live source for the project header, problem, architecture narrative,
+            outcomes, timeline, and publication controls used by Deep Dive.
           </p>
         </div>
         <button className="rounded bg-[#45F3FF] px-5 py-2.5 text-xs font-bold text-[#05060A]">
@@ -242,10 +252,19 @@ export function ProjectForm({ mode }: { mode: 'create' | 'edit' }) {
           </span>
         </Field>
         <Field label="Contribution statement">
-          <input
+          <textarea
+            rows={3}
             className={control}
             value={String(draft.contributionStatement || '')}
             onChange={(e) => set('contributionStatement', e.target.value)}
+          />
+        </Field>
+        <Field label="Collaboration and ownership boundary">
+          <textarea
+            rows={3}
+            className={control}
+            value={String(draft.collaborationContext || '')}
+            onChange={(e) => set('collaborationContext', e.target.value)}
           />
         </Field>
         <Field label="Goals (one per line)">
@@ -256,6 +275,14 @@ export function ProjectForm({ mode }: { mode: 'create' | 'edit' }) {
             onChange={(e) => set('goals', e.target.value)}
           />
         </Field>
+        <Field label="Non-goals (one per line)">
+          <textarea
+            rows={4}
+            className={control}
+            value={join(draft.nonGoals)}
+            onChange={(e) => set('nonGoals', e.target.value)}
+          />
+        </Field>
         <Field label="Constraints (one per line)">
           <textarea
             rows={4}
@@ -263,6 +290,43 @@ export function ProjectForm({ mode }: { mode: 'create' | 'edit' }) {
             value={join(draft.constraints)}
             onChange={(e) => set('constraints', e.target.value)}
           />
+        </Field>
+        <Field label="Architecture narrative" wide>
+          <textarea
+            rows={8}
+            className={control}
+            value={String(draft.deepDiveContent || '')}
+            onChange={(e) => set('deepDiveContent', e.target.value)}
+          />
+          <span className="block normal-case text-[#9CAAC1]">
+            Rendered in Deep Dive → Architecture. Diagrams are connected through Artifacts and
+            Relationships.
+          </span>
+        </Field>
+        <Field label="Outcome narrative" wide>
+          <textarea
+            rows={5}
+            className={control}
+            value={String(draft.recruiterSummary || '')}
+            onChange={(e) => set('recruiterSummary', e.target.value)}
+          />
+          <span className="block normal-case text-[#9CAAC1]">
+            Rendered in Deep Dive → Outcomes, alongside experiment, version, and deployment results.
+          </span>
+        </Field>
+        <Field label="Hero artifact">
+          <select
+            className={control}
+            value={String(draft.heroArtifactId || '')}
+            onChange={(e) => set('heroArtifactId', e.target.value || null)}
+          >
+            <option value="">No hero artifact</option>
+            {artifacts.map((artifact) => (
+              <option key={artifact.id} value={artifact.id}>
+                {artifact.label}
+              </option>
+            ))}
+          </select>
         </Field>
         <Field label="Repository URLs (one per line)">
           <textarea
@@ -331,10 +395,39 @@ export function ProjectForm({ mode }: { mode: 'create' | 'edit' }) {
                 onChange={(e) => set('publicationState', e.target.value)}
               >
                 <option value="draft">Draft</option>
-                <option value="in_review">In review</option>
+                <option value="review">In review</option>
+                <option value="approved">Approved</option>
+                <option value="scheduled">Scheduled</option>
                 <option value="published">Published</option>
+                <option value="unlisted">Unlisted</option>
                 <option value="archived">Archived</option>
               </select>
+            </Field>
+            <Field label="Schedule publication">
+              <input
+                type="datetime-local"
+                className={control}
+                value={dateTimeLocal(draft.scheduledFor)}
+                onChange={(e) =>
+                  set(
+                    'scheduledFor',
+                    e.target.value ? new Date(e.target.value).toISOString() : null,
+                  )
+                }
+              />
+            </Field>
+            <Field label="Embargo until">
+              <input
+                type="datetime-local"
+                className={control}
+                value={dateTimeLocal(draft.embargoUntil)}
+                onChange={(e) =>
+                  set(
+                    'embargoUntil',
+                    e.target.value ? new Date(e.target.value).toISOString() : null,
+                  )
+                }
+              />
             </Field>
           </>
         )}
@@ -389,4 +482,13 @@ function split(value: unknown) {
 }
 function join(value: unknown) {
   return Array.isArray(value) ? value.join('\n') : String(value || '');
+}
+
+function dateTimeLocal(value: unknown) {
+  const raw = String(value || '');
+  if (!raw) return '';
+  const date = new Date(raw);
+  if (Number.isNaN(date.getTime())) return raw.slice(0, 16);
+  const offset = date.getTimezoneOffset() * 60_000;
+  return new Date(date.getTime() - offset).toISOString().slice(0, 16);
 }

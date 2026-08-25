@@ -170,7 +170,7 @@ export function buildProjectSeoProjection(
   origin = 'https://usmanalii.com',
 ): ProjectSeoProjection | null {
   if (!isProjectEligibleForSearch(project)) return null;
-  const canonicalUrl = `${origin}/projects/${encodeURIComponent(project.slug)}`;
+  const canonicalUrl = `${origin}/projects/record?slug=${encodeURIComponent(project.slug)}`;
   const jsonLd = JSON.stringify(generateProjectJsonLd(project, canonicalUrl))
     .replace(/</g, '\\u003c')
     .replace(/>/g, '\\u003e')
@@ -193,7 +193,7 @@ export function generateProjectSitemapUrls(
 ): readonly string[] {
   return projects
     .filter(isProjectEligibleForSearch)
-    .map((project) => `${origin}/projects/${encodeURIComponent(project.slug)}`);
+    .map((project) => `${origin}/projects/record?slug=${encodeURIComponent(project.slug)}`);
 }
 
 // ---------------------------------------------------------------------------

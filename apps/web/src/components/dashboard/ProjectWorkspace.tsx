@@ -19,17 +19,15 @@ const sections = [
   ['relationships', 'Relationships'],
 ] as const;
 export function ProjectWorkspace() {
-  const id =
-    typeof window === 'undefined'
-      ? ''
-      : new URLSearchParams(window.location.search).get('id') || '';
+  const [id, setId] = useState('');
   const [detail, setDetail] = useState<Detail | null>(null);
   const [error, setError] = useState('');
   useEffect(() => {
-    if (!id) {
-      setError('Missing project ID.');
-      return;
-    }
+    setId(new URLSearchParams(window.location.search).get('id') || '');
+  }, []);
+  useEffect(() => {
+    if (!id) return;
+    setError('');
     fetch(`/api/v1/private/projects/${encodeURIComponent(id)}`, { credentials: 'include' })
       .then(async (r) => {
         const body = (await r.json()) as Detail & { message?: string };

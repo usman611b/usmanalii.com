@@ -1,17 +1,11 @@
 ---
 import DashboardLayout from '../../../../layouts/DashboardLayout.astro';
-import { RecordDetail } from '../../../../components/RecordDetail';
-const id = Astro.url.searchParams.get('id') ?? Astro.params.id;
+import { EvidenceWorkspace } from '../../../../components/dashboard/EvidenceWorkspace';
 export function getStaticPaths() {
   return [{ params: { id: 'record' } }];
 }
 ---
 
 <DashboardLayout title="Evidence — Command Center" activeSection="evidence"
-  ><RecordDetail
-    endpointBase="/api/v1/private/evidence"
-    paramName="id"
-    fallbackKey={id}
-    client:load
-  /></DashboardLayout
+  ><EvidenceWorkspace client:load /></DashboardLayout
 >

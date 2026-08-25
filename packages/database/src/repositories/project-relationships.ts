@@ -132,4 +132,56 @@ export class D1ProjectRelationshipRepository {
 
     return (res.meta?.changes ?? 0) > 0;
   }
+
+  async archiveRelationshipForSource(
+    ownerId: string,
+    sourceId: string,
+    relationshipId: string,
+  ): Promise<boolean> {
+    const now = new Date().toISOString();
+    const result = await this.db
+      .prepare(
+        `UPDATE project_relationships SET archived_at = ?
+         WHERE owner_id = ? AND source_id = ? AND id = ? AND archived_at IS NULL`,
+      )
+      .bind(now, ownerId, sourceId, relationshipId)
+      .run();
+    return (result.meta?.changes ?? 0) > 0;
+  }
+
+  async updateRelationship(
+    ownerId: string,
+    sourceId: string,
+    relationshipId: string,
+    input: {
+      targetId: string;
+      targetType: string;
+      relationshipType: string;
+      relevance: number;
+      displayOrder?: number;
+      ownerNote?: string | null;
+    },
+  ): Promise<boolean> {
+    const result = await this.db
+      .prepare(
+        `UPDATE project_relationships SET
+           target_id = ?, target_type = ?, relationship_type = ?, relevance = ?,
+           display_order = ?, owner_note = ?, created_by_classification = 'owner_manual',
+           approval_state = 'approved'
+         WHERE owner_id = ? AND source_id = ? AND id = ? AND archived_at IS NULL`,
+      )
+      .bind(
+        input.targetId,
+        input.targetType,
+        input.relationshipType,
+        input.relevance,
+        input.displayOrder ?? 0,
+        input.ownerNote || null,
+        ownerId,
+        sourceId,
+        relationshipId,
+      )
+      .run();
+    return (result.meta?.changes ?? 0) > 0;
+  }
 }

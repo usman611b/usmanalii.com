@@ -17,6 +17,7 @@ import {
   D1EngineeringRecordRepository,
   D1ProjectRelationshipRepository,
   D1ProfileRepository,
+  type EngineeringRecordKind,
 } from '@usmanalii/database';
 import {
   ContentBodyV1Schema,
@@ -501,6 +502,62 @@ privateRoutes.put('/content/:id', async (c) => {
       { code: 'NOT_FOUND', message: 'Content item not found.', requestId: c.get('requestId') },
       404,
     );
+  }
+
+  // Keep the canonical Journal relationship indexes synchronized with the immutable
+  // relationship blocks saved by the editor. These tables power live public detail
+  // pages and Command Center relationship management.
+  if (data.blocks) {
+    const skillIds = [
+      ...new Set(
+        data.blocks.flatMap((block) =>
+          block.type === 'relationship_tag' && block.entityType === 'skill' && block.entityId
+            ? [block.entityId]
+            : [],
+        ),
+      ),
+    ];
+    const capabilityRelationships = [
+      ...new Map(
+        data.blocks.flatMap((block) =>
+          block.type === 'relationship_tag' && block.entityType === 'capability' && block.entityId
+            ? [
+                [
+                  block.entityId,
+                  ['learns', 'practices', 'applies', 'demonstrates'].includes(
+                    String((block as unknown as { relationshipType?: string }).relationshipType),
+                  )
+                    ? String((block as unknown as { relationshipType?: string }).relationshipType)
+                    : 'related',
+                ] as const,
+              ]
+            : [],
+        ),
+      ).entries(),
+    ];
+    const now = new Date().toISOString();
+    await c.env.DB.batch([
+      c.env.DB.prepare('DELETE FROM content_skills WHERE content_item_id = ?').bind(id),
+      c.env.DB.prepare('DELETE FROM content_capabilities WHERE content_item_id = ?').bind(id),
+      ...skillIds.map((skillId) =>
+        c.env.DB.prepare(
+          `INSERT INTO content_skills (content_item_id, skill_id, created_at)
+           SELECT ?, id, ? FROM skills
+           WHERE id = ? AND owner_id = ? AND archived_at IS NULL
+           ON CONFLICT(content_item_id, skill_id) DO NOTHING`,
+        ).bind(id, now, skillId, authContext.ownerId),
+      ),
+      ...capabilityRelationships.map(([capabilityId, relationshipType]) =>
+        c.env.DB.prepare(
+          `INSERT INTO content_capabilities
+             (content_item_id, capability_id, relationship_type, created_at)
+           SELECT ?, id, ?, ? FROM capabilities
+           WHERE id = ? AND owner_id = ? AND archived_at IS NULL
+           ON CONFLICT(content_item_id, capability_id)
+           DO UPDATE SET relationship_type = excluded.relationship_type`,
+        ).bind(id, relationshipType, now, capabilityId, authContext.ownerId),
+      ),
+    ]);
   }
 
   return c.json({ item: updateResult.item, requestId: c.get('requestId') });
@@ -1003,13 +1060,65 @@ privateRoutes.get('/relationships/available', async (c) => {
       `SELECT id, title AS label, 'artifact' AS type, visibility FROM artifacts WHERE owner_id = ? AND archived_at IS NULL AND deleted_at IS NULL`,
     )
     .bind(authContext.ownerId);
+  const journalStmt = db
+    .prepare(
+      `SELECT id, title AS label, 'journal' AS type, visibility
+       FROM content_items
+       WHERE owner_id = ? AND content_type = 'journal'
+         AND archived_at IS NULL AND deleted_at IS NULL
+       ORDER BY COALESCE(occurred_at, created_at) DESC`,
+    )
+    .bind(authContext.ownerId);
+  const claimsStmt = db
+    .prepare(
+      `SELECT id, wording AS label, 'claim' AS type, visibility FROM claims WHERE owner_id = ? AND archived_at IS NULL`,
+    )
+    .bind(authContext.ownerId);
+  const experimentsStmt = db
+    .prepare(
+      `SELECT id, title AS label, 'experiment' AS type, visibility FROM experiments WHERE owner_id = ? AND archived_at IS NULL`,
+    )
+    .bind(authContext.ownerId);
+  const adrsStmt = db
+    .prepare(
+      `SELECT id, title AS label, 'adr' AS type, visibility FROM project_adrs WHERE owner_id = ? AND archived_at IS NULL`,
+    )
+    .bind(authContext.ownerId);
+  const debuggingStmt = db
+    .prepare(
+      `SELECT id, title AS label, 'debugging_lesson' AS type, visibility FROM debugging_lessons WHERE owner_id = ? AND archived_at IS NULL`,
+    )
+    .bind(authContext.ownerId);
+  const deploymentsStmt = db
+    .prepare(
+      `SELECT id, environment || ' · ' || release_version AS label, 'deployment' AS type, visibility FROM deployments WHERE owner_id = ?`,
+    )
+    .bind(authContext.ownerId);
 
-  const [skills, caps, projects, evidence, artifacts] = await Promise.all([
+  const [
+    skills,
+    caps,
+    projects,
+    evidence,
+    artifacts,
+    journal,
+    claims,
+    experiments,
+    adrs,
+    debuggingLessons,
+    deployments,
+  ] = await Promise.all([
     skillsStmt.all<{ id: string; label: string; type: string; visibility: string }>(),
     capsStmt.all<{ id: string; label: string; type: string; visibility: string }>(),
     projectsStmt.all<{ id: string; label: string; type: string; visibility: string }>(),
     evidenceStmt.all<{ id: string; label: string; type: string; visibility: string }>(),
     artifactsStmt.all<{ id: string; label: string; type: string; visibility: string }>(),
+    journalStmt.all<{ id: string; label: string; type: string; visibility: string }>(),
+    claimsStmt.all<{ id: string; label: string; type: string; visibility: string }>(),
+    experimentsStmt.all<{ id: string; label: string; type: string; visibility: string }>(),
+    adrsStmt.all<{ id: string; label: string; type: string; visibility: string }>(),
+    debuggingStmt.all<{ id: string; label: string; type: string; visibility: string }>(),
+    deploymentsStmt.all<{ id: string; label: string; type: string; visibility: string }>(),
   ]);
 
   return c.json({
@@ -1018,6 +1127,12 @@ privateRoutes.get('/relationships/available', async (c) => {
     projects: projects.results || [],
     evidence: evidence.results || [],
     artifacts: artifacts.results || [],
+    journal: journal.results || [],
+    claims: claims.results || [],
+    experiments: experiments.results || [],
+    adrs: adrs.results || [],
+    debuggingLessons: debuggingLessons.results || [],
+    deployments: deployments.results || [],
     requestId: c.get('requestId'),
   });
 });
@@ -1842,6 +1957,212 @@ privateRoutes.post('/projects/:id/relationships', async (c) => {
     }
     throw err;
   }
+});
+
+const editableEngineeringKinds = new Set<EngineeringRecordKind>([
+  'contributions',
+  'experiments',
+  'adrs',
+  'debugging',
+  'deployments',
+  'versions',
+]);
+
+/** PUT /api/v1/private/projects/:id/:kind/:recordId — Update one project-owned record */
+privateRoutes.put('/projects/:id/:kind/:recordId', async (c) => {
+  const authContext = c.get('authContext')!;
+  const projectId = c.req.param('id');
+  const recordId = c.req.param('recordId');
+  const kind = c.req.param('kind');
+  const body = (await c.req.json().catch(() => ({}))) as Record<string, unknown>;
+
+  const project = await new D1ProjectRepository(c.env.DB).getProjectById(
+    authContext.ownerId,
+    projectId,
+  );
+  if (!project) {
+    return c.json(
+      { code: 'NOT_FOUND', message: 'Project not found.', requestId: c.get('requestId') },
+      404,
+    );
+  }
+
+  const supportingEvidenceIds = Array.isArray(body.supportingEvidenceIds)
+    ? body.supportingEvidenceIds.map(String)
+    : [];
+  const artifactIds = Array.isArray(body.artifactIds) ? body.artifactIds.map(String) : [];
+  if (
+    !(await validateOwnedLinkIds(
+      c.env.DB,
+      authContext.ownerId,
+      'evidence',
+      supportingEvidenceIds,
+    )) ||
+    !(await validateOwnedLinkIds(c.env.DB, authContext.ownerId, 'artifact', artifactIds))
+  ) {
+    return c.json(
+      {
+        code: 'INVALID_LINK_REFERENCE',
+        message: 'Linked evidence or artifact is outside the owner scope.',
+        requestId: c.get('requestId'),
+      },
+      400,
+    );
+  }
+
+  if (kind === 'relationships') {
+    const targetId = String(body.targetId || '');
+    const targetType = String(body.targetType || '') as OwnedLinkKind;
+    const relationshipType = String(body.relationshipType || '');
+    const relevance = Number(body.relevance || 1);
+    if (
+      !targetId ||
+      !relationshipType ||
+      !Object.prototype.hasOwnProperty.call(OWNED_LINK_TABLES, targetType) ||
+      !(await validateOwnedLinkIds(c.env.DB, authContext.ownerId, targetType, [targetId]))
+    ) {
+      return c.json(
+        {
+          code: 'INVALID_LINK_REFERENCE',
+          message: 'Select a valid owner-managed relationship target.',
+          requestId: c.get('requestId'),
+        },
+        400,
+      );
+    }
+    const validation = validateProjectRelationship({
+      sourceId: projectId,
+      targetId,
+      relationshipType,
+      relevance,
+    });
+    if (!validation.valid) {
+      return c.json(
+        {
+          code: 'INVALID_RELATIONSHIP',
+          message: validation.reason,
+          requestId: c.get('requestId'),
+        },
+        400,
+      );
+    }
+    try {
+      const updated = await new D1ProjectRelationshipRepository(c.env.DB).updateRelationship(
+        authContext.ownerId,
+        projectId,
+        recordId,
+        {
+          targetId,
+          targetType,
+          relationshipType,
+          relevance,
+          displayOrder: Number(body.displayOrder || 0),
+          ownerNote: body.ownerNote ? String(body.ownerNote) : null,
+        },
+      );
+      if (!updated)
+        return c.json(
+          { code: 'NOT_FOUND', message: 'Relationship not found.', requestId: c.get('requestId') },
+          404,
+        );
+      return c.json({ updated: true, requestId: c.get('requestId') });
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : String(error);
+      if (
+        message.includes('UNIQUE constraint failed') ||
+        message.includes('idx_project_rel_active')
+      )
+        return c.json(
+          {
+            code: 'DUPLICATE_EDGE',
+            message: 'An active relationship between these records already exists.',
+            requestId: c.get('requestId'),
+          },
+          409,
+        );
+      throw error;
+    }
+  }
+
+  if (!editableEngineeringKinds.has(kind as EngineeringRecordKind)) {
+    return c.json(
+      { code: 'NOT_FOUND', message: 'Record type not found.', requestId: c.get('requestId') },
+      404,
+    );
+  }
+
+  if (kind === 'deployments' && body.deploymentUrl) {
+    const environment = String(body.environment || 'preview') as DeploymentEnvironment;
+    const urlCheck = classifyAndValidateUrl(
+      String(body.deploymentUrl),
+      environment === 'production' ? 'public_deployment' : 'preview_staging',
+    );
+    if (!urlCheck.valid)
+      return c.json(
+        { code: 'INVALID_URL', message: urlCheck.reason, requestId: c.get('requestId') },
+        400,
+      );
+  }
+
+  const updated = await new D1EngineeringRecordRepository(c.env.DB).updateRecord(
+    kind as EngineeringRecordKind,
+    authContext.ownerId,
+    projectId,
+    recordId,
+    {
+      ...body,
+      ...(body.adrNumber !== undefined ? { adrNumber: Number(body.adrNumber) } : {}),
+      supportingEvidenceIds,
+      artifactIds,
+    },
+  );
+  if (!updated)
+    return c.json(
+      { code: 'NOT_FOUND', message: 'Project record not found.', requestId: c.get('requestId') },
+      404,
+    );
+  return c.json({ updated: true, requestId: c.get('requestId') });
+});
+
+/** DELETE /api/v1/private/projects/:id/:kind/:recordId — Remove one project-owned record */
+privateRoutes.delete('/projects/:id/:kind/:recordId', async (c) => {
+  const authContext = c.get('authContext')!;
+  const projectId = c.req.param('id');
+  const recordId = c.req.param('recordId');
+  const kind = c.req.param('kind');
+
+  const project = await new D1ProjectRepository(c.env.DB).getProjectById(
+    authContext.ownerId,
+    projectId,
+  );
+  if (!project)
+    return c.json(
+      { code: 'NOT_FOUND', message: 'Project not found.', requestId: c.get('requestId') },
+      404,
+    );
+
+  const removed =
+    kind === 'relationships'
+      ? await new D1ProjectRelationshipRepository(c.env.DB).archiveRelationshipForSource(
+          authContext.ownerId,
+          projectId,
+          recordId,
+        )
+      : editableEngineeringKinds.has(kind as EngineeringRecordKind)
+        ? await new D1EngineeringRecordRepository(c.env.DB).deleteRecord(
+            kind as EngineeringRecordKind,
+            authContext.ownerId,
+            projectId,
+            recordId,
+          )
+        : false;
+
+  if (!removed)
+    return c.json(
+      { code: 'NOT_FOUND', message: 'Project record not found.', requestId: c.get('requestId') },
+      404,
+    );
+  return c.json({ removed: true, requestId: c.get('requestId') });
 });
 
 /** Mount GitHub integration routes (`/api/v1/private/integrations/github/*`) */

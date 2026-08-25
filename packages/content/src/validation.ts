@@ -127,6 +127,10 @@ function extractTextFromBlock(block: ContentBlockV1): string {
       return block.items.join(' ');
     case 'image':
       return `${block.url} ${block.alt} ${block.caption || ''}`;
+    case 'architecture_diagram':
+      return `${block.title} ${block.nodes.join(' ')} ${block.text || ''}`;
+    case 'metrics':
+      return `${block.title} ${block.items.join(' ')}`;
     case 'embed_artifact':
       return `${block.artifactId} ${block.caption || ''}`;
     case 'relationship_tag':

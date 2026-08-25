@@ -1,6 +1,6 @@
 ---
 import DashboardLayout from '../../../layouts/DashboardLayout.astro';
-import { PrivateRecordDirectory } from '../../../components/dashboard/PrivateRecordDirectory';
+import { KnowledgeManager } from '../../../components/dashboard/KnowledgeManager';
 ---
 
 <DashboardLayout title="Skills Taxonomy — Command Center" activeSection="skills"
@@ -9,8 +9,8 @@ import { PrivateRecordDirectory } from '../../../components/dashboard/PrivateRec
       <h1 class="text-xl font-bold text-white">Skills Taxonomy</h1><p
         class="mt-1 text-xs text-[#9CAAC1]"
       >
-        Database-backed skills; no self-rated percentage scores.
+        Create, edit, connect, and publish canonical skills from live API data.
       </p>
-    </header><PrivateRecordDirectory kind="skills" client:load />
+    </header><KnowledgeManager kind="skills" client:load />
   </section></DashboardLayout
 >

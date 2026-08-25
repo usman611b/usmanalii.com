@@ -43,7 +43,16 @@ type Projection = {
     description: string | null;
     slug: string;
   }>;
-  featuredProjects: Array<{ id: string; title: string; summary: string | null; slug: string }>;
+  featuredProjects: Array<{
+    id: string;
+    title: string;
+    summary: string | null;
+    slug: string;
+    startDate: string | null;
+    endDate: string | null;
+    ongoingStatus: boolean;
+    lifecycleState: string;
+  }>;
   approvedClaims: Array<{ id: string; wording: string; healthySupportCount: number }>;
 };
 
@@ -267,7 +276,7 @@ export function PublicIdentityView({ mode }: { mode: 'about' | 'recruiter' }) {
               {data.featuredCapabilities.map((cap) => (
                 <a
                   key={cap.id}
-                  href={`/capabilities/${cap.slug}`}
+                  href={`/capabilities/record?slug=${encodeURIComponent(cap.slug)}`}
                   className="badge badge-violet"
                   style={{ textDecoration: 'none' }}
                 >
@@ -315,7 +324,7 @@ export function PublicIdentityView({ mode }: { mode: 'about' | 'recruiter' }) {
               {data.featuredProjects.map((item) => (
                 <a
                   key={item.id}
-                  href={`/projects/${item.slug}`}
+                  href={`/projects/record?slug=${encodeURIComponent(item.slug)}`}
                   className="block rounded-lg p-4 transition-all duration-[150ms]"
                   style={{
                     background: 'rgba(255,255,255,0.03)',
@@ -337,6 +346,18 @@ export function PublicIdentityView({ mode }: { mode: 'about' | 'recruiter' }) {
                       {item.summary}
                     </p>
                   )}
+                  <div
+                    className="mt-3 flex flex-wrap gap-2 text-[10px] uppercase"
+                    style={{ color: 'var(--text-muted)', fontFamily: 'var(--font-mono)' }}
+                  >
+                    <span>{item.lifecycleState.replaceAll('_', ' ')}</span>
+                    {item.startDate ? (
+                      <span>
+                        {item.startDate} —{' '}
+                        {item.ongoingStatus ? 'Present' : item.endDate || 'Recorded'}
+                      </span>
+                    ) : null}
+                  </div>
                 </a>
               ))}
             </div>

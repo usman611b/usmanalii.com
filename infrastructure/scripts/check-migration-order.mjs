@@ -38,6 +38,8 @@ const CANONICAL_ORDER = [
   '019_career_knowledge_graph.sql',
   '020_project_detail_and_activity_fix.sql',
   '021_engineering_journal_experience.sql',
+  '022_content_capabilities.sql',
+  '023_evidence_link_targets.sql',
 ];
 
 console.log('🔍 Checking migration file order and completeness...\n');

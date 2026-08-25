@@ -7,6 +7,7 @@ export interface CreateSkillParams {
   name: string;
   slug: string;
   description?: string | null;
+  aliases?: readonly string[];
   parentId?: EntityId | null;
   category?: string;
   skillType?: string;
@@ -20,11 +21,17 @@ export interface UpdateSkillParams {
   name?: string;
   slug?: string;
   description?: string | null;
+  aliases?: readonly string[];
   parentId?: EntityId | null;
   category?: string;
   skillType?: string;
   visibility?: 'private' | 'restricted' | 'unlisted' | 'public';
   lifecycleState?: 'draft' | 'active' | 'deprecated' | 'archived';
+  firstObservedAt?: ISODateTime | null;
+  lastDemonstratedAt?: ISODateTime | null;
+  ownerConfirmed?: boolean;
+  externalIdentifier?: string | null;
+  provenanceMetadata?: string;
   archivedAt?: ISODateTime | null;
   versionNo: number;
 }
@@ -39,7 +46,7 @@ export class D1SkillRepository {
         id, owner_id, name, slug, description, parent_id, aliases, visibility,
         category, skill_type, lifecycle_state, owner_confirmed, external_identifier,
         provenance_metadata, created_at, updated_at, version_no
-      ) VALUES (?, ?, ?, ?, ?, ?, '[]', ?, ?, ?, ?, 1, ?, ?, ?, ?, 1)
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, ?, ?, ?, ?, 1)
     `);
 
     await stmt
@@ -50,6 +57,7 @@ export class D1SkillRepository {
         params.slug,
         params.description || null,
         params.parentId || null,
+        JSON.stringify(params.aliases || []),
         params.visibility || 'private',
         params.category || 'engineering_practice',
         params.skillType || 'technical',
@@ -139,14 +147,20 @@ export class D1SkillRepository {
       .prepare(
         `
       UPDATE skills
-      SET name = COALESCE(?, name),
-          slug = COALESCE(?, slug),
-          description = COALESCE(?, description),
-          parent_id = COALESCE(?, parent_id),
-          category = COALESCE(?, category),
-          skill_type = COALESCE(?, skill_type),
-          visibility = COALESCE(?, visibility),
-          lifecycle_state = COALESCE(?, lifecycle_state),
+      SET name = ?,
+          slug = ?,
+          description = ?,
+          parent_id = ?,
+          aliases = ?,
+          category = ?,
+          skill_type = ?,
+          visibility = ?,
+          lifecycle_state = ?,
+          first_observed_at = ?,
+          last_demonstrated_at = ?,
+          owner_confirmed = ?,
+          external_identifier = ?,
+          provenance_metadata = ?,
           archived_at = ?,
           updated_at = ?,
           version_no = ?
@@ -154,15 +168,31 @@ export class D1SkillRepository {
     `,
       )
       .bind(
-        params.name || null,
-        params.slug || null,
-        params.description !== undefined ? params.description : null,
-        params.parentId !== undefined ? params.parentId : null,
-        params.category || null,
-        params.skillType || null,
-        params.visibility || null,
-        params.lifecycleState || null,
-        params.archivedAt || null,
+        params.name ?? existing.name,
+        params.slug ?? existing.slug,
+        params.description !== undefined ? params.description : existing.description,
+        params.parentId !== undefined ? params.parentId : existing.parentId,
+        JSON.stringify(params.aliases ?? existing.aliases),
+        params.category ?? existing.category ?? 'engineering_practice',
+        params.skillType ?? existing.skillType ?? 'technical',
+        params.visibility ?? existing.visibility,
+        params.lifecycleState ?? existing.lifecycleState ?? 'active',
+        params.firstObservedAt !== undefined ? params.firstObservedAt : existing.firstObservedAt,
+        params.lastDemonstratedAt !== undefined
+          ? params.lastDemonstratedAt
+          : existing.lastDemonstratedAt,
+        params.ownerConfirmed !== undefined
+          ? params.ownerConfirmed
+            ? 1
+            : 0
+          : existing.ownerConfirmed === false
+            ? 0
+            : 1,
+        params.externalIdentifier !== undefined
+          ? params.externalIdentifier
+          : existing.externalIdentifier,
+        params.provenanceMetadata ?? existing.provenanceMetadata ?? '{}',
+        params.archivedAt !== undefined ? params.archivedAt : existing.archivedAt,
         now,
         newVersion,
         id,
@@ -197,6 +227,14 @@ export class D1SkillRepository {
       parentId: (row.parent_id as EntityId) || null,
       aliases,
       visibility: (row.visibility as SkillEntity['visibility']) || 'private',
+      category: (row.category as string) || 'engineering_practice',
+      skillType: (row.skill_type as string) || 'technical',
+      lifecycleState: (row.lifecycle_state as SkillEntity['lifecycleState']) || 'active',
+      firstObservedAt: (row.first_observed_at as ISODateTime) || null,
+      lastDemonstratedAt: (row.last_demonstrated_at as ISODateTime) || null,
+      ownerConfirmed: Number(row.owner_confirmed ?? 1) === 1,
+      externalIdentifier: (row.external_identifier as string) || null,
+      provenanceMetadata: (row.provenance_metadata as string) || '{}',
       createdAt: row.created_at as ISODateTime,
       updatedAt: row.updated_at as ISODateTime,
       archivedAt: (row.archived_at as ISODateTime) || null,

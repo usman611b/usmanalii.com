@@ -122,7 +122,9 @@ describe('Milestone M5 — Search Projection Engine Tests', () => {
       publicationState: 'published',
     };
     const seo = buildProjectSeoProjection(project);
-    expect(seo?.canonicalUrl).toBe('https://usmanalii.com/projects/safe-project');
+    expect(seo?.canonicalUrl).toBe(
+      'https://usmanalii.com/projects/record?slug=safe-project',
+    );
     expect(seo?.robots).toBe('index, follow');
     expect(seo?.openGraph.description).toBe('Public summary');
     expect(seo?.jsonLd).not.toContain('</script>');

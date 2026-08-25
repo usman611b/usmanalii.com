@@ -1,14 +1,14 @@
 import { useEffect, useState } from 'react';
 export function ProjectCaseStudyEditor() {
-  const id =
-    typeof window === 'undefined'
-      ? ''
-      : new URLSearchParams(window.location.search).get('id') || '';
+  const [id, setId] = useState('');
   const [title, setTitle] = useState('');
   const [body, setBody] = useState('');
   const [versionNo, setVersionNo] = useState(1);
   const [revisions, setRevisions] = useState<Array<{ revisionNo: number; createdAt: string }>>([]);
   const [status, setStatus] = useState('Loading…');
+  useEffect(() => {
+    setId(new URLSearchParams(window.location.search).get('id') || '');
+  }, []);
   async function api(path: string, options?: RequestInit) {
     const response = await fetch(`/api/v1/private/${path}`, {
       credentials: 'include',

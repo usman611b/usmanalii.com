@@ -38,8 +38,8 @@ export function generateRssFeedXml(items: ContentItemEntity[], now: Date = new D
         : new Date().toUTCString();
       return `  <item>
     <title>${escapeXml(item.title)}</title>
-    <link>https://usmanalii.com/journey/${item.slug}</link>
-    <guid>https://usmanalii.com/journey/${item.slug}</guid>
+    <link>https://usmanalii.com/journey/record?slug=${item.slug}</link>
+    <guid>https://usmanalii.com/journey/record?slug=${item.slug}</guid>
     <pubDate>${pubDateStr}</pubDate>
     <description>${escapeXml(item.summary || '')}</description>
   </item>`;
@@ -67,7 +67,7 @@ export function generateSitemapXml(items: ContentItemEntity[], now: Date = new D
     .map((item) => {
       const lastModDate = item.updatedAt ? item.updatedAt.split('T')[0] : '2026-08-08';
       return `  <url>
-    <loc>https://usmanalii.com/journey/${item.slug}</loc>
+    <loc>https://usmanalii.com/journey/record?slug=${item.slug}</loc>
     <lastmod>${lastModDate}</lastmod>
     <priority>0.8</priority>
   </url>`;

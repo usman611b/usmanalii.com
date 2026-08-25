@@ -1,8 +1,8 @@
 ---
 import DashboardLayout from '../../../layouts/DashboardLayout.astro';
-import { EvidenceForm } from '../../../components/dashboard/EvidenceForm';
+import { EvidenceCreateForm } from '../../../components/dashboard/EvidenceCreateForm';
 ---
 
 <DashboardLayout title="New Evidence — Private Dashboard" activeSection="evidence"
-  ><EvidenceForm mode="create" client:load /></DashboardLayout
+  ><EvidenceCreateForm client:load /></DashboardLayout
 >

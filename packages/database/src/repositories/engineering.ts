@@ -38,8 +38,203 @@ export function sanitizeEngineeringText(text: string): string {
   return sanitizeEngineeringTextWithMetadata(text).sanitizedText;
 }
 
+export type EngineeringRecordKind =
+  'contributions' | 'experiments' | 'adrs' | 'debugging' | 'deployments' | 'versions';
+
+type EditableColumn = {
+  column: string;
+  json?: boolean;
+  boolean?: boolean;
+  narrative?: boolean;
+};
+
+const editableEngineeringRecords: Record<
+  EngineeringRecordKind,
+  { table: string; versioned: boolean; columns: Record<string, EditableColumn> }
+> = {
+  contributions: {
+    table: 'project_contributions',
+    versioned: false,
+    columns: {
+      contributionType: { column: 'contribution_type' },
+      description: { column: 'description', narrative: true },
+      scope: { column: 'scope', narrative: true },
+      startDate: { column: 'start_date' },
+      endDate: { column: 'end_date' },
+      collaborationContext: { column: 'collaboration_context', narrative: true },
+      supportingEvidenceIds: { column: 'supporting_evidence_ids', json: true },
+      verificationState: { column: 'verification_state' },
+      visibility: { column: 'visibility' },
+      ownerApproval: { column: 'owner_approval', boolean: true },
+    },
+  },
+  experiments: {
+    table: 'experiments',
+    versioned: true,
+    columns: {
+      title: { column: 'title' },
+      slug: { column: 'slug' },
+      hypothesis: { column: 'hypothesis', narrative: true },
+      motivation: { column: 'motivation', narrative: true },
+      methodology: { column: 'methodology', narrative: true },
+      variables: { column: 'variables', json: true },
+      inputs: { column: 'inputs', narrative: true },
+      results: { column: 'results', narrative: true },
+      conclusion: { column: 'conclusion', narrative: true },
+      limitations: { column: 'limitations', narrative: true },
+      status: { column: 'status' },
+      dates: { column: 'dates' },
+      supportingEvidenceIds: { column: 'supporting_evidence_ids', json: true },
+      artifactIds: { column: 'artifact_ids', json: true },
+      visibility: { column: 'visibility' },
+      state: { column: 'state' },
+    },
+  },
+  adrs: {
+    table: 'project_adrs',
+    versioned: true,
+    columns: {
+      adrNumber: { column: 'adr_number' },
+      title: { column: 'title' },
+      slug: { column: 'slug' },
+      context: { column: 'context', narrative: true },
+      decision: { column: 'decision', narrative: true },
+      consequences: { column: 'consequences', narrative: true },
+      alternativesConsidered: { column: 'alternatives_considered', json: true },
+      rationale: { column: 'rationale', narrative: true },
+      tradeOffs: { column: 'trade_offs', narrative: true },
+      status: { column: 'status' },
+      supersededBy: { column: 'superseded_by' },
+      decisionDate: { column: 'decision_date' },
+      supportingEvidenceIds: { column: 'supporting_evidence_ids', json: true },
+      visibility: { column: 'visibility' },
+      state: { column: 'state' },
+    },
+  },
+  debugging: {
+    table: 'debugging_lessons',
+    versioned: true,
+    columns: {
+      title: { column: 'title' },
+      slug: { column: 'slug' },
+      symptom: { column: 'symptom', narrative: true },
+      impact: { column: 'impact', narrative: true },
+      environment: { column: 'environment', narrative: true },
+      investigation: { column: 'investigation', narrative: true },
+      rootCause: { column: 'root_cause', narrative: true },
+      resolution: { column: 'resolution', narrative: true },
+      prevention: { column: 'prevention', narrative: true },
+      lessonsLearned: { column: 'lessons_learned', narrative: true },
+      relevantDates: { column: 'relevant_dates' },
+      tags: { column: 'tags', json: true },
+      supportingEvidenceIds: { column: 'supporting_evidence_ids', json: true },
+      artifactIds: { column: 'artifact_ids', json: true },
+      visibility: { column: 'visibility' },
+      state: { column: 'state' },
+    },
+  },
+  deployments: {
+    table: 'deployments',
+    versioned: false,
+    columns: {
+      environment: { column: 'environment' },
+      releaseVersion: { column: 'release_version' },
+      gitSha: { column: 'git_sha' },
+      deploymentUrl: { column: 'deployment_url' },
+      status: { column: 'status' },
+      startedAt: { column: 'started_at' },
+      deployedAt: { column: 'deployed_at' },
+      rollbackInfo: { column: 'rollback_info', narrative: true },
+      outcome: { column: 'outcome', narrative: true },
+      supportingEvidenceIds: { column: 'supporting_evidence_ids', json: true },
+      artifactIds: { column: 'artifact_ids', json: true },
+      visibility: { column: 'visibility' },
+      publicationState: { column: 'state' },
+    },
+  },
+  versions: {
+    table: 'project_versions',
+    versioned: false,
+    columns: {
+      name: { column: 'name' },
+      versionIdentifier: { column: 'version_identifier' },
+      description: { column: 'description', narrative: true },
+      status: { column: 'status' },
+      startedDate: { column: 'started_date' },
+      completedDate: { column: 'completed_date' },
+      changelog: { column: 'changelog', narrative: true },
+      outcome: { column: 'outcome', narrative: true },
+      supportingEvidenceIds: { column: 'supporting_evidence_ids', json: true },
+      artifactIds: { column: 'artifact_ids', json: true },
+      previousVersionId: { column: 'previous_version_id' },
+      visibility: { column: 'visibility' },
+      state: { column: 'state' },
+    },
+  },
+};
+
+function normalizeEditableValue(value: unknown, column: EditableColumn): unknown {
+  if (column.json) return JSON.stringify(Array.isArray(value) ? value : []);
+  if (column.boolean) return value ? 1 : 0;
+  if (column.narrative && typeof value === 'string') return sanitizeEngineeringText(value);
+  return value === '' ? null : value;
+}
+
 export class D1EngineeringRecordRepository {
   constructor(private readonly db: D1Database) {}
+
+  async updateRecord(
+    kind: EngineeringRecordKind,
+    ownerId: string,
+    projectId: string,
+    recordId: string,
+    input: Readonly<Record<string, unknown>>,
+  ): Promise<boolean> {
+    const spec = editableEngineeringRecords[kind];
+    const assignments: string[] = [];
+    const values: unknown[] = [];
+
+    for (const [key, column] of Object.entries(spec.columns)) {
+      if (!Object.prototype.hasOwnProperty.call(input, key)) continue;
+      assignments.push(`${column.column} = ?`);
+      values.push(normalizeEditableValue(input[key], column));
+    }
+
+    if (!assignments.length) return false;
+    assignments.push('updated_at = ?');
+    values.push(new Date().toISOString());
+    if (spec.versioned) assignments.push('version_no = version_no + 1');
+
+    const result = await this.db
+      .prepare(
+        `UPDATE ${spec.table} SET ${assignments.join(', ')}
+         WHERE owner_id = ? AND project_id = ? AND id = ? AND deleted_at IS NULL`,
+      )
+      .bind(...values, ownerId, projectId, recordId)
+      .run();
+    return (result.meta?.changes ?? 0) > 0;
+  }
+
+  async deleteRecord(
+    kind: EngineeringRecordKind,
+    ownerId: string,
+    projectId: string,
+    recordId: string,
+  ): Promise<boolean> {
+    const spec = editableEngineeringRecords[kind];
+    const now = new Date().toISOString();
+    const assignments = spec.versioned
+      ? 'deleted_at = ?, updated_at = ?, version_no = version_no + 1'
+      : 'deleted_at = ?, updated_at = ?';
+    const result = await this.db
+      .prepare(
+        `UPDATE ${spec.table} SET ${assignments}
+         WHERE owner_id = ? AND project_id = ? AND id = ? AND deleted_at IS NULL`,
+      )
+      .bind(now, now, ownerId, projectId, recordId)
+      .run();
+    return (result.meta?.changes ?? 0) > 0;
+  }
 
   // ---------------------------------------------------------------------------
   // Project Contributions

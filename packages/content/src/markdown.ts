@@ -263,6 +263,25 @@ export function compileJsonBlocksToMarkdown(
         markdownBlocks.push(`![${block.alt}](${safeUrl})${caption}`);
         break;
       }
+      case 'architecture_diagram': {
+        const flow = block.nodes.map((node, index) => `${index + 1}. ${node}`).join('\n');
+        const explanation = block.text ? `\n\n${block.text}` : '';
+        markdownBlocks.push(`**${block.title}**\n\n${flow}${explanation}`);
+        break;
+      }
+      case 'metrics': {
+        const rows = block.items
+          .map((entry) => entry.split('|').map((part) => part.trim()))
+          .map(
+            ([metricValue = '', label = '', detail = '']) =>
+              `| ${metricValue} | ${label} | ${detail} |`,
+          )
+          .join('\n');
+        markdownBlocks.push(
+          `**${block.title}**\n\n| Value | Metric | Context |\n| --- | --- | --- |\n${rows}`,
+        );
+        break;
+      }
       case 'embed_artifact': {
         const caption = block.caption ? ` (${block.caption})` : '';
         markdownBlocks.push(`*[Embedded Artifact: ${block.artifactId}]*${caption}`);

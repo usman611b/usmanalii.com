@@ -60,6 +60,8 @@ export const MIGRATION_FILES = [
   '019_career_knowledge_graph.sql',
   '020_project_detail_and_activity_fix.sql',
   '021_engineering_journal_experience.sql',
+  '022_content_capabilities.sql',
+  '023_evidence_link_targets.sql',
 ] as const;
 
 export type MigrationFile = (typeof MIGRATION_FILES)[number];

@@ -11,6 +11,9 @@ export interface CreateCapabilityParams {
   visibility?: 'private' | 'restricted' | 'unlisted' | 'public';
   state?: 'draft' | 'review' | 'approved' | 'scheduled' | 'published' | 'unlisted' | 'archived';
   lifecycleState?: 'draft' | 'active' | 'deprecated' | 'archived';
+  maturity?: CapabilityEntity['maturity'];
+  maturityRationale?: string;
+  qualifyingEvidenceRules?: string;
 }
 
 export interface UpdateCapabilityParams {
@@ -21,6 +24,14 @@ export interface UpdateCapabilityParams {
   visibility?: 'private' | 'restricted' | 'unlisted' | 'public';
   state?: 'draft' | 'review' | 'approved' | 'scheduled' | 'published' | 'unlisted' | 'archived';
   lifecycleState?: 'draft' | 'active' | 'deprecated' | 'archived';
+  maturity?: CapabilityEntity['maturity'];
+  maturityRationale?: string;
+  qualifyingEvidenceRules?: string;
+  ownerConfirmed?: boolean;
+  firstDemonstratedAt?: ISODateTime | null;
+  lastDemonstratedAt?: ISODateTime | null;
+  lastReviewedAt?: string | null;
+  provenanceMetadata?: string;
   archivedAt?: ISODateTime | null;
   versionNo: number;
 }
@@ -36,7 +47,7 @@ export class D1CapabilityRepository {
         maturity_rationale, maturity_rule_version, qualifying_evidence_rules,
         visibility, state, lifecycle_state, owner_confirmed, provenance_metadata,
         created_at, updated_at, version_no
-      ) VALUES (?, ?, ?, ?, ?, ?, 'exploring', 'Initial creation', 'v2.0', '{}', ?, ?, ?, 1, '{}', ?, ?, 1)
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'v2.0', ?, ?, ?, ?, 1, '{}', ?, ?, 1)
     `);
 
     await stmt
@@ -47,6 +58,9 @@ export class D1CapabilityRepository {
         params.slug,
         params.description,
         params.outcomeStatement,
+        params.maturity || 'exploring',
+        params.maturityRationale || 'Initial owner-authored record.',
+        params.qualifyingEvidenceRules || '{}',
         params.visibility || 'private',
         params.state || 'draft',
         params.lifecycleState || 'active',
@@ -133,13 +147,21 @@ export class D1CapabilityRepository {
       .prepare(
         `
       UPDATE capabilities
-      SET title = COALESCE(?, title),
-          slug = COALESCE(?, slug),
-          description = COALESCE(?, description),
-          outcome_statement = COALESCE(?, outcome_statement),
-          visibility = COALESCE(?, visibility),
-          state = COALESCE(?, state),
-          lifecycle_state = COALESCE(?, lifecycle_state),
+      SET title = ?,
+          slug = ?,
+          description = ?,
+          outcome_statement = ?,
+          maturity = ?,
+          maturity_rationale = ?,
+          qualifying_evidence_rules = ?,
+          visibility = ?,
+          state = ?,
+          lifecycle_state = ?,
+          owner_confirmed = ?,
+          first_demonstrated_at = ?,
+          last_demonstrated_at = ?,
+          last_reviewed_at = ?,
+          provenance_metadata = ?,
           archived_at = ?,
           updated_at = ?,
           version_no = ?
@@ -147,14 +169,32 @@ export class D1CapabilityRepository {
     `,
       )
       .bind(
-        params.title || null,
-        params.slug || null,
-        params.description || null,
-        params.outcomeStatement || null,
-        params.visibility || null,
-        params.state || null,
-        params.lifecycleState || null,
-        params.archivedAt || null,
+        params.title ?? existing.title,
+        params.slug ?? existing.slug,
+        params.description ?? existing.description,
+        params.outcomeStatement ?? existing.outcomeStatement,
+        params.maturity ?? existing.maturity,
+        params.maturityRationale ?? existing.maturityRationale,
+        params.qualifyingEvidenceRules ?? existing.qualifyingEvidenceRules,
+        params.visibility ?? existing.visibility,
+        params.state ?? existing.state,
+        params.lifecycleState ?? existing.lifecycleState,
+        params.ownerConfirmed !== undefined
+          ? params.ownerConfirmed
+            ? 1
+            : 0
+          : existing.ownerConfirmed
+            ? 1
+            : 0,
+        params.firstDemonstratedAt !== undefined
+          ? params.firstDemonstratedAt
+          : existing.firstDemonstratedAt,
+        params.lastDemonstratedAt !== undefined
+          ? params.lastDemonstratedAt
+          : existing.lastDemonstratedAt,
+        params.lastReviewedAt !== undefined ? params.lastReviewedAt : existing.lastReviewedAt,
+        params.provenanceMetadata ?? existing.provenanceMetadata,
+        params.archivedAt !== undefined ? params.archivedAt : existing.archivedAt,
         now,
         newVersion,
         id,

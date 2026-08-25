@@ -1,8 +1,15 @@
 import { describe, expect, it } from 'vitest';
-import { metricItems, resolveJournalEndpoint } from './JournalArticle';
+import { metricItems, normalizeLinkedUrl, resolveJournalEndpoint } from './JournalArticle';
 import { templateBlocks, type Template } from './dashboard/JournalTemplateCreator';
 
 describe('complete Journal experience', () => {
+  it('keeps sentence punctuation outside generated source links', () => {
+    expect(normalizeLinkedUrl('https://github.com/usman611b/ai-engineer-journey.')).toEqual({
+      href: 'https://github.com/usman611b/ai-engineer-journey',
+      trailing: '.',
+    });
+  });
+
   it('keeps published record routing on the static-safe Journal shell', () => {
     expect(resolveJournalEndpoint('?slug=reliable%20pipeline')).toBe(
       '/api/v1/public/journey/reliable%20pipeline',

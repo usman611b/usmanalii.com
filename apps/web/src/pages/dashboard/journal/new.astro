@@ -4,17 +4,14 @@ import { JournalTemplateCreator } from '../../../components/dashboard/JournalTem
 ---
 
 <DashboardLayout title="Create Entry — Private Dashboard" activeSection="journal">
-  <div class="max-w-4xl mx-auto space-y-6">
-    <div class="flex items-center justify-between">
+  <div class="journal-create-shell">
+    <div class="journal-create-header">
       <div>
-        <h2 class="text-xl font-bold text-white">Create New Content Entry</h2>
-        <p class="text-xs text-[#9CAAC1] mt-1">
-          Select a template to initialize a canonical structured draft.
-        </p>
+        <span class="journal-create-kicker">Command Center / Journal</span>
+        <h2>Create a new entry</h2>
+        <p>Start with a focused structure, then shape the story in the editor.</p>
       </div>
-      <a href="/dashboard/journal" class="text-xs text-[#9CAAC1] hover:text-white transition-colors"
-        >← Back to List</a
-      >
+      <a href="/dashboard/journal">← Back to journal</a>
     </div>
 
     <JournalTemplateCreator client:load />

@@ -478,11 +478,11 @@ describe('Requirement 1 & 2: Database Integrity & Public Scheduling/Embargo Logi
               });
             }
             if (sql.includes('UPDATE evidence_items SET') && sql.includes('version_no = ?')) {
-              const id = stmtObj.boundParams[7];
+              const id = stmtObj.boundParams[14];
               const item = evidenceTable.get(id);
-              if (item && item.version_no === stmtObj.boundParams[9]) {
-                item.title = stmtObj.boundParams[0];
-                item.version_no = stmtObj.boundParams[6];
+              if (item && item.version_no === stmtObj.boundParams[16]) {
+                item.title = stmtObj.boundParams[4];
+                item.version_no = stmtObj.boundParams[13];
                 return { meta: { changes: 1 } };
               }
               return { meta: { changes: 0 } };
@@ -506,9 +506,9 @@ describe('Requirement 1 & 2: Database Integrity & Public Scheduling/Embargo Logi
                 evidence_item_id: stmtObj.boundParams[1],
                 capability_id: stmtObj.boundParams[2],
                 project_id: stmtObj.boundParams[4],
-                support_type: stmtObj.boundParams[11],
-                relevance: stmtObj.boundParams[12],
-                rationale: stmtObj.boundParams[14],
+                support_type: stmtObj.boundParams[12],
+                relevance: stmtObj.boundParams[13],
+                rationale: stmtObj.boundParams[15],
               });
             }
             return { meta: { changes: 1 } };
@@ -1134,6 +1134,66 @@ describe('Requirement 1 & 2: Database Integrity & Public Scheduling/Embargo Logi
       expect(call.sql).toMatch(/owner_id\s*=\s*\?/i);
       expect(call.params[0]).toBe('owner-a');
       expect(call.params[1]).toBe('project-a');
+    }
+  });
+
+  it('15b. M5 owner project records support whitelisted live editing and scoped removal', async () => {
+    const { D1EngineeringRecordRepository } = await import('./repositories/engineering.js');
+    const { D1ProjectRelationshipRepository } =
+      await import('./repositories/project-relationships.js');
+    const calls: Array<{ sql: string; params: unknown[] }> = [];
+    const db = {
+      prepare(sql: string) {
+        return {
+          bind(...params: unknown[]) {
+            calls.push({ sql, params });
+            return {
+              async run() {
+                return { meta: { changes: 1 } };
+              },
+            };
+          },
+        };
+      },
+    };
+    const engineering = new D1EngineeringRecordRepository(db as any);
+    const relationships = new D1ProjectRelationshipRepository(db as any);
+
+    expect(
+      await engineering.updateRecord('experiments', 'owner-a', 'project-a', 'experiment-a', {
+        results: 'Observed a stable loss curve',
+        variables: ['learning rate', 'batch size'],
+        visibility: 'public',
+        state: 'published',
+        ['owner_' + 'id']: 'attacker',
+      }),
+    ).toBe(true);
+    expect(
+      await engineering.deleteRecord('experiments', 'owner-a', 'project-a', 'experiment-a'),
+    ).toBe(true);
+    expect(
+      await relationships.updateRelationship('owner-a', 'project-a', 'relationship-a', {
+        targetId: 'skill-a',
+        targetType: 'skill',
+        relationshipType: 'demonstrates',
+        relevance: 5,
+      }),
+    ).toBe(true);
+    expect(
+      await relationships.archiveRelationshipForSource('owner-a', 'project-a', 'relationship-a'),
+    ).toBe(true);
+
+    const firstCall = calls[0];
+    expect(firstCall).toBeDefined();
+    if (!firstCall) throw new Error('Expected the experiment update call to be captured.');
+    expect(firstCall.sql).toContain('UPDATE experiments');
+    expect(firstCall.sql).not.toContain('attacker');
+    expect(firstCall.sql).not.toContain('owner_id = attacker');
+    expect(firstCall.params).toContain('["learning rate","batch size"]');
+    for (const call of calls) {
+      expect(call.sql).toMatch(/owner_id\s*=\s*\?/i);
+      expect(call.params).toContain('owner-a');
+      expect(call.params).toContain('project-a');
     }
   });
 

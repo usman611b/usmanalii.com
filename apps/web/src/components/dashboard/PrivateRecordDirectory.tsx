@@ -90,8 +90,15 @@ export function PrivateRecordDirectory({ kind }: { kind: Kind }) {
     );
   }
 
+  const isScrollable = items.length > 6;
+
   return (
-    <div className="command-record-list">
+    <div
+      className={`command-record-list${isScrollable ? ' command-scroll-region' : ''}`}
+      role={isScrollable ? 'region' : undefined}
+      aria-label={isScrollable ? `${kind} records — scroll for more` : undefined}
+      tabIndex={isScrollable ? 0 : undefined}
+    >
       {items.map((item, index) => {
         const title =
           value(item, 'title', 'name', 'candidateTitle', 'originalName') || 'Untitled record';

@@ -96,10 +96,14 @@ export function JournalTemplateCreator() {
     setCreating(template.contentType);
     setError('');
     const blocks = templateBlocks(template);
+    const controller = new AbortController();
+    const timeout = window.setTimeout(() => controller.abort(), 15_000);
     try {
       const response = await fetch('/api/v1/private/content', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+        credentials: 'same-origin',
+        signal: controller.signal,
         body: JSON.stringify({
           contentType: template.contentType,
           title: `Untitled ${template.label}`,
@@ -110,6 +114,14 @@ export function JournalTemplateCreator() {
           blocks,
         }),
       });
+      const contentType = response.headers.get('content-type') || '';
+      if (!contentType.includes('application/json')) {
+        throw new Error(
+          response.redirected || response.status === 401 || response.status === 403
+            ? 'Your protected session expired. Refresh the page and sign in again.'
+            : 'The server returned an unexpected response. Please try again.',
+        );
+      }
       const payload = (await response.json()) as {
         item?: { id?: string };
         message?: string;
@@ -124,42 +136,68 @@ export function JournalTemplateCreator() {
         `/dashboard/journal/record/edit?id=${encodeURIComponent(payload.item.id)}`,
       );
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : 'Draft creation failed.');
+      setError(
+        cause instanceof DOMException && cause.name === 'AbortError'
+          ? 'Draft creation timed out. Refresh the page and try again.'
+          : cause instanceof Error
+            ? cause.message
+            : 'Draft creation failed.',
+      );
       setCreating(null);
+    } finally {
+      window.clearTimeout(timeout);
     }
   };
 
   return (
-    <div className="space-y-5">
+    <section className="template-creator" aria-labelledby="template-library-title">
       {error && (
-        <p role="alert" className="rounded-xl border border-rose-400/30 p-4 text-sm text-rose-300">
-          {error}
-        </p>
+        <div role="alert" className="template-alert">
+          <span aria-hidden="true">!</span>
+          <div><strong>Draft not created</strong><p>{error}</p></div>
+          <button type="button" onClick={() => setError('')}>Dismiss</button>
+        </div>
       )}
-      <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+      <div className="template-library-heading">
+        <div>
+          <span>Structured starters</span>
+          <h2 id="template-library-title">Choose your writing mode</h2>
+        </div>
+        <p>Every option creates a private draft. Nothing is published until you choose to publish it.</p>
+      </div>
+      <div className="template-grid">
         {templates.map((template, index) => (
           <article
             key={template.contentType}
-            className="space-y-3 rounded-2xl border bg-[#08111F] p-6"
-            style={{ borderColor: `${template.accent}55` }}
+            className="template-card"
+            style={{ '--template-accent': template.accent } as React.CSSProperties}
           >
-            <span className="font-mono text-xs" style={{ color: template.accent }}>
-              Template {String(index + 1).padStart(2, '0')}
-            </span>
-            <h2 className="font-bold text-white">{template.label}</h2>
-            <p className="text-xs leading-relaxed text-[#9CAAC1]">{template.description}</p>
+            <div className="template-card-topline">
+              <span>{String(index + 1).padStart(2, '0')}</span>
+              <small>Private draft</small>
+            </div>
+            <div className="template-card-copy">
+              <h3>{template.label}</h3>
+              <p>{template.description}</p>
+            </div>
+            <div className="template-outline" aria-label="Included sections">
+              {template.headings.map((heading) => <span key={heading}>{heading}</span>)}
+            </div>
             <button
               type="button"
               disabled={creating !== null}
               onClick={() => void create(template)}
-              className="w-full rounded-xl px-4 py-2 text-xs font-bold text-[#050509] disabled:opacity-50"
-              style={{ backgroundColor: template.accent }}
+              className="template-action"
             >
-              {creating === template.contentType ? 'Creating private draft…' : 'Use Template'}
+              {creating === template.contentType ? (
+                <><span className="template-spinner" aria-hidden="true" />Creating draft…</>
+              ) : (
+                <>Use {template.label}<span aria-hidden="true">→</span></>
+              )}
             </button>
           </article>
         ))}
       </div>
-    </div>
+    </section>
   );
 }

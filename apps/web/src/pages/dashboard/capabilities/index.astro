@@ -1,6 +1,6 @@
 ---
 import DashboardLayout from '../../../layouts/DashboardLayout.astro';
-import { PrivateRecordDirectory } from '../../../components/dashboard/PrivateRecordDirectory';
+import { KnowledgeManager } from '../../../components/dashboard/KnowledgeManager';
 ---
 
 <DashboardLayout title="Capabilities — Private Dashboard" activeSection="capabilities"
@@ -9,8 +9,8 @@ import { PrivateRecordDirectory } from '../../../components/dashboard/PrivateRec
       <h1 class="text-xl font-bold text-white">Capabilities & Outcome Statements</h1><p
         class="mt-1 text-xs text-[#9CAAC1]"
       >
-        Owner-approved capabilities loaded from D1.
+        Manage observable outcomes, maturity, evidence, skills, projects, and Journal links.
       </p>
-    </header><PrivateRecordDirectory kind="capabilities" client:load />
+    </header><KnowledgeManager kind="capabilities" client:load />
   </section></DashboardLayout
 >

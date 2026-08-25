@@ -82,7 +82,9 @@ describe('Requirement 4: Publish / Unpublish Propagation Tests', () => {
     const feedXml = generateRssFeedXml(allItems);
 
     expect(feedXml).toContain('<title>Published Engineering Log</title>');
-    expect(feedXml).toContain('https://usmanalii.com/journey/published-engineering-log');
+    expect(feedXml).toContain(
+      'https://usmanalii.com/journey/record?slug=published-engineering-log',
+    );
     expect(feedXml).not.toContain('Draft Engineering Log');
     expect(feedXml).not.toContain('Unlisted Engineering Log');
     expect(feedXml).not.toContain('Archived Engineering Log');
@@ -92,7 +94,7 @@ describe('Requirement 4: Publish / Unpublish Propagation Tests', () => {
     const sitemapXml = generateSitemapXml(allItems);
 
     expect(sitemapXml).toContain(
-      '<loc>https://usmanalii.com/journey/published-engineering-log</loc>',
+      '<loc>https://usmanalii.com/journey/record?slug=published-engineering-log</loc>',
     );
     expect(sitemapXml).not.toContain('draft-engineering-log');
     expect(sitemapXml).not.toContain('unlisted-engineering-log');

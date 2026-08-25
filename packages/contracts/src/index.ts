@@ -551,6 +551,8 @@ export const CreateEvidenceRequestSchema = z.object({
   canonicalLocator: z.string().url().max(500).nullable().optional(),
   title: z.string().min(1).max(250),
   description: z.string().max(2000).nullable().optional(),
+  authorshipNote: z.string().max(1000).nullable().optional(),
+  provenanceSnapshot: z.string().max(5000).nullable().optional(),
   occurredAt: z.string().datetime({ offset: true }).nullable().optional(),
   visibility: VisibilitySchema.default('private'),
   embargoUntil: z.string().datetime({ offset: true }).nullable().optional(),
@@ -560,8 +562,16 @@ export type CreateEvidenceRequest = z.infer<typeof CreateEvidenceRequestSchema>;
 
 export const UpdateEvidenceRequestSchema = z.object({
   versionNo: z.number().int().min(1), // required for optimistic concurrency
+  evidenceType: EvidenceTypeSchema.optional(),
+  sourceType: EvidenceSourceTypeSchema.optional(),
+  provider: z.string().max(100).nullable().optional(),
+  externalId: z.string().max(200).nullable().optional(),
+  canonicalLocator: z.string().url().max(500).nullable().optional(),
   title: z.string().min(1).max(250).optional(),
   description: z.string().max(2000).nullable().optional(),
+  authorshipNote: z.string().max(1000).nullable().optional(),
+  provenanceSnapshot: z.string().max(5000).nullable().optional(),
+  occurredAt: z.string().datetime({ offset: true }).nullable().optional(),
   visibility: VisibilitySchema.optional(),
   embargoUntil: z.string().datetime({ offset: true }).nullable().optional(),
 });
@@ -594,6 +604,7 @@ export const CreateEvidenceLinkRequestSchema = z.object({
   relevance: z.number().int().min(1).max(5).default(3),
   ordering: z.number().int().default(0),
   rationale: z.string().min(1).max(1000),
+  provenance: z.string().max(1000).nullable().optional(),
 });
 
 export type CreateEvidenceLinkRequest = z.infer<typeof CreateEvidenceLinkRequestSchema>;

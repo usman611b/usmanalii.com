@@ -504,6 +504,27 @@ export function JournalEditor() {
     else await load(item.id);
   };
 
+  const preview = async () => {
+    if (!item) return;
+    setBusy(true);
+    setStatus('Creating private preview…');
+    try {
+      const response = await fetch(
+        `/api/v1/private/content/${encodeURIComponent(item.id)}/preview-token`,
+        { method: 'POST' },
+      );
+      const payload = (await response.json()) as { previewUrl?: string; message?: string };
+      if (!response.ok || !payload.previewUrl) {
+        throw new Error(payload.message || 'Preview could not be created.');
+      }
+      window.location.assign(payload.previewUrl);
+    } catch (cause) {
+      setStatus(cause instanceof Error ? cause.message : 'Preview could not be created.');
+    } finally {
+      setBusy(false);
+    }
+  };
+
   const addBlock = (type: Block['type']) => {
     const base = { id: crypto.randomUUID(), type } as Block;
     setBlocks((current) => [
@@ -578,6 +599,13 @@ export function JournalEditor() {
           >
             Moderate responses
           </a>
+          <button
+            disabled={busy}
+            onClick={() => void preview()}
+            className="rounded-lg border border-cyan-300/35 bg-cyan-300/10 px-4 py-2 text-xs font-bold text-cyan-200 disabled:opacity-50"
+          >
+            Preview
+          </button>
           <button
             disabled={busy}
             onClick={() => void save()}

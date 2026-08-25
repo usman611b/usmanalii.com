@@ -1,11 +1,11 @@
 ---
 import DashboardLayout from '../../../../layouts/DashboardLayout.astro';
-import { EvidenceForm } from '../../../../components/dashboard/EvidenceForm';
+import { EvidenceWorkspace } from '../../../../components/dashboard/EvidenceWorkspace';
 export function getStaticPaths() {
   return [{ params: { id: 'record' } }];
 }
 ---
 
 <DashboardLayout title="Edit Evidence — Private Dashboard" activeSection="evidence"
-  ><EvidenceForm mode="edit" client:load /></DashboardLayout
+  ><EvidenceWorkspace client:load /></DashboardLayout
 >

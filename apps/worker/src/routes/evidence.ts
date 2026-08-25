@@ -81,6 +81,8 @@ evidenceRoutes.post('/', async (c) => {
     ...(d.externalId !== undefined ? { externalId: d.externalId } : {}),
     ...(d.canonicalLocator !== undefined ? { canonicalLocator: d.canonicalLocator } : {}),
     ...(d.description !== undefined ? { description: d.description } : {}),
+    ...(d.authorshipNote !== undefined ? { authorshipNote: d.authorshipNote } : {}),
+    ...(d.provenanceSnapshot !== undefined ? { provenanceSnapshot: d.provenanceSnapshot } : {}),
     ...(d.occurredAt !== undefined ? { occurredAt: d.occurredAt } : {}),
     ...(d.visibility !== undefined ? { visibility: d.visibility } : {}),
     ...(d.embargoUntil !== undefined ? { embargoUntil: d.embargoUntil } : {}),
@@ -110,12 +112,37 @@ evidenceRoutes.get('/:id', async (c) => {
 
   const verificationHistory = await repo.getVerificationHistory(ownerId, id);
   const links = await repo.getLinksForEvidence(ownerId, id);
+  const skillLinksResult = await c.env.DB.prepare(
+    `SELECT l.id, l.skill_id, l.relationship_type, l.relevance, l.ordering,
+            l.evidence_provenance, l.owner_note, l.approval_state, l.created_at,
+            s.name AS title, s.description
+     FROM evidence_skill_links l
+     JOIN skills s ON s.id = l.skill_id AND s.owner_id = l.owner_id
+     WHERE l.owner_id = ? AND l.evidence_id = ? AND l.archived_at IS NULL
+     ORDER BY l.ordering ASC, l.created_at ASC`,
+  )
+    .bind(ownerId, id)
+    .all<Record<string, unknown>>();
+  const skillLinks = (skillLinksResult.results || []).map((row) => ({
+    id: row.id,
+    skillId: row.skill_id,
+    title: row.title,
+    description: row.description,
+    relationshipType: row.relationship_type,
+    relevance: Number(row.relevance || 3),
+    ordering: Number(row.ordering || 0),
+    provenance: row.evidence_provenance,
+    ownerNote: row.owner_note,
+    approvalState: row.approval_state,
+    createdAt: row.created_at,
+  }));
 
   return c.json({
     data: {
       item,
       verificationHistory,
       links,
+      skillLinks,
     },
     requestId: c.get('requestId'),
   });
@@ -142,10 +169,32 @@ evidenceRoutes.put('/:id', async (c) => {
     );
   }
 
-  const { versionNo, title, description, visibility, embargoUntil } = parseResult.data;
+  const {
+    versionNo,
+    evidenceType,
+    sourceType,
+    provider,
+    externalId,
+    canonicalLocator,
+    title,
+    description,
+    authorshipNote,
+    provenanceSnapshot,
+    occurredAt,
+    visibility,
+    embargoUntil,
+  } = parseResult.data;
   const updates: import('@usmanalii/database').UpdateEvidenceInput = {};
+  if (evidenceType !== undefined) updates.evidenceType = evidenceType;
+  if (sourceType !== undefined) updates.sourceType = sourceType;
+  if (provider !== undefined) updates.provider = provider;
+  if (externalId !== undefined) updates.externalId = externalId;
+  if (canonicalLocator !== undefined) updates.canonicalLocator = canonicalLocator;
   if (title !== undefined) updates.title = title;
   if (description !== undefined) updates.description = description;
+  if (authorshipNote !== undefined) updates.authorshipNote = authorshipNote;
+  if (provenanceSnapshot !== undefined) updates.provenanceSnapshot = provenanceSnapshot;
+  if (occurredAt !== undefined) updates.occurredAt = occurredAt;
   if (visibility !== undefined) updates.visibility = visibility;
   if (embargoUntil !== undefined) updates.embargoUntil = embargoUntil;
 
@@ -271,6 +320,18 @@ evidenceRoutes.post('/:id/links', async (c) => {
   const id = c.req.param('id');
   const repo = new D1EvidenceRepository(c.env.DB);
 
+  const evidenceItem = await repo.findById(ownerId, id);
+  if (!evidenceItem) {
+    return c.json(
+      {
+        code: 'RESOURCE_NOT_FOUND',
+        message: 'Evidence item not found.',
+        requestId: c.get('requestId'),
+      },
+      404,
+    );
+  }
+
   const body = await c.req.json().catch(() => null);
   const parseResult = CreateEvidenceLinkRequestSchema.safeParse(body);
   if (!parseResult.success) {
@@ -301,10 +362,41 @@ evidenceRoutes.post('/:id/links', async (c) => {
     );
   }
 
+  const targetTables = {
+    capability: 'capabilities',
+    claim: 'claims',
+    project: 'projects',
+    content_item: 'content_items',
+    artifact: 'artifacts',
+    adr: 'project_adrs',
+    experiment: 'experiments',
+    debugging_lesson: 'debugging_lessons',
+    deployment: 'deployments',
+    resume_statement: 'resume_variant_items',
+  } as const;
+  const targetTable = targetTables[parseResult.data.targetType];
+  const ownedTarget = await c.env.DB.prepare(
+    `SELECT id FROM ${targetTable} WHERE id = ? AND owner_id = ?`,
+  )
+    .bind(parseResult.data.targetId, ownerId)
+    .first();
+  if (!ownedTarget) {
+    return c.json(
+      {
+        code: 'RESOURCE_NOT_FOUND',
+        message: 'The connected record was not found in this owner workspace.',
+        requestId: c.get('requestId'),
+      },
+      404,
+    );
+  }
+
   const linkId = crypto.randomUUID();
+  const { provenance, ...linkData } = parseResult.data;
   const createdLink = await repo.createLink(ownerId, id, {
     id: linkId,
-    ...parseResult.data,
+    ...linkData,
+    ...(provenance !== undefined ? { provenance } : {}),
   });
 
   return c.json({ data: createdLink, requestId: c.get('requestId') }, 201);

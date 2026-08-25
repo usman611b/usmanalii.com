@@ -69,11 +69,22 @@ function recordTitle(record: UnknownRecord, fallback: string): string {
 }
 
 function Field({ label, value }: { label: string; value: unknown }) {
-  const text = stringValue(value);
+  const values = Array.isArray(value)
+    ? value.filter((item): item is string => typeof item === 'string' && Boolean(item.trim()))
+    : [];
+  const text = values.length ? values.join(' · ') : stringValue(value);
   return text ? (
     <div className="deep-field">
       <dt>{label}</dt>
-      <dd>{text}</dd>
+      <dd>
+        {/^https?:\/\//i.test(text) ? (
+          <a href={text} target="_blank" rel="noreferrer">
+            Open record ↗
+          </a>
+        ) : (
+          text
+        )}
+      </dd>
     </div>
   ) : null;
 }
@@ -101,18 +112,15 @@ function Section({
   children: ReactNode;
 }) {
   return (
-    <section className="deep-story-section" id={id}>
-      <div className="deep-story-index">
-        <span>{number}</span>
-        <i />
-      </div>
-      <div className="deep-story-content">
-        <header>
-          <p>{summary}</p>
+    <section className="work-case-chapter deep-story-section" id={id}>
+      <header className="work-case-chapter-head">
+        <span>{number} / Technical record</span>
+        <div>
           <h2>{title}</h2>
-        </header>
-        {children}
-      </div>
+          <p>{summary}</p>
+        </div>
+      </header>
+      <div className="deep-story-content">{children}</div>
     </section>
   );
 }
@@ -128,22 +136,82 @@ function RecordCards({
 }) {
   if (!records.length) return <EmptyDocumentation label={kind} />;
   return (
-    <div className="deep-record-grid">
+    <div className="work-case-disclosure-list deep-technical-records">
       {records.map((record, index) => (
-        <article key={String(record.id ?? index)}>
-          <div className="deep-record-kicker">
-            <span />
-            {kind}
+        <details
+          className="work-case-disclosure"
+          open={index === 0}
+          key={String(record.id ?? index)}
+        >
+          <summary>
+            <span>{String(index + 1).padStart(2, '0')}</span>
+            <strong>{recordTitle(record, `${kind} ${index + 1}`)}</strong>
+            <small>
+              {String(record.status ?? record.verificationState ?? kind).replaceAll('_', ' ')}
+            </small>
+          </summary>
+          <div
+            className="work-case-disclosure-body"
+            role="region"
+            aria-label={`${recordTitle(record, `${kind} ${index + 1}`)} expanded details`}
+          >
+            <dl>
+              {fields.map(([key, label]) => (
+                <Field key={key} label={label} value={record[key]} />
+              ))}
+            </dl>
           </div>
-          <h3>{recordTitle(record, `${kind} ${index + 1}`)}</h3>
-          <dl>
-            {fields.map(([key, label]) => (
-              <Field key={key} label={label} value={record[key]} />
-            ))}
-          </dl>
-        </article>
+        </details>
       ))}
     </div>
+  );
+}
+
+function ConnectionGroup({
+  title,
+  records,
+  href,
+  detail,
+}: {
+  title: string;
+  records: UnknownRecord[];
+  href?: (record: UnknownRecord) => string | undefined;
+  detail: (record: UnknownRecord) => string;
+}) {
+  return (
+    <section className="work-case-connection-group">
+      <header>
+        <h3>{title}</h3>
+        <span>{records.length}</span>
+      </header>
+      {records.length ? (
+        <div
+          className="entity-scroll-list"
+          role="region"
+          aria-label={`${title} connections`}
+        >
+          {records.map((record, index) => {
+            const destination = href?.(record);
+            const content = (
+              <>
+                <strong>{recordTitle(record, `${title} ${index + 1}`)}</strong>
+                <small>{detail(record)}</small>
+                {destination ? <i>↗</i> : null}
+              </>
+            );
+            return destination ? (
+              <a href={destination} key={String(record.id ?? index)}>
+                {content}
+              </a>
+            ) : (
+              <span key={String(record.id ?? index)}>{content}</span>
+            );
+          })}
+        </div>
+      ) : (
+        <p>No public connection yet.</p>
+      )}
+    </section>
   );
 }
 
@@ -245,41 +313,87 @@ export function DeepDiveProject() {
   ];
 
   return (
-    <article className="deep-dive-project">
-      <header className="deep-project-hero">
-        <a href="/deep-dive" className="deep-back-link">
+    <article className="deep-dive-project work-case-study">
+      <header className="deep-project-hero work-case-hero">
+        <a href="/deep-dive" className="deep-back-link work-case-back">
           ← All technical deep dives
         </a>
-        <div className="deep-project-status">
-          <span /> Published engineering record
+        <div className="work-case-hero-grid">
+          <div>
+            <div className="deep-project-status work-case-status">
+              <span /> Published engineering record · Live API record
+            </div>
+            <h1>{title}</h1>
+            <p>{summary || 'A public summary has not been documented yet.'}</p>
+            <div className="work-case-actions">
+              <a href={`/projects/record?slug=${encodeURIComponent(String(project.slug ?? ''))}`}>
+                Structured Work view <span>→</span>
+              </a>
+              {repoLinks.map((url, index) => (
+                <a href={url} target="_blank" rel="noreferrer" key={url} className="secondary">
+                  Repository {repoLinks.length > 1 ? index + 1 : ''} ↗
+                </a>
+              ))}
+              {liveLinks.map((url, index) => (
+                <a href={url} target="_blank" rel="noreferrer" key={url} className="secondary">
+                  Live system {liveLinks.length > 1 ? index + 1 : ''} ↗
+                </a>
+              ))}
+            </div>
+          </div>
+          <dl className="work-case-hero-meta">
+            <div>
+              <dt>Role</dt>
+              <dd>{stringValue(project.role) || 'Not documented yet'}</dd>
+            </div>
+            <div>
+              <dt>Status</dt>
+              <dd>{String(project.lifecycleState ?? 'active').replaceAll('_', ' ')}</dd>
+            </div>
+            <div>
+              <dt>Timeline</dt>
+              <dd>
+                {project.startDate
+                  ? `${String(project.startDate)} — ${project.ongoingStatus ? 'Present' : String(project.endDate ?? 'Recorded')}`
+                  : 'Not documented yet'}
+              </dd>
+            </div>
+            <div>
+              <dt>Proof</dt>
+              <dd>{data.evidence.length} public records</dd>
+            </div>
+          </dl>
         </div>
-        <h1>{title}</h1>
-        <p>{summary || 'A public summary has not been documented yet.'}</p>
-        <div className="deep-project-meta">
+        <div
+          className="deep-project-measures work-case-coverage"
+          aria-label="Published project coverage"
+        >
           <span>
-            <small>Role</small>
-            {stringValue(project.role) || 'Not documented yet'}
+            <strong>{data.journalLinks.length}</strong>
+            <small>Journey entries</small>
           </span>
           <span>
-            <small>Status</small>
-            {String(project.lifecycleState ?? 'active').replaceAll('_', ' ')}
+            <strong>{data.evidence.length}</strong>
+            <small>Evidence records</small>
           </span>
           <span>
-            <small>Timeline</small>
-            {project.startDate
-              ? `${String(project.startDate)} — ${project.ongoingStatus ? 'Present' : String(project.endDate ?? 'Recorded')}`
-              : 'Not documented yet'}
+            <strong>{data.skills.length}</strong>
+            <small>Learned skills</small>
           </span>
           <span>
-            <small>Proof</small>
-            {data.evidence.length} public records
+            <strong>{data.capabilities.length}</strong>
+            <small>Capabilities</small>
+          </span>
+          <span>
+            <strong>{data.versions.length}</strong>
+            <small>Milestones</small>
           </span>
         </div>
       </header>
 
-      <div className="deep-dive-layout">
-        <aside className="deep-dive-nav" aria-label="Deep Dive sections">
-          <p>System inspection</p>
+      <div className="deep-dive-layout work-case-layout">
+        <aside className="deep-dive-nav work-case-nav" aria-label="Deep Dive sections">
+          <p>Technical map</p>
           {sections.map(([id, label], index) => (
             <a href={`#${id}`} key={id}>
               <span>{String(index + 1).padStart(2, '0')}</span>
@@ -288,7 +402,7 @@ export function DeepDiveProject() {
           ))}
         </aside>
 
-        <div className="deep-story">
+        <div className="deep-story work-case-content">
           <Section
             number="01"
             id="problem"
@@ -386,9 +500,13 @@ export function DeepDiveProject() {
               records={data.contributions}
               kind="Contribution"
               fields={[
+                ['contributionType', 'Type'],
                 ['description', 'Work'],
                 ['scope', 'Scope'],
+                ['startDate', 'Started'],
+                ['endDate', 'Completed'],
                 ['collaborationContext', 'Collaboration'],
+                ['verificationState', 'Verification'],
               ]}
             />
           </Section>
@@ -403,6 +521,9 @@ export function DeepDiveProject() {
               records={data.adrs}
               kind="ADR"
               fields={[
+                ['adrNumber', 'ADR'],
+                ['status', 'Status'],
+                ['decisionDate', 'Decision date'],
                 ['context', 'Context'],
                 ['decision', 'Decision'],
                 ['rationale', 'Rationale'],
@@ -423,9 +544,13 @@ export function DeepDiveProject() {
               records={data.experiments}
               kind="Experiment"
               fields={[
+                ['status', 'Status'],
+                ['dates', 'Dates'],
                 ['hypothesis', 'Hypothesis'],
+                ['motivation', 'Motivation'],
                 ['methodology', 'Method'],
                 ['variables', 'Variables'],
+                ['inputs', 'Inputs'],
                 ['results', 'Results'],
                 ['limitations', 'Limitations'],
                 ['conclusion', 'Conclusion'],
@@ -443,6 +568,9 @@ export function DeepDiveProject() {
               records={data.debuggingLessons}
               kind="Debugging lesson"
               fields={[
+                ['environment', 'Environment'],
+                ['relevantDates', 'Dates'],
+                ['tags', 'Tags'],
                 ['symptom', 'Symptom'],
                 ['impact', 'Impact'],
                 ['investigation', 'Investigation'],
@@ -466,6 +594,9 @@ export function DeepDiveProject() {
               kind="Version"
               fields={[
                 ['versionIdentifier', 'Version'],
+                ['status', 'Status'],
+                ['startedDate', 'Started'],
+                ['completedDate', 'Completed'],
                 ['description', 'Scope'],
                 ['changelog', 'Change log'],
                 ['outcome', 'Outcome'],
@@ -478,7 +609,10 @@ export function DeepDiveProject() {
               fields={[
                 ['environment', 'Environment'],
                 ['releaseVersion', 'Release'],
+                ['status', 'Status'],
+                ['deployedAt', 'Deployed'],
                 ['gitSha', 'Source revision'],
+                ['deploymentUrl', 'Live record'],
                 ['rollbackInfo', 'Rollback'],
                 ['outcome', 'Outcome'],
               ]}
@@ -515,7 +649,11 @@ export function DeepDiveProject() {
             summary="Public proof supporting the engineering record"
           >
             {data.evidence.length ? (
-              <div className="deep-evidence-list">
+              <div
+                className="deep-evidence-list entity-scroll-list"
+                role="region"
+                aria-label="Technical evidence records"
+              >
                 {data.evidence.map((record, index) => (
                   <article key={String(record.id ?? index)}>
                     <div>
@@ -566,88 +704,67 @@ export function DeepDiveProject() {
             title="Connected professional record"
             summary="How this project relates to the wider Career OS"
           >
-            <div className="deep-connections-grid">
-              <div>
-                <h3>Roles</h3>
-                {data.roles.length ? (
-                  data.roles.map((record) => (
-                    <span className="deep-connection-pill" key={String(record.id)}>
-                      {recordTitle(record, 'Role')}
-                    </span>
-                  ))
-                ) : (
-                  <p>Not connected yet.</p>
-                )}
-              </div>
-              <div>
-                <h3>Skills</h3>
-                {data.skills.length ? (
-                  data.skills.map((record) => (
-                    <a
-                      className="deep-connection-pill"
-                      href={`/skills/record?slug=${encodeURIComponent(String(record.slug))}`}
-                      key={String(record.id)}
-                    >
-                      {recordTitle(record, 'Skill')}
-                    </a>
-                  ))
-                ) : (
-                  <p>Not connected yet.</p>
-                )}
-              </div>
-              <div>
-                <h3>Capabilities</h3>
-                {data.capabilities.length ? (
-                  data.capabilities.map((record) => (
-                    <a
-                      className="deep-connection-pill"
-                      href={`/capabilities/record?slug=${encodeURIComponent(String(record.slug))}`}
-                      key={String(record.id)}
-                    >
-                      {recordTitle(record, 'Capability')}
-                    </a>
-                  ))
-                ) : (
-                  <p>Not connected yet.</p>
-                )}
-              </div>
-              <div>
-                <h3>Journey entries</h3>
-                {data.journalLinks.length ? (
-                  data.journalLinks.map((record) => (
-                    <a
-                      className="deep-connection-card"
-                      href={`/journey/record?slug=${encodeURIComponent(String(record.slug))}`}
-                      key={String(record.id)}
-                    >
-                      <strong>{recordTitle(record, 'Journey entry')}</strong>
-                      <small>{String(record.contentType ?? 'journal').replaceAll('_', ' ')}</small>
-                    </a>
-                  ))
-                ) : (
-                  <p>
-                    Not connected yet. Add an approved Journey relationship in the project Command
-                    Center.
-                  </p>
-                )}
-              </div>
-              <div>
-                <h3>Related projects</h3>
-                {data.relatedProjects.length ? (
-                  data.relatedProjects.map((record) => (
-                    <a
-                      className="deep-connection-card"
-                      href={`/deep-dive/record?slug=${encodeURIComponent(String(record.slug))}`}
-                      key={String(record.id)}
-                    >
-                      <strong>{recordTitle(record, 'Project')}</strong>
-                      <small>{String(record.relationshipType ?? 'related')}</small>
-                    </a>
-                  ))
-                ) : (
-                  <p>Not connected yet.</p>
-                )}
-              </div>
+            <div className="work-case-connections deep-connections-grid">
+              <ConnectionGroup
+                title="Professional roles"
+                records={data.roles}
+                detail={(record) =>
+                  stringValue(record.description) || 'Connected professional role'
+                }
+              />
+              <ConnectionGroup
+                title="Skills"
+                records={data.skills}
+                href={(record) =>
+                  record.slug
+                    ? `/skills/record?slug=${encodeURIComponent(String(record.slug))}`
+                    : undefined
+                }
+                detail={(record) =>
+                  stringValue(record.description) ||
+                  String(record.category ?? 'skill').replaceAll('_', ' ')
+                }
+              />
+              <ConnectionGroup
+                title="Capabilities"
+                records={data.capabilities}
+                href={(record) =>
+                  record.slug
+                    ? `/capabilities/record?slug=${encodeURIComponent(String(record.slug))}`
+                    : undefined
+                }
+                detail={(record) =>
+                  `${String(record.maturity ?? 'exploring').replaceAll('_', ' ')} · ${stringValue(record.outcomeStatement) || stringValue(record.description)}`
+                }
+              />
+              <ConnectionGroup
+                title="Journey entries"
+                records={data.journalLinks}
+                href={(record) =>
+                  record.slug
+                    ? `/journey/record?slug=${encodeURIComponent(String(record.slug))}`
+                    : undefined
+                }
+                detail={(record) => String(record.contentType ?? 'journal').replaceAll('_', ' ')}
+              />
+              <ConnectionGroup
+                title="Related projects"
+                records={data.relatedProjects}
+                href={(record) =>
+                  record.slug
+                    ? `/deep-dive/record?slug=${encodeURIComponent(String(record.slug))}`
+                    : undefined
+                }
+                detail={(record) => String(record.relationshipType ?? 'related')}
+              />
+              <ConnectionGroup
+                title="Relationship records"
+                records={data.relationships}
+                detail={(record) =>
+                  stringValue(record.rationale) ||
+                  String(record.relationshipType ?? 'approved relationship').replaceAll('_', ' ')
+                }
+              />
             </div>
             {repoLinks.length || liveLinks.length ? (
               <div className="deep-external-links">

@@ -44,6 +44,34 @@ function stringList(input: unknown): string[] {
   return Array.isArray(input) ? input.map(String).filter(Boolean) : [];
 }
 
+export function normalizeLinkedUrl(input: string): { href: string; trailing: string } {
+  const trailing = input.match(/[.,;:!?]+$/)?.[0] ?? '';
+  return {
+    href: trailing ? input.slice(0, -trailing.length) : input,
+    trailing,
+  };
+}
+
+function LinkedText({ children }: { children: string }) {
+  const parts = children.split(/(https?:\/\/[^\s)\]]+)/g);
+  return (
+    <>
+      {parts.map((part, index) =>
+        /^https?:\/\//.test(part) ? (
+          <span key={`${part}-${index}`}>
+            <a href={normalizeLinkedUrl(part).href} target="_blank" rel="noreferrer">
+              {normalizeLinkedUrl(part).href.replace(/^https?:\/\//, '').replace(/\/$/, '')} ↗
+            </a>
+            {normalizeLinkedUrl(part).trailing}
+          </span>
+        ) : (
+          part
+        ),
+      )}
+    </>
+  );
+}
+
 export function metricItems(input: unknown) {
   return stringList(input).map((entry) => {
     const [valueText = '', label = '', detail = ''] = entry.split('|').map((part) => part.trim());
@@ -51,7 +79,32 @@ export function metricItems(input: unknown) {
   });
 }
 
-function ArticleBlock({ block, index }: { block: Block; index: number }) {
+function relatedBlockHref(block: Block, data: JournalPayload): string | undefined {
+  const entityType = value(block.entityType);
+  const entityId = value(block.entityId);
+  if (!entityType || !entityId) return undefined;
+  const groups: Record<string, Relation[] | undefined> = {
+    project: data.projects,
+    skill: data.skills,
+    capability: data.capabilities,
+    evidence: data.evidence,
+    artifact: data.artifacts,
+  };
+  const record = groups[entityType]?.find((candidate) => String(candidate.id) === entityId);
+  const slug = value(record?.slug);
+  if (entityType === 'project' && slug)
+    return `/projects/record?slug=${encodeURIComponent(slug)}`;
+  if (entityType === 'skill' && slug) return `/skills/record?slug=${encodeURIComponent(slug)}`;
+  if (entityType === 'capability' && slug)
+    return `/capabilities/record?slug=${encodeURIComponent(slug)}`;
+  if (entityType === 'evidence')
+    return `/evidence/record?id=${encodeURIComponent(entityId)}`;
+  if (entityType === 'artifact')
+    return `/api/v1/public/artifacts/${encodeURIComponent(entityId)}/download`;
+  return undefined;
+}
+
+function ArticleBlock({ block, index, data }: { block: Block; index: number; data: JournalPayload }) {
   const text = value(block.text);
   switch (block.type) {
     case 'heading': {
@@ -62,7 +115,11 @@ function ArticleBlock({ block, index }: { block: Block; index: number }) {
       return <h2 id={id}>{text}</h2>;
     }
     case 'paragraph':
-      return <p>{text}</p>;
+      return (
+        <p>
+          <LinkedText>{text}</LinkedText>
+        </p>
+      );
     case 'quote':
       return (
         <blockquote>
@@ -75,13 +132,17 @@ function ArticleBlock({ block, index }: { block: Block; index: number }) {
       return block.style === 'ordered' ? (
         <ol>
           {items.map((item) => (
-            <li key={item}>{item}</li>
+            <li key={item}>
+              <LinkedText>{item}</LinkedText>
+            </li>
           ))}
         </ol>
       ) : (
         <ul>
           {items.map((item) => (
-            <li key={item}>{item}</li>
+            <li key={item}>
+              <LinkedText>{item}</LinkedText>
+            </li>
           ))}
         </ul>
       );
@@ -155,7 +216,11 @@ function ArticleBlock({ block, index }: { block: Block; index: number }) {
         </a>
       );
     case 'relationship_tag':
-      return (
+      return relatedBlockHref(block, data) ? (
+        <a className="journal-inline-relation" href={relatedBlockHref(block, data)}>
+          {value(block.label, 'Related record')} ↗
+        </a>
+      ) : (
         <span className="journal-inline-relation">{value(block.label, 'Related record')}</span>
       );
     default:
@@ -233,11 +298,47 @@ export function JournalArticle() {
   const published = value(item.publishedAt, value(item.occurredAt));
   const commentsEnabled = item.commentsEnabled !== false && item.commentsEnabled !== 0;
   const relations = [
-    ['Projects', data.projects ?? [], '/projects/record?slug='],
-    ['Skills', data.skills ?? [], '/skills/record?slug='],
-    ['Capabilities', data.capabilities ?? [], '/capabilities/record?slug='],
-    ['Evidence', data.evidence ?? [], '/evidence'],
-  ] as const;
+    {
+      label: 'Projects',
+      records: data.projects ?? [],
+      href: (record: Relation) =>
+        value(record.slug)
+          ? `/projects/record?slug=${encodeURIComponent(value(record.slug))}`
+          : undefined,
+    },
+    {
+      label: 'Skills',
+      records: data.skills ?? [],
+      href: (record: Relation) =>
+        value(record.slug)
+          ? `/skills/record?slug=${encodeURIComponent(value(record.slug))}`
+          : undefined,
+    },
+    {
+      label: 'Capabilities',
+      records: data.capabilities ?? [],
+      href: (record: Relation) =>
+        value(record.slug)
+          ? `/capabilities/record?slug=${encodeURIComponent(value(record.slug))}`
+          : undefined,
+    },
+    {
+      label: 'Evidence',
+      records: data.evidence ?? [],
+      href: (record: Relation) =>
+        record.id
+          ? `/evidence/record?id=${encodeURIComponent(String(record.id))}`
+          : undefined,
+    },
+    {
+      label: 'Artifacts',
+      records: data.artifacts ?? [],
+      href: (record: Relation) =>
+        record.id
+          ? `/api/v1/public/artifacts/${encodeURIComponent(String(record.id))}/download`
+          : undefined,
+    },
+  ];
 
   return (
     <article className="journal-article">
@@ -301,7 +402,7 @@ export function JournalArticle() {
         </aside>
         <div className="journal-prose">
           {data.blocks.map((block, index) => (
-            <ArticleBlock block={block} index={index} key={String(block.id ?? index)} />
+            <ArticleBlock block={block} index={index} data={data} key={String(block.id ?? index)} />
           ))}
           {!data.blocks.length ? (
             <p className="journal-undocumented">The article body has not been documented yet.</p>
@@ -315,23 +416,23 @@ export function JournalArticle() {
         </p>
         <h2 id="journal-proof-title">Linked work and evidence.</h2>
         <div className="journal-proof-grid">
-          {relations.map(([label, records, base]) => (
+          {relations.map(({ label, records, href }) => (
             <div key={label}>
               <strong>{label}</strong>
               {records.length ? (
                 records.map((record, index) => {
                   const name = value(record.title, value(record.name, `${label} record`));
-                  const slug = value(record.slug);
-                  return (
+                  const target = href(record);
+                  return target ? (
                     <a
-                      href={
-                        slug && base.includes('slug=') ? `${base}${encodeURIComponent(slug)}` : base
-                      }
+                      href={target}
                       key={String(record.id ?? index)}
                     >
                       {name}
                       <span>↗</span>
                     </a>
+                  ) : (
+                    <p key={String(record.id ?? index)}>{name}</p>
                   );
                 })
               ) : (

@@ -16,6 +16,7 @@ import {
   D1ArtifactRepository,
   D1ProfileRepository,
 } from '@usmanalii/database';
+import { getCapabilityProjection, getSkillProjection } from './knowledge-projections.js';
 import { filterPublicEvidence, filterPublicArtifacts } from '@usmanalii/evidence';
 import { formatContentDisposition } from './artifacts.js';
 import { type ContentType, type EntityId, computeActivityHeatmap } from '@usmanalii/domain';
@@ -174,25 +175,39 @@ publicRoutes.get('/recruiter', async (c) => {
 
   const capabilityDtos = await Promise.all(
     caps.map(async (capability) => {
-      const count = await c.env.DB.prepare(
-        `SELECT COUNT(*) AS count
-         FROM evidence_capability_links ecl
-         JOIN evidence_items ei ON ei.id = ecl.evidence_id
-         WHERE ecl.capability_id = ? AND ecl.approval_state = 'accepted'
-           AND ei.visibility = 'public' AND ei.archived_at IS NULL`,
-      )
-        .bind(capability.id)
-        .first<{ count: number }>();
+      const [count, skillRows] = await Promise.all([
+        c.env.DB.prepare(
+          `SELECT COUNT(*) AS count
+           FROM evidence_capability_links ecl
+           JOIN evidence_items ei ON ei.id = ecl.evidence_id
+           WHERE ecl.capability_id = ? AND ecl.approval_state = 'accepted'
+             AND ecl.archived_at IS NULL AND ei.visibility = 'public'
+             AND ei.archived_at IS NULL AND ei.deleted_at IS NULL`,
+        )
+          .bind(capability.id)
+          .first<{ count: number }>(),
+        c.env.DB.prepare(
+          `SELECT DISTINCT s.name
+           FROM capability_skill_relationships csr
+           JOIN skills s ON s.id = csr.skill_id
+           WHERE csr.capability_id = ? AND csr.approval_state = 'accepted'
+             AND csr.archived_at IS NULL AND s.visibility = 'public' AND s.archived_at IS NULL
+           ORDER BY s.name ASC`,
+        )
+          .bind(capability.id)
+          .all<{ name: string }>(),
+      ]);
       return {
         id: capability.id,
         title: capability.title,
         slug: capability.slug,
         description: capability.description,
+        outcomeStatement: capability.outcomeStatement,
         maturity: capability.maturity,
         maturityRationale: capability.maturityRationale,
         lastReviewedAt: capability.lastReviewedAt,
         publicEvidenceCount: Number(count?.count || 0),
-        skillNames: [],
+        skillNames: (skillRows.results || []).map((row) => row.name),
       };
     }),
   );
@@ -213,7 +228,64 @@ publicRoutes.get('/recruiter', async (c) => {
         slug: skill.slug,
         description: skill.description,
         parentId: skill.parentId,
+        category: skill.category || 'engineering_practice',
+        skillType: skill.skillType || 'technical',
+        lifecycleState: skill.lifecycleState || 'active',
+        lastDemonstratedAt: skill.lastDemonstratedAt || null,
+        ownerConfirmed: skill.ownerConfirmed !== false,
         publicCapabilityCount: Number(count?.count || 0),
+      };
+    }),
+  );
+
+  const projectDtos = await Promise.all(
+    projects.map(async (project) => {
+      const [projectSkillRows, projectCapabilityRows] = await Promise.all([
+        c.env.DB.prepare(
+          `SELECT DISTINCT s.name, s.slug
+           FROM project_skills ps
+           JOIN skills s ON s.id = ps.skill_id
+           WHERE ps.project_id = ? AND s.owner_id = ?
+             AND s.visibility = 'public' AND s.archived_at IS NULL
+           ORDER BY s.name ASC`,
+        )
+          .bind(project.id, ownerId)
+          .all<{ name: string; slug: string }>(),
+        c.env.DB.prepare(
+          `SELECT DISTINCT cap.title, cap.slug, cap.maturity
+           FROM capabilities cap
+           LEFT JOIN capability_skill_relationships csr
+             ON csr.capability_id = cap.id AND csr.approval_state = 'accepted'
+            AND csr.archived_at IS NULL
+           LEFT JOIN project_skills ps ON ps.skill_id = csr.skill_id AND ps.project_id = ?
+           LEFT JOIN project_relationships pr
+             ON pr.source_id = ? AND pr.source_type = 'project'
+            AND pr.target_id = cap.id AND pr.target_type = 'capability'
+            AND pr.approval_state = 'approved' AND pr.archived_at IS NULL
+           WHERE cap.owner_id = ? AND cap.visibility = 'public' AND cap.state = 'published'
+             AND cap.archived_at IS NULL AND (ps.project_id IS NOT NULL OR pr.id IS NOT NULL)
+           ORDER BY cap.title ASC`,
+        )
+          .bind(project.id, project.id, ownerId)
+          .all<{ title: string; slug: string; maturity: string }>(),
+      ]);
+
+      return {
+        id: project.id,
+        title: project.title,
+        slug: project.slug,
+        summary: project.recruiterSummary || project.shortSummary,
+        startDate: project.startDate,
+        endDate: project.endDate,
+        ongoingStatus: project.ongoingStatus,
+        lifecycleState: project.lifecycleState,
+        role: project.role,
+        skillNames: (projectSkillRows.results || []).map((row) => row.name),
+        capabilities: (projectCapabilityRows.results || []).map((row) => ({
+          title: row.title,
+          slug: row.slug,
+          maturity: row.maturity,
+        })),
       };
     }),
   );
@@ -226,7 +298,7 @@ publicRoutes.get('/recruiter', async (c) => {
     featuredCredentials: cred,
     featuredCapabilities: capabilityDtos,
     featuredSkills: skillDtos,
-    featuredProjects: projects,
+    featuredProjects: projectDtos,
     approvedClaims: claims,
     resumeAssetUrl: profile?.resumeAssetUrl || null,
     contactUrl: profile?.contactUrl || null,
@@ -718,6 +790,7 @@ publicRoutes.get('/journey/:slug', async (c) => {
     evidenceResult,
     projects,
     capabilities,
+    indexedCapabilities,
     artifacts,
     reactions,
     author,
@@ -752,6 +825,18 @@ publicRoutes.get('/journey/:slug', async (c) => {
       `SELECT id, title, slug, outcome_statement AS outcomeStatement FROM capabilities WHERE id IN (__IDS__) AND visibility = 'public' AND state = 'published' AND archived_at IS NULL`,
       capabilityIds,
     ),
+    c.env.DB.prepare(
+      `SELECT cap.id, cap.title, cap.slug, cap.description,
+              cap.outcome_statement AS outcomeStatement, cap.maturity,
+              cc.relationship_type AS relationshipType
+       FROM content_capabilities cc
+       JOIN capabilities cap ON cap.id = cc.capability_id
+       WHERE cc.content_item_id = ? AND cap.visibility = 'public'
+         AND cap.state = 'published' AND cap.archived_at IS NULL
+       ORDER BY cap.title`,
+    )
+      .bind(itemId)
+      .all<Record<string, unknown>>(),
     selectIds(
       `SELECT id, title, artifact_type AS artifactType, media_type AS mediaType FROM artifacts WHERE id IN (__IDS__) AND visibility = 'public' AND archived_at IS NULL AND deleted_at IS NULL`,
       artifactIds,
@@ -793,7 +878,14 @@ publicRoutes.get('/journey/:slug', async (c) => {
       ).values(),
     ),
     projects,
-    capabilities,
+    capabilities: Array.from(
+      new Map(
+        [...capabilities, ...(indexedCapabilities.results ?? [])].map((record) => [
+          String(record.id),
+          record,
+        ]),
+      ).values(),
+    ),
     artifacts,
     reactions,
     author: author
@@ -1216,13 +1308,10 @@ publicRoutes.get('/skills', async (c) => {
 
 /** GET /api/v1/public/skills/:slug — Get public skill by slug */
 publicRoutes.get('/skills/:slug', async (c) => {
-  const { D1SkillRepository } = await import('@usmanalii/database');
-  const repo = new D1SkillRepository(c.env.DB);
   const ownerId = '00000000-0000-0000-0000-000000000001' as EntityId;
   const slug = c.req.param('slug');
-
-  const skill = await repo.getSkillBySlug(ownerId, slug);
-  if (!skill || skill.visibility !== 'public') {
+  const skill = await getSkillProjection(c.env.DB, ownerId, { slug }, true);
+  if (!skill) {
     return c.json(
       { code: 'RESOURCE_NOT_FOUND', message: 'Skill not found.', requestId: c.get('requestId') },
       404,
@@ -1245,13 +1334,10 @@ publicRoutes.get('/capabilities', async (c) => {
 
 /** GET /api/v1/public/capabilities/:slug — Get public capability by slug */
 publicRoutes.get('/capabilities/:slug', async (c) => {
-  const { D1CapabilityRepository } = await import('@usmanalii/database');
-  const repo = new D1CapabilityRepository(c.env.DB);
   const ownerId = '00000000-0000-0000-0000-000000000001' as EntityId;
   const slug = c.req.param('slug');
-
-  const cap = await repo.getCapabilityBySlug(ownerId, slug);
-  if (!cap || cap.visibility !== 'public' || cap.state !== 'published') {
+  const cap = await getCapabilityProjection(c.env.DB, ownerId, { slug }, true);
+  if (!cap) {
     return c.json(
       {
         code: 'RESOURCE_NOT_FOUND',
@@ -1386,22 +1472,14 @@ async function loadPublicProjectConnections(params: {
     await Promise.all([
       queryRows(
         db,
-        `SELECT DISTINCT ei.id, ei.title, ei.description,
+        `SELECT ei.id, ei.title, ei.description,
                 ei.evidence_type AS evidenceType, ei.source_type AS sourceType,
                 ei.provider, ei.canonical_locator AS canonicalLocator,
                 ei.verification_state AS verificationState, ei.occurred_at AS occurredAt,
                 ei.visibility,
-                CASE
-                  WHEN el.project_id IS NOT NULL THEN 'project'
-                  WHEN el.adr_id IS NOT NULL THEN 'adr'
-                  WHEN el.experiment_id IS NOT NULL THEN 'experiment'
-                  WHEN el.debugging_lesson_id IS NOT NULL THEN 'debugging_lesson'
-                  WHEN el.deployment_id IS NOT NULL THEN 'deployment'
-                  ELSE 'engineering_record'
-                END AS targetType,
-                COALESCE(el.project_id, el.adr_id, el.experiment_id,
-                         el.debugging_lesson_id, el.deployment_id) AS targetId,
-                el.support_type AS supportType, el.rationale, el.relevance,
+                MAX(el.support_type) AS supportType,
+                MAX(el.rationale) AS rationale,
+                MAX(el.relevance) AS relevance,
                 'approved' AS approvalState
          FROM evidence_items ei
          LEFT JOIN evidence_links el ON el.evidence_item_id = ei.id AND el.approval_state = 'approved'
@@ -1409,7 +1487,8 @@ async function loadPublicProjectConnections(params: {
            AND ei.deleted_at IS NULL AND ei.archived_at IS NULL
            AND ei.verification_state NOT IN ('disputed', 'revoked', 'archived')
            AND (ei.embargo_until IS NULL OR ei.embargo_until <= ?)
-           AND ((${targetClauses.join(' OR ')})${evidenceIdClause})`,
+           AND ((${targetClauses.join(' OR ')})${evidenceIdClause})
+         GROUP BY ei.id`,
         [ownerId, now, ...evidenceParams],
       ),
       artifactQuery,

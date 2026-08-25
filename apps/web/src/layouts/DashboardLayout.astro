@@ -155,14 +155,14 @@ const navGroups = [
       rel="stylesheet"
     />
   </head>
-  <body class="flex min-h-screen font-[var(--font-primary)]">
+  <body class="dashboard-shell flex h-[100dvh] min-h-0 overflow-hidden font-[var(--font-primary)]">
     <!-- Skip navigation -->
     <a href="#dashboard-main" class="skip-nav">Skip to main content</a>
 
     <!-- ── Left Navigation Rail ─────────────────────────────────────────── -->
     <aside
       id="dashboard-nav"
-      class="hidden md:flex w-56 flex-shrink-0 flex-col border-r border-[var(--hairline)] bg-[var(--obsidian)]"
+      class="hidden md:flex h-[100dvh] min-h-0 w-56 flex-shrink-0 flex-col overflow-hidden border-r border-[var(--hairline)] bg-[var(--obsidian)]"
       aria-label="Dashboard Navigation"
     >
       <!-- Brand -->
@@ -260,7 +260,7 @@ const navGroups = [
     </aside>
 
     <!-- ── Main Area ────────────────────────────────────────────────────── -->
-    <div class="flex-1 flex flex-col min-w-0 overflow-hidden">
+    <div class="flex h-[100dvh] min-h-0 flex-1 flex-col min-w-0 overflow-hidden">
       <!-- Top bar -->
       <header
         class="command-topbar flex-shrink-0 min-h-16 border-b border-[var(--hairline)] bg-[var(--obsidian)]/95 px-4 sm:px-6 flex items-center gap-4"
@@ -317,7 +317,7 @@ const navGroups = [
         </label>
 
         <div class="flex items-center gap-3 flex-shrink-0 ml-auto">
-          <span class="command-environment">Staging</span>
+          <span class="command-environment">Production</span>
           <span
             id="pkt-clock"
             class="text-[11px] font-[var(--font-mono)] text-[var(--cyan)] tabular-nums"
@@ -329,7 +329,10 @@ const navGroups = [
       </header>
 
       <!-- Main workspace -->
-      <main id="dashboard-main" class="flex-1 overflow-y-auto p-4 sm:p-6 space-y-6">
+      <main
+        id="dashboard-main"
+        class="min-h-0 flex-1 overflow-y-auto overscroll-contain p-4 sm:p-6 space-y-6"
+      >
         <slot />
       </main>
 

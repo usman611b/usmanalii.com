@@ -65,7 +65,9 @@ export const QuoteBlockSchema = z.object({
 export const ListBlockSchema = z.object({
   id: z.string(),
   type: z.literal('list'),
-  style: z.enum(['bullet', 'ordered']).default('bullet'),
+  // `unordered` is the editor-facing name; `bullet` remains supported for
+  // backwards-compatible Markdown imports.
+  style: z.enum(['bullet', 'unordered', 'ordered']).default('bullet'),
   items: z.array(z.string()),
 });
 
@@ -75,6 +77,21 @@ export const ImageBlockSchema = z.object({
   url: SafeUrlSchema,
   alt: z.string().min(1, 'Image alternative text is required for accessibility.'),
   caption: z.string().optional(),
+});
+
+export const ArchitectureDiagramBlockSchema = z.object({
+  id: z.string(),
+  type: z.literal('architecture_diagram'),
+  title: z.string().min(1, 'Architecture diagram title cannot be empty.'),
+  nodes: z.array(z.string().min(1)).min(2, 'Architecture diagrams require at least two nodes.'),
+  text: z.string().optional(),
+});
+
+export const MetricsBlockSchema = z.object({
+  id: z.string(),
+  type: z.literal('metrics'),
+  title: z.string().min(1, 'Metrics section title cannot be empty.'),
+  items: z.array(z.string().min(1)).min(1, 'Metrics blocks require at least one metric.'),
 });
 
 export const EmbedArtifactBlockSchema = z.object({
@@ -100,6 +117,8 @@ export const ContentBlockV1Schema = z.discriminatedUnion('type', [
   QuoteBlockSchema,
   ListBlockSchema,
   ImageBlockSchema,
+  ArchitectureDiagramBlockSchema,
+  MetricsBlockSchema,
   EmbedArtifactBlockSchema,
   RelationshipTagBlockSchema,
 ]);
@@ -111,6 +130,8 @@ export type CalloutBlock = z.infer<typeof CalloutBlockSchema>;
 export type QuoteBlock = z.infer<typeof QuoteBlockSchema>;
 export type ListBlock = z.infer<typeof ListBlockSchema>;
 export type ImageBlock = z.infer<typeof ImageBlockSchema>;
+export type ArchitectureDiagramBlock = z.infer<typeof ArchitectureDiagramBlockSchema>;
+export type MetricsBlock = z.infer<typeof MetricsBlockSchema>;
 export type EmbedArtifactBlock = z.infer<typeof EmbedArtifactBlockSchema>;
 export type RelationshipTagBlock = z.infer<typeof RelationshipTagBlockSchema>;
 

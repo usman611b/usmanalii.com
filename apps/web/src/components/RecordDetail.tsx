@@ -7,6 +7,171 @@ export interface RecordDetailProps {
   readonly fallbackKey?: string | undefined;
 }
 
+type UnknownRecord = Record<string, unknown>;
+
+const isRecord = (value: unknown): value is UnknownRecord =>
+  Boolean(value && typeof value === 'object' && !Array.isArray(value));
+
+const present = (value: unknown): string =>
+  typeof value === 'string' && value.trim() ? value : '';
+
+const humanize = (value: string): string => {
+  const phrase = value
+    .replace(/([a-z0-9])([A-Z])/g, '$1 $2')
+    .replaceAll('_', ' ')
+    .trim();
+  return phrase ? `${phrase[0]?.toUpperCase()}${phrase.slice(1)}` : phrase;
+};
+
+export function resolveRecordRoot(data: UnknownRecord): UnknownRecord {
+  if (isRecord(data.project)) return data.project;
+  if (isRecord(data.item)) return data.item;
+  return data;
+}
+
+export function resolveLinkedRecordHref(target: unknown, privateView: boolean): string | undefined {
+  if (!isRecord(target)) return undefined;
+  const type = present(target.targetType);
+  const id = present(target.targetId);
+  if (!type || !id) return undefined;
+  const encoded = encodeURIComponent(id);
+
+  if (privateView) {
+    if (type === 'project') return `/dashboard/projects/record?id=${encoded}`;
+    if (type === 'content_item' || type === 'journey')
+      return `/dashboard/journal/record/edit?id=${encoded}`;
+    if (type === 'evidence') return `/dashboard/evidence/record?id=${encoded}`;
+    if (type === 'artifact') return '/dashboard/artifacts';
+    if (type === 'skill') return '/dashboard/skills';
+    if (type === 'capability') return '/dashboard/capabilities';
+    return '/dashboard/records';
+  }
+
+  if (type === 'evidence') return `/evidence/record?id=${encoded}`;
+  if (type === 'artifact') return `/api/v1/public/artifacts/${encoded}/download`;
+  return undefined;
+}
+
+export function resolveSectionRecordHref(
+  section: string,
+  record: UnknownRecord,
+  privateView: boolean,
+): string | undefined {
+  const linked = resolveLinkedRecordHref(record.target, privateView);
+  if (linked) return linked;
+
+  const normalized = humanize(section).toLowerCase().replaceAll(' ', '');
+  const id = present(record.id);
+  const slug = present(record.slug);
+  if (privateView) {
+    if (normalized.includes('evidence') && id)
+      return `/dashboard/evidence/record?id=${encodeURIComponent(id)}`;
+    if (normalized.includes('journal') && id)
+      return `/dashboard/journal/record/edit?id=${encodeURIComponent(id)}`;
+    if (normalized.includes('project') && id)
+      return `/dashboard/projects/record?id=${encodeURIComponent(id)}`;
+    if (normalized.includes('artifact')) return '/dashboard/artifacts';
+    if (normalized.includes('skill')) return '/dashboard/skills';
+    if (normalized.includes('capabilit')) return '/dashboard/capabilities';
+    return undefined;
+  }
+
+  if (normalized.includes('evidence') && id) return `/evidence/record?id=${encodeURIComponent(id)}`;
+  if (normalized.includes('artifact') && id)
+    return `/api/v1/public/artifacts/${encodeURIComponent(id)}/download`;
+  if (normalized.includes('skill') && slug)
+    return `/skills/record?slug=${encodeURIComponent(slug)}`;
+  if (normalized.includes('capabilit') && slug)
+    return `/capabilities/record?slug=${encodeURIComponent(slug)}`;
+  if (normalized.includes('journal') && slug)
+    return `/journey/record?slug=${encodeURIComponent(slug)}`;
+  if (normalized.includes('project') && slug)
+    return `/projects/record?slug=${encodeURIComponent(slug)}`;
+  return undefined;
+}
+
+function recordHeading(section: string, record: UnknownRecord, index: number): string {
+  const target = isRecord(record.target) ? record.target : null;
+  const previousState = present(record.previousState) || present(record.previousStage);
+  const newState = present(record.newState) || present(record.newStage);
+  if (previousState || newState) {
+    return humanize(`${previousState || 'unverified'} → ${newState || 'updated'}`);
+  }
+  if (target) {
+    return `${humanize(present(target.targetType))} connection`;
+  }
+  return (
+    present(record.title) ||
+    present(record.name) ||
+    present(record.decision) ||
+    present(record.symptom) ||
+    present(record.verificationMethod) ||
+    `${humanize(section)} ${index + 1}`
+  );
+}
+
+function recordDescription(record: UnknownRecord): string {
+  return (
+    present(record.description) ||
+    present(record.rationale) ||
+    present(record.provenance) ||
+    present(record.verificationMethod)
+  );
+}
+
+const hiddenRecordFields = new Set([
+  'id',
+  'linkId',
+  'projectId',
+  'ownerId',
+  'target',
+  'title',
+  'name',
+  'description',
+  'provenance',
+  'createdAt',
+  'updatedAt',
+  'deletedAt',
+  'archivedAt',
+]);
+
+function readableStructuredValue(value: string): string {
+  try {
+    const parsed: unknown = JSON.parse(value);
+    if (!isRecord(parsed)) return value;
+    return Object.entries(parsed)
+      .map(([key, item]) => {
+        const rendered = Array.isArray(item)
+          ? item.map(String).map(humanize).join(' · ')
+          : typeof item === 'string'
+            ? humanize(item)
+            : String(item);
+        return `${humanize(key)}: ${rendered}`;
+      })
+      .join('\n');
+  } catch {
+    return value;
+  }
+}
+
+function recordDetails(record: UnknownRecord): Array<[string, string]> {
+  return Object.entries(record).flatMap(([key, value]) => {
+    if (hiddenRecordFields.has(key) || value === null || value === undefined || value === '') {
+      return [];
+    }
+    if (typeof value === 'string' || typeof value === 'number' || typeof value === 'boolean') {
+      return [[humanize(key), String(value)] as [string, string]];
+    }
+    if (Array.isArray(value)) {
+      const items = value.filter(
+        (item): item is string => typeof item === 'string' && Boolean(item),
+      );
+      return items.length ? [[humanize(key), items.join(' · ')] as [string, string]] : [];
+    }
+    return [];
+  });
+}
+
 export function resolveRecordEndpoint(
   { endpoint, endpointBase, paramName = 'slug', fallbackKey }: RecordDetailProps,
   search: string,
@@ -85,12 +250,11 @@ export function RecordDetail({
     );
   }
 
-  const root = (data.project && typeof data.project === 'object' ? data.project : data) as Record<
-    string,
-    unknown
-  >;
+  const root = resolveRecordRoot(data);
   const title = String(root.title ?? root.name ?? 'Untitled record');
-  const description = String(root.shortSummary ?? root.description ?? root.outcomeStatement ?? '');
+  const description = String(
+    root.shortSummary ?? root.description ?? root.outcomeStatement ?? root.summary ?? '',
+  );
   const projectDetails = data.project
     ? [
         ['Context', root.detailedContext],
@@ -127,8 +291,46 @@ export function RecordDetail({
       )
     : [];
   const hasProjectSupport = projectLists.length > 0 || projectLinks.length > 0;
+  const metadata = !data.project
+    ? [
+        ['Record type', root.evidenceType ?? root.contentType ?? root.category],
+        ['Skill type', root.skillType],
+        ['Maturity', root.maturity],
+        ['Source', root.sourceType],
+        ['Provider', root.provider],
+        ['Verification', root.verificationState],
+        ['Lifecycle', root.lifecycleState],
+        ['Publication state', root.state],
+        ['Visibility', root.visibility],
+        ['First observed', root.firstObservedAt ?? root.firstDemonstratedAt],
+        ['Last demonstrated', root.lastDemonstratedAt],
+        ['Last reviewed', root.lastReviewedAt],
+        ['Occurred', root.occurredAt],
+      ].filter((entry): entry is [string, string] => Boolean(present(entry[1])))
+    : [];
+  const canonicalLocator = present(root.canonicalLocator);
+  const knowledgeNarratives = !data.project
+    ? [
+        ['Observable outcome', root.outcomeStatement],
+        ['Maturity rationale', root.maturityRationale],
+        ['Qualifying evidence rules', root.qualifyingEvidenceRules],
+      ].filter(
+        (entry): entry is [string, string] =>
+          typeof entry[1] === 'string' && Boolean(entry[1].trim()) && entry[1] !== '{}',
+      )
+    : [];
+  const aliases = Array.isArray(root.aliases)
+    ? root.aliases.filter((alias): alias is string => typeof alias === 'string' && Boolean(alias))
+    : [];
+  const privateView = Boolean(
+    endpointBase?.includes('/private/') || endpoint?.includes('/private/'),
+  );
   const sections = Object.entries(data).filter(
-    ([key, value]) => key !== 'project' && Array.isArray(value) && value.length,
+    ([key, value]) =>
+      !['project', 'item', 'aliases'].includes(key) &&
+      Array.isArray(value) &&
+      value.length > 0 &&
+      value.every(isRecord),
   );
 
   return (
@@ -142,6 +344,35 @@ export function RecordDetail({
         {description ? <p>{description}</p> : null}
       </header>
       <div className="record-detail-spine" aria-hidden="true" />
+      {metadata.length || canonicalLocator ? (
+        <section className="record-detail-section">
+          <div className="record-detail-number">00</div>
+          <div>
+            <h2>Record metadata</h2>
+            <div className="record-detail-grid">
+              {metadata.map(([name, value]) => (
+                <article key={name}>
+                  <strong>{name}</strong>
+                  <p>{humanize(value)}</p>
+                </article>
+              ))}
+              {canonicalLocator ? (
+                <article>
+                  <strong>Canonical source</strong>
+                  <a
+                    className="record-detail-link"
+                    href={canonicalLocator}
+                    target="_blank"
+                    rel="noreferrer"
+                  >
+                    Open verified source ↗
+                  </a>
+                </article>
+              ) : null}
+            </div>
+          </div>
+        </section>
+      ) : null}
       {data.project ? (
         <section className="record-detail-section">
           <div className="record-detail-number">00</div>
@@ -165,6 +396,47 @@ export function RecordDetail({
                     {String(root.startDate)} —{' '}
                     {root.ongoingStatus ? 'Present' : String(root.endDate ?? 'Not specified')}
                   </p>
+                </article>
+              ) : null}
+            </div>
+          </div>
+        </section>
+      ) : null}
+      {knowledgeNarratives.map(([name, value], index) => (
+        <section key={name} className="record-detail-section">
+          <div className="record-detail-number">{String(index + 1).padStart(2, '0')}</div>
+          <div>
+            <h2>{name}</h2>
+            <p className="whitespace-pre-wrap">{readableStructuredValue(value)}</p>
+          </div>
+        </section>
+      ))}
+      {aliases.length ? (
+        <section className="record-detail-section">
+          <div className="record-detail-number">
+            {String(knowledgeNarratives.length + 1).padStart(2, '0')}
+          </div>
+          <div>
+            <h2>Aliases & taxonomy</h2>
+            <div className="record-detail-grid">
+              <article>
+                <strong>Known aliases</strong>
+                <ul>
+                  {aliases.map((alias) => (
+                    <li key={alias}>{alias}</li>
+                  ))}
+                </ul>
+              </article>
+              {root.parentId ? (
+                <article>
+                  <strong>Parent skill</strong>
+                  <p>{String(root.parentId)}</p>
+                </article>
+              ) : null}
+              {root.externalIdentifier ? (
+                <article>
+                  <strong>External identifier</strong>
+                  <p>{String(root.externalIdentifier)}</p>
                 </article>
               ) : null}
             </div>
@@ -214,26 +486,50 @@ export function RecordDetail({
         <section key={name} className="record-detail-section">
           <div className="record-detail-number">
             {String(
-              projectDetails.length + (hasProjectSupport ? 1 : 0) + sectionIndex + 1,
+              projectDetails.length +
+                (hasProjectSupport ? 1 : 0) +
+                knowledgeNarratives.length +
+                (aliases.length ? 1 : 0) +
+                sectionIndex +
+                1,
             ).padStart(2, '0')}
           </div>
           <div>
-            <h2>{name.replaceAll('_', ' ')}</h2>
+            <h2>{humanize(name)}</h2>
             <div className="record-detail-grid">
-              {(records as Record<string, unknown>[]).map((record, index) => (
-                <article key={String(record.id ?? index)}>
-                  <strong>
-                    {String(
-                      record.title ??
-                        record.name ??
-                        record.decision ??
-                        record.symptom ??
-                        `${name} record`,
-                    )}
-                  </strong>
-                  {record.description ? <p>{String(record.description)}</p> : null}
-                </article>
-              ))}
+              {(records as Record<string, unknown>[]).map((record, index) => {
+                const href = resolveSectionRecordHref(name, record, privateView);
+                const details = recordDetails(record);
+                return (
+                  <article key={String(record.id ?? index)}>
+                    <strong>{recordHeading(name, record, index)}</strong>
+                    {recordDescription(record) ? <p>{recordDescription(record)}</p> : null}
+                    {details.length ? (
+                      <dl className="record-detail-facts">
+                        {details.map(([label, value]) => (
+                          <div key={label}>
+                            <dt>{label}</dt>
+                            <dd>
+                              {/^(https?:\/\/)/i.test(value) ? (
+                                <a href={value} target="_blank" rel="noreferrer">
+                                  Open ↗
+                                </a>
+                              ) : (
+                                value
+                              )}
+                            </dd>
+                          </div>
+                        ))}
+                      </dl>
+                    ) : null}
+                    {href ? (
+                      <a className="record-detail-link" href={href}>
+                        Open connected record ↗
+                      </a>
+                    ) : null}
+                  </article>
+                );
+              })}
             </div>
           </div>
         </section>

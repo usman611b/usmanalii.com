@@ -32,8 +32,15 @@ export interface CreateEvidenceInput {
 }
 
 export interface UpdateEvidenceInput {
+  evidenceType?: EvidenceType;
+  sourceType?: EvidenceSourceType;
+  provider?: string | null;
+  externalId?: string | null;
   title?: string;
   description?: string | null;
+  occurredAt?: string | null;
+  authorshipNote?: string | null;
+  provenanceSnapshot?: string | null;
   visibility?: Visibility;
   embargoUntil?: string | null;
   canonicalLocator?: string | null;
@@ -194,8 +201,19 @@ export class D1EvidenceRepository {
 
     const now = new Date().toISOString();
     const newVersionNo = expectedVersionNo + 1;
+    const newEvidenceType = input.evidenceType ?? existing.evidenceType;
+    const newSourceType = input.sourceType ?? existing.sourceType;
+    const newProvider = input.provider !== undefined ? input.provider : existing.provider;
+    const newExternalId = input.externalId !== undefined ? input.externalId : existing.externalId;
     const newTitle = input.title ?? existing.title;
     const newDesc = input.description !== undefined ? input.description : existing.description;
+    const newOccurredAt = input.occurredAt !== undefined ? input.occurredAt : existing.occurredAt;
+    const newAuthorshipNote =
+      input.authorshipNote !== undefined ? input.authorshipNote : existing.authorshipNote;
+    const newProvenanceSnapshot =
+      input.provenanceSnapshot !== undefined
+        ? input.provenanceSnapshot
+        : existing.provenanceSnapshot;
     const newVis = input.visibility ?? existing.visibility;
     const newEmbargo =
       input.embargoUntil !== undefined ? input.embargoUntil : existing.embargoUntil;
@@ -206,8 +224,15 @@ export class D1EvidenceRepository {
       .prepare(
         `
       UPDATE evidence_items SET
+        evidence_type = ?,
+        source_type = ?,
+        provider = ?,
+        external_id = ?,
         title = ?,
         description = ?,
+        occurred_at = ?,
+        authorship_note = ?,
+        provenance_snapshot = ?,
         visibility = ?,
         embargo_until = ?,
         canonical_locator = ?,
@@ -217,8 +242,15 @@ export class D1EvidenceRepository {
     `,
       )
       .bind(
+        newEvidenceType,
+        newSourceType,
+        newProvider,
+        newExternalId,
         newTitle,
         newDesc,
+        newOccurredAt,
+        newAuthorshipNote,
+        newProvenanceSnapshot,
         newVis,
         newEmbargo,
         newLocator,
@@ -392,6 +424,7 @@ export class D1EvidenceRepository {
       experiment_id: null,
       debugging_lesson_id: null,
       deployment_id: null,
+      resume_statement_id: null,
     };
 
     const targetColMap: Record<string, string> = {
@@ -404,6 +437,7 @@ export class D1EvidenceRepository {
       experiment: 'experiment_id',
       debugging_lesson: 'debugging_lesson_id',
       deployment: 'deployment_id',
+      resume_statement: 'resume_statement_id',
     };
 
     const colName = targetColMap[input.targetType];
@@ -417,9 +451,10 @@ export class D1EvidenceRepository {
       INSERT INTO evidence_links (
         id, evidence_item_id, capability_id, claim_id, project_id,
         content_item_id, artifact_id, adr_id, experiment_id, debugging_lesson_id, deployment_id,
+        resume_statement_id,
         support_type, relevance, ordering, rationale, provenance, approval_state,
         approved_by, approved_at, created_at, updated_at
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'approved', ?, ?, ?, ?)
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'approved', ?, ?, ?, ?)
     `,
       )
       .bind(
@@ -434,6 +469,7 @@ export class D1EvidenceRepository {
         targetCols.experiment_id,
         targetCols.debugging_lesson_id,
         targetCols.deployment_id,
+        targetCols.resume_statement_id,
         input.supportType,
         input.relevance || 3,
         input.ordering || 0,
@@ -468,30 +504,38 @@ export class D1EvidenceRepository {
   }
 
   /** Delete evidence link */
-  async deleteLink(_ownerId: string, evidenceItemId: string, linkId: string): Promise<boolean> {
+  async deleteLink(ownerId: string, evidenceItemId: string, linkId: string): Promise<boolean> {
     const stmt = this.db
       .prepare(
         `
-      DELETE FROM evidence_links WHERE id = ? AND evidence_item_id = ?
+      DELETE FROM evidence_links
+      WHERE id = ? AND evidence_item_id = ?
+        AND EXISTS (
+          SELECT 1 FROM evidence_items item
+          WHERE item.id = evidence_links.evidence_item_id AND item.owner_id = ?
+        )
     `,
       )
-      .bind(linkId, evidenceItemId);
+      .bind(linkId, evidenceItemId, ownerId);
     const res = await stmt.run();
     return Boolean(res.meta.changes && res.meta.changes > 0);
   }
 
   /** Get all links attached to an evidence item */
   async getLinksForEvidence(
-    _ownerId: string,
+    ownerId: string,
     evidenceItemId: string,
   ): Promise<EvidenceLinkEntity[]> {
     const stmt = this.db
       .prepare(
         `
-      SELECT * FROM evidence_links WHERE evidence_item_id = ? ORDER BY ordering ASC, created_at ASC
+      SELECT links.* FROM evidence_links links
+      JOIN evidence_items item ON item.id = links.evidence_item_id
+      WHERE links.evidence_item_id = ? AND item.owner_id = ?
+      ORDER BY links.ordering ASC, links.created_at ASC
     `,
       )
-      .bind(evidenceItemId);
+      .bind(evidenceItemId, ownerId);
     const { results } = await stmt.all<Record<string, unknown>>();
 
     return (results || []).map((row) => {
@@ -522,6 +566,9 @@ export class D1EvidenceRepository {
       } else if (row.deployment_id) {
         targetType = 'deployment';
         targetId = row.deployment_id as EntityId;
+      } else if (row.resume_statement_id) {
+        targetType = 'resume_statement';
+        targetId = row.resume_statement_id as EntityId;
       }
 
       return {

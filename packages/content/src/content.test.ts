@@ -130,6 +130,34 @@ describe('Adversarial XSS & Security Boundary Tests (Gate 4 & 5)', () => {
     expect(validateStateTransition('draft', 'published').valid).toBe(false); // must go through review -> approved first
   });
 
+  it('8a. accepts the rich journal blocks produced by the editor', () => {
+    expect(
+      ContentBlockV1Schema.safeParse({
+        id: 'architecture-1',
+        type: 'architecture_diagram',
+        title: 'Training flow',
+        nodes: ['Input', 'Forward pass', 'Loss', 'Backward pass'],
+        text: 'A compact view of the learning loop.',
+      }).success,
+    ).toBe(true);
+    expect(
+      ContentBlockV1Schema.safeParse({
+        id: 'metrics-1',
+        type: 'metrics',
+        title: 'Repository evidence',
+        items: ['9 | Sessions | Day 18'],
+      }).success,
+    ).toBe(true);
+    expect(
+      ContentBlockV1Schema.safeParse({
+        id: 'list-1',
+        type: 'list',
+        style: 'unordered',
+        items: ['One', 'Two'],
+      }).success,
+    ).toBe(true);
+  });
+
   it('9. Publication validator enforces all 7 gates', () => {
     const invalidItem = {
       id: 'item-1',

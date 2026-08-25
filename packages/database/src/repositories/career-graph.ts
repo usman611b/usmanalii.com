@@ -430,15 +430,63 @@ export class D1CareerGraphRepository {
     for (const row of safeRows(profiles)) addNode(nodes, 'identity', row, '/about');
     for (const row of safeRows(roles)) addNode(nodes, 'role', row, null);
     for (const row of safeRows(projects))
-      addNode(nodes, 'project', row, row.slug ? `/projects/${row.slug}` : null);
+      addNode(
+        nodes,
+        'project',
+        row,
+        publicOnly
+          ? row.slug
+            ? `/projects/record?slug=${encodeURIComponent(row.slug)}`
+            : null
+          : `/dashboard/projects/record?id=${encodeURIComponent(row.id)}`,
+      );
     for (const row of safeRows(skills))
-      addNode(nodes, 'skill', row, row.slug ? `/skills/${row.slug}` : null);
+      addNode(
+        nodes,
+        'skill',
+        row,
+        publicOnly && row.slug
+          ? `/skills/record?slug=${encodeURIComponent(row.slug)}`
+          : '/dashboard/skills',
+      );
     for (const row of safeRows(capabilities))
-      addNode(nodes, 'capability', row, row.slug ? `/capabilities/${row.slug}` : null);
-    for (const row of safeRows(evidence)) addNode(nodes, 'evidence', row, '/evidence');
+      addNode(
+        nodes,
+        'capability',
+        row,
+        publicOnly && row.slug
+          ? `/capabilities/record?slug=${encodeURIComponent(row.slug)}`
+          : '/dashboard/capabilities',
+      );
+    for (const row of safeRows(evidence))
+      addNode(
+        nodes,
+        'evidence',
+        row,
+        publicOnly
+          ? `/evidence/record?id=${encodeURIComponent(row.id)}`
+          : `/dashboard/evidence/record?id=${encodeURIComponent(row.id)}`,
+      );
     for (const row of safeRows(content))
-      addNode(nodes, 'journey', row, row.slug ? `/journey/${row.slug}` : null);
-    for (const row of safeRows(artifacts)) addNode(nodes, 'artifact', row, null);
+      addNode(
+        nodes,
+        'journey',
+        row,
+        publicOnly
+          ? row.slug
+            ? `/journey/record?slug=${encodeURIComponent(row.slug)}`
+            : null
+          : `/dashboard/journal/record/edit?id=${encodeURIComponent(row.id)}`,
+      );
+    for (const row of safeRows(artifacts))
+      addNode(
+        nodes,
+        'artifact',
+        row,
+        publicOnly
+          ? `/api/v1/public/artifacts/${encodeURIComponent(row.id)}/download`
+          : '/dashboard/artifacts',
+      );
 
     if (nodes.has(OWNER_NODE_ID)) {
       for (const role of safeRows(roles))

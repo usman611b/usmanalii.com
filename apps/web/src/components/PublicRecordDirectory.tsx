@@ -22,8 +22,14 @@ const SLUG_BASE: Record<RecordKind, string> = {
   capabilities: '/capabilities',
 };
 
-function buildHref(kind: RecordKind, record: PublicRecord): string | undefined {
-  if (kind === 'evidence') return undefined;
+export function buildPublicRecordHref(
+  kind: RecordKind,
+  record: PublicRecord,
+): string | undefined {
+  if (kind === 'evidence') {
+    const id = text(record.id);
+    return id ? `/evidence/record?id=${encodeURIComponent(id)}` : undefined;
+  }
   const slug = text(record.slug);
   return slug ? `${SLUG_BASE[kind]}/record?slug=${encodeURIComponent(slug)}` : undefined;
 }
@@ -42,8 +48,14 @@ function RecordCard({
     record.shortSummary,
     text(record.description, text(record.outcomeStatement, '')),
   );
-  const category = text(record.category, text(record.lifecycleState, META[kind].label));
-  const href = buildHref(kind, record);
+  const category = text(
+    record.category,
+    text(
+      record.evidenceType,
+      text(record.verificationState, text(record.lifecycleState, META[kind].label)),
+    ),
+  );
+  const href = buildPublicRecordHref(kind, record);
 
   const content = (
     <>
@@ -59,7 +71,7 @@ function RecordCard({
         {description ? <p>{description}</p> : null}
       </div>
       <div className="observatory-record-action" aria-hidden="true">
-        {href ? 'Inspect record ↗' : 'Provenance verified'}
+        {href ? 'Inspect record ↗' : 'Record unavailable'}
       </div>
     </>
   );

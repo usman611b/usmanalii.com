@@ -204,16 +204,21 @@ export function HomeLiveSummary() {
                     {records.slice(0, 3).map((record, index) => {
                       const itemTitle = title(record);
                       const itemSlug = slug(record);
-                      const href = itemSlug
-                        ? `/${group.key}/record?slug=${encodeURIComponent(itemSlug)}`
-                        : undefined;
+                      const href =
+                        group.key === 'evidence'
+                          ? record.id
+                            ? `/evidence/record?id=${encodeURIComponent(String(record.id))}`
+                            : undefined
+                          : itemSlug
+                            ? `/${group.key}/record?slug=${encodeURIComponent(itemSlug)}`
+                            : undefined;
                       const summary_text = String(
                         record.summary ?? record.shortSummary ?? record.outcomeStatement ?? '',
                       );
 
                       return (
                         <li key={String(record.id ?? index)}>
-                          {href && group.key !== 'evidence' ? (
+                          {href ? (
                             <a
                               href={href}
                               className="block rounded-lg p-3 text-sm transition-all duration-[150ms] hover:border-opacity-100"

@@ -1,7 +1,7 @@
 # usmanalii.com — Personal Career OS
 
-**Status:** M0 Foundation in progress  
-**Architecture:** Astro + Cloudflare Workers/D1/R2
+**Status:** Production — live career OS and owner-managed Command Center
+**Architecture:** Astro on Cloudflare Pages + Cloudflare Workers, D1 and R2
 
 ## Repository structure
 
@@ -34,14 +34,14 @@ docs/
 # Install dependencies
 pnpm install
 
-# Run all tests
-pnpm test
+# Run the deterministic workspace test suite
+pnpm test:sequential
 
 # Run type checking
 pnpm typecheck
 
-# Verify migrations
-node infrastructure/scripts/verify-migrations.mjs
+# Verify all migration checksums and ordering
+pnpm migrations:check
 
 # Local development (requires .dev.vars — copy from .dev.vars.example)
 cd apps/worker && pnpm dev
@@ -55,6 +55,7 @@ cd apps/worker && pnpm dev
 
 ## Documentation
 
+- [Current production release status](docs/PRODUCTION_RELEASE_STATUS.md)
 - [Technical Architecture](04-technical-architecture.md)
 - [Database and Evidence Model](02-database-and-evidence-model.md)
 - [UI/UX Visual Design Specification](03-ui-ux-visual-design-specification.md)

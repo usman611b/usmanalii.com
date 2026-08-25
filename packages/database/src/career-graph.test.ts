@@ -27,9 +27,25 @@ function projectionDb() {
     if (sql.includes('FROM career_roles'))
       return [{ id: 'ai-role', label: 'AI Engineer', visibility: 'public', state: 'published' }];
     if (sql.includes('FROM projects'))
-      return [{ id: 'project-1', label: 'Project One', visibility: 'public', state: 'published' }];
+      return [
+        {
+          id: 'project-1',
+          label: 'Project One',
+          slug: 'project-one',
+          visibility: 'public',
+          state: 'published',
+        },
+      ];
     if (sql.includes('FROM skills'))
-      return [{ id: 'skill-1', label: 'Python', visibility: 'public', state: 'active' }];
+      return [
+        {
+          id: 'skill-1',
+          label: 'Python',
+          slug: 'python',
+          visibility: 'public',
+          state: 'active',
+        },
+      ];
     if (sql.includes('FROM project_role_links'))
       return [
         {
@@ -108,6 +124,9 @@ describe('M8 career knowledge graph', () => {
       'project:project-1',
     ]);
     expect(broad.edges.map((edge) => edge.id)).toEqual(['identity-role:ai-role', 'role-project']);
+    expect(broad.nodes.find((node) => node.id === 'project:project-1')?.href).toBe(
+      '/projects/record?slug=project-one',
+    );
 
     const focused = await repository.getProjection('owner-1', {
       publicOnly: true,
@@ -121,6 +140,9 @@ describe('M8 career knowledge graph', () => {
       'skill:skill-1',
     ]);
     expect(focused.edges).toHaveLength(2);
+    expect(focused.nodes.find((node) => node.id === 'skill:skill-1')?.href).toBe(
+      '/skills/record?slug=python',
+    );
     expect(
       queries.filter((sql) => /FROM (profiles|career_roles|projects|skills)/.test(sql)),
     ).toSatisfy((nodeQueries: string[]) =>
