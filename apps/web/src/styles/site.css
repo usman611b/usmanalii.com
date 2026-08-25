@@ -1,0 +1,3 @@
+/* Public stylesheet entrypoint. Keeping this separate from the design system
+   gives production releases a new asset URL when responsive behavior changes. */
+@import './global.css';
