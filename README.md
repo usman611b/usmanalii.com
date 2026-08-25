@@ -1,10 +1,11 @@
 # usmanalii.com — Evidence-Backed Career OS
 
 [![Live](https://img.shields.io/badge/live-usmanalii.com-22d3ee?style=flat-square)](https://usmanalii.com)
+[![CI](https://img.shields.io/github/actions/workflow/status/usman611b/usmanalii.com/ci.yml?branch=main&style=flat-square&label=CI)](https://github.com/usman611b/usmanalii.com/actions/workflows/ci.yml)
 ![Cloudflare](https://img.shields.io/badge/platform-Cloudflare-F38020?style=flat-square&logo=cloudflare&logoColor=white)
 ![Astro](https://img.shields.io/badge/frontend-Astro-BC52EE?style=flat-square&logo=astro&logoColor=white)
 ![TypeScript](https://img.shields.io/badge/language-TypeScript-3178C6?style=flat-square&logo=typescript&logoColor=white)
-![Tests](https://img.shields.io/badge/tests-376%20passing-22c55e?style=flat-square)
+![Tests](https://img.shields.io/badge/tests-379%20passing-22c55e?style=flat-square)
 
 **usmanalii.com** is a production portfolio and personal career operating system. It turns projects,
 engineering journals, skills, capabilities, evidence, artifacts, decisions, and outcomes into one
@@ -106,7 +107,7 @@ Never use production credentials in local files. `.env*` and `.dev.vars` are exc
 | ----------------------- | --------------------------------------------------------- |
 | `pnpm lint`             | Strict linting across all 14 workspace packages           |
 | `pnpm typecheck`        | TypeScript and Astro diagnostics                          |
-| `pnpm test:sequential`  | Deterministic 13-project, 376-test inventory              |
+| `pnpm test:sequential`  | Deterministic 13-project, 379-test inventory              |
 | `pnpm build`            | Astro production build and Worker dry run                 |
 | `pnpm migrations:check` | Immutable checksums and ordering for all 23 D1 migrations |
 | `pnpm security:scan`    | Repository secret-pattern scan                            |
