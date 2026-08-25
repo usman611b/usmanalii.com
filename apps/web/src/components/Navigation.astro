@@ -23,7 +23,7 @@ const navLinks = [
   role="banner"
 >
   <div class="max-w-[1280px] mx-auto px-4 sm:px-6 lg:px-8">
-    <div class="site-nav-inner flex items-center justify-between h-16 gap-4">
+    <div class="flex items-center justify-between h-16 gap-4">
       <!-- Brand mark -->
       <a
         href="/"
@@ -31,7 +31,7 @@ const navLinks = [
         aria-label="usmanalii.com — home"
       >
         <svg
-          class="site-brand-mark w-6 h-6 text-[var(--cyan)] group-hover:scale-105 transition-transform duration-[150ms]"
+          class="w-6 h-6 text-[var(--cyan)] group-hover:scale-105 transition-transform duration-[150ms]"
           viewBox="0 0 32 32"
           fill="none"
           aria-hidden="true"
@@ -51,17 +51,14 @@ const navLinks = [
         <span class="h-4 w-px bg-[var(--hairline)] hidden sm:inline-block" aria-hidden="true"
         ></span>
         <span
-          class="site-brand-name text-sm font-medium tracking-wide text-[var(--text-primary)] group-hover:text-[var(--cyan)] transition-colors duration-[150ms]"
+          class="text-sm font-medium tracking-wide text-[var(--text-primary)] group-hover:text-[var(--cyan)] transition-colors duration-[150ms]"
         >
           usmanalii.com
         </span>
       </a>
 
       <!-- Desktop navigation -->
-      <nav
-        class="desktop-primary-nav hidden md:flex items-center gap-6"
-        aria-label="Main Navigation"
-      >
+      <nav class="hidden md:flex items-center gap-6" aria-label="Main Navigation">
         {
           navLinks.map((link) => {
             const isActive =
@@ -84,7 +81,7 @@ const navLinks = [
       </nav>
 
       <!-- Desktop: Mode switcher -->
-      <div class="desktop-mode-switcher hidden md:flex items-center gap-4 flex-shrink-0">
+      <div class="hidden md:flex items-center gap-4 flex-shrink-0">
         <ModeSwitcher client:load />
       </div>
 
