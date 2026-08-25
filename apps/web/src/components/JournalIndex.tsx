@@ -19,6 +19,40 @@ export function journalEntryHref(slug: string): string {
   return `/journey/record?slug=${encodeURIComponent(slug)}`;
 }
 
+const journalRetryDelays = [0, 400, 1_000] as const;
+
+export async function fetchJournalEntries(
+  request: typeof fetch = fetch,
+  signal?: AbortSignal,
+  wait: (milliseconds: number) => Promise<void> = (milliseconds) =>
+    new Promise((resolve) => window.setTimeout(resolve, milliseconds)),
+): Promise<JournalSummary[]> {
+  let lastError: unknown = new Error('The Journal service is unavailable.');
+
+  for (const delay of journalRetryDelays) {
+    if (delay) await wait(delay);
+    if (signal?.aborted) throw new DOMException('Request aborted.', 'AbortError');
+
+    try {
+      const response = await request('/api/v1/public/journey', {
+        cache: 'no-store',
+        headers: { Accept: 'application/json' },
+        signal: signal ?? null,
+      });
+      if (!response.ok) throw new Error(`Journal service returned ${response.status}.`);
+
+      const payload = (await response.json()) as { items?: JournalSummary[] };
+      if (!Array.isArray(payload.items)) throw new Error('Journal service returned invalid data.');
+      return payload.items;
+    } catch (error) {
+      if (signal?.aborted) throw error;
+      lastError = error;
+    }
+  }
+
+  throw lastError;
+}
+
 function formatDate(value?: string | null): string {
   if (!value) return 'Date not recorded';
   const date = new Date(value);
@@ -38,24 +72,23 @@ export function JournalIndex() {
   const [query, setQuery] = useState('');
   const [type, setType] = useState('all');
   const [state, setState] = useState<'loading' | 'ready' | 'error'>('loading');
+  const [reloadKey, setReloadKey] = useState(0);
 
   useEffect(() => {
-    let active = true;
-    fetch('/api/v1/public/journey', { headers: { Accept: 'application/json' } })
-      .then(async (response) => {
-        if (!response.ok) throw new Error(`Journal service returned ${response.status}.`);
-        return response.json() as Promise<{ items?: JournalSummary[] }>;
-      })
-      .then((payload) => {
-        if (!active) return;
-        setEntries(payload.items ?? []);
+    const controller = new AbortController();
+    setState('loading');
+    fetchJournalEntries(fetch, controller.signal)
+      .then((items) => {
+        setEntries(items);
         setState('ready');
       })
-      .catch(() => active && setState('error'));
+      .catch(() => {
+        if (!controller.signal.aborted) setState('error');
+      });
     return () => {
-      active = false;
+      controller.abort();
     };
-  }, []);
+  }, [reloadKey]);
 
   const visible = useMemo(() => {
     const needle = query.trim().toLowerCase();
@@ -135,7 +168,10 @@ export function JournalIndex() {
           <span className="observatory-service-beacon" />
           <div>
             <strong>The Journal is temporarily unavailable.</strong>
-            <p>No cached or invented entries are displayed.</p>
+            <p>The live service did not respond after three attempts. You can reconnect without reloading the page.</p>
+            <button type="button" className="journal-retry" onClick={() => setReloadKey((key) => key + 1)}>
+              Retry live Journal <span aria-hidden="true">↻</span>
+            </button>
           </div>
         </div>
       ) : null}

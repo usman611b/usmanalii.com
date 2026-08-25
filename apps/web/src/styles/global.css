@@ -5908,6 +5908,33 @@ a.observatory-record:focus-visible::before {
   margin-top: 0.35rem;
   font-size: 0.8rem;
 }
+.journal-retry {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.55rem;
+  margin-top: 0.9rem;
+  padding: 0.7rem 0.95rem;
+  border: 1px solid var(--border-cyan);
+  border-radius: 0.65rem;
+  background: rgba(37, 230, 255, 0.08);
+  color: var(--cyan);
+  font: 700 0.68rem/1 var(--font-mono);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  transition:
+    background 150ms ease,
+    box-shadow 150ms ease,
+    transform 150ms ease;
+}
+.journal-retry:hover {
+  background: rgba(37, 230, 255, 0.14);
+  box-shadow: 0 0 1.2rem rgba(37, 230, 255, 0.12);
+  transform: translateY(-1px);
+}
+.journal-retry:focus-visible {
+  outline: 2px solid var(--cyan);
+  outline-offset: 3px;
+}
 .observatory-service-beacon,
 .observatory-empty-orbit {
   flex: 0 0 auto;
