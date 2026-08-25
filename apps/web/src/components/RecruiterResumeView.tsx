@@ -172,7 +172,7 @@ export function RecruiterResumeView() {
       <div className="observatory-service-state" role="alert">
         <span className="observatory-service-beacon" />
         <div>
-          <strong>The recruiter résumé is temporarily unavailable.</strong>
+          <h1>The recruiter résumé is temporarily unavailable.</h1>
           <p>{error}</p>
         </div>
       </div>

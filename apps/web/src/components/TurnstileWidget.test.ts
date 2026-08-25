@@ -24,4 +24,9 @@ describe('TurnstileWidget recovery', () => {
     expect(source).toContain("status === 'error' || status === 'recovering'");
     expect(source).toContain("status === 'recovering' ? 'Retry now' : 'Retry verification'");
   });
+
+  it('gives the labeled widget container an accessible role', () => {
+    expect(source).toContain('role="group"');
+    expect(source).toContain('aria-label="Bot verification"');
+  });
 });

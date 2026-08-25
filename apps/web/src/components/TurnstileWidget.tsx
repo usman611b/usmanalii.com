@@ -196,7 +196,12 @@ export function TurnstileWidget({
 
   return (
     <div className={`turnstile-shell turnstile-shell--${status}`}>
-      <div ref={containerRef} className="contact-turnstile" aria-label="Bot verification" />
+      <div
+        ref={containerRef}
+        className="contact-turnstile"
+        role="group"
+        aria-label="Bot verification"
+      />
       <div className="turnstile-guidance" role="status" aria-live="polite">
         <span aria-hidden="true">
           {status === 'verified' ? '✓' : status === 'error' ? '!' : '01'}

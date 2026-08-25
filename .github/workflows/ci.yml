@@ -180,5 +180,7 @@ jobs:
           cache: pnpm
       - run: pnpm install --frozen-lockfile
       - run: pnpm --filter @usmanalii/web exec playwright install --with-deps chromium
+      - name: Build web preview
+        run: pnpm --filter @usmanalii/web build
       - name: Run browser and accessibility tests with one worker
         run: pnpm --dir apps/web exec playwright test --workers=1
