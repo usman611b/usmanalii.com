@@ -5664,6 +5664,16 @@ a.command-record:focus-visible {
   }
 }
 
+/* A phone requesting the desktop site exposes a wide but very tall portrait
+   viewport. Preserve the real desktop composition while preventing 100svh from
+   stretching the hero into a long empty canvas. */
+@media (min-width: 761px) and (orientation: portrait) {
+  .hero-observatory,
+  .hero-inner {
+    min-height: min(calc(100svh - 64px), max(720px, 56.25vw));
+  }
+}
+
 @media (max-width: 760px) {
   .hero-observatory {
     min-height: auto;
