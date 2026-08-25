@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 type TurnstileApi = {
   render(
@@ -31,12 +31,16 @@ export function TurnstileWidget({
   onTokenChange: (token: string | null) => void;
 }) {
   const containerRef = useRef<HTMLDivElement | null>(null);
+  const [status, setStatus] = useState<'loading' | 'ready' | 'verified' | 'error'>('loading');
+  const [retryVersion, setRetryVersion] = useState(0);
 
   useEffect(() => {
     if (!SITE_KEY || !containerRef.current) return;
     const turnstileWindow = window as TurnstileWindow;
     let widgetId: string | null = null;
     let cancelled = false;
+    setStatus('loading');
+    onTokenChange(null);
 
     const render = () => {
       if (cancelled || widgetId || !containerRef.current || !turnstileWindow.turnstile) return;
@@ -44,10 +48,24 @@ export function TurnstileWidget({
         sitekey: SITE_KEY,
         action,
         theme: 'dark',
-        callback: (token) => onTokenChange(token),
-        'expired-callback': () => onTokenChange(null),
-        'error-callback': () => onTokenChange(null),
+        callback: (token) => {
+          setStatus('verified');
+          onTokenChange(token);
+        },
+        'expired-callback': () => {
+          setStatus('ready');
+          onTokenChange(null);
+        },
+        'error-callback': () => {
+          setStatus('error');
+          onTokenChange(null);
+        },
       });
+      setStatus('ready');
+    };
+
+    const handleScriptError = () => {
+      if (!cancelled) setStatus('error');
     };
 
     let script = document.getElementById(SCRIPT_ID) as HTMLScriptElement | null;
@@ -60,14 +78,16 @@ export function TurnstileWidget({
       document.head.append(script);
     }
     script.addEventListener('load', render);
+    script.addEventListener('error', handleScriptError);
     render();
 
     return () => {
       cancelled = true;
       script?.removeEventListener('load', render);
+      script?.removeEventListener('error', handleScriptError);
       if (widgetId && turnstileWindow.turnstile) turnstileWindow.turnstile.remove(widgetId);
     };
-  }, [action, onTokenChange, resetVersion]);
+  }, [action, onTokenChange, resetVersion, retryVersion]);
 
   if (!SITE_KEY) {
     return (
@@ -77,5 +97,27 @@ export function TurnstileWidget({
     );
   }
 
-  return <div ref={containerRef} className="contact-turnstile" aria-label="Bot verification" />;
+  const message =
+    status === 'verified'
+      ? 'Verification complete. You can submit now.'
+      : status === 'ready'
+        ? 'Select “Verify you are human” to enable submission.'
+        : status === 'error'
+          ? 'Verification could not load. Retry the secure check.'
+          : 'Loading secure verification…';
+
+  return (
+    <div className={`turnstile-shell turnstile-shell--${status}`}>
+      <div ref={containerRef} className="contact-turnstile" aria-label="Bot verification" />
+      <div className="turnstile-guidance" role="status" aria-live="polite">
+        <span aria-hidden="true">{status === 'verified' ? '✓' : status === 'error' ? '!' : '01'}</span>
+        <p>{message}</p>
+        {status === 'error' ? (
+          <button type="button" onClick={() => setRetryVersion((version) => version + 1)}>
+            Retry verification
+          </button>
+        ) : null}
+      </div>
+    </div>
+  );
 }

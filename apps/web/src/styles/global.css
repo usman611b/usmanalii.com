@@ -5524,6 +5524,53 @@ a.command-record:focus-visible {
 .contact-turnstile {
   min-height: 65px;
 }
+.turnstile-shell {
+  display: grid;
+  gap: 0.55rem;
+}
+.turnstile-guidance {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  min-height: 1.8rem;
+  color: var(--text-muted);
+  font: 600 0.68rem/1.35 var(--font-mono);
+}
+.turnstile-guidance > span {
+  display: inline-grid;
+  place-items: center;
+  flex: 0 0 auto;
+  min-width: 1.55rem;
+  height: 1.55rem;
+  padding-inline: 0.3rem;
+  border: 1px solid var(--hairline);
+  border-radius: 999px;
+  color: var(--cyan);
+  font-size: 0.58rem;
+}
+.turnstile-guidance p {
+  margin: 0;
+}
+.turnstile-guidance button {
+  margin-left: auto;
+  border: 0;
+  background: transparent;
+  color: var(--cyan);
+  font: inherit;
+  text-decoration: underline;
+  text-underline-offset: 0.2rem;
+}
+.turnstile-shell--verified .turnstile-guidance {
+  color: var(--lime);
+}
+.turnstile-shell--verified .turnstile-guidance > span {
+  border-color: rgba(184, 255, 61, 0.45);
+  color: var(--lime);
+}
+.turnstile-shell--error .turnstile-guidance,
+.turnstile-shell--error .turnstile-guidance > span {
+  color: var(--danger);
+}
 .contact-protection-unavailable {
   margin: 0;
   color: var(--amber);
