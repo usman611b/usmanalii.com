@@ -25,7 +25,11 @@ type TurnstileApi = {
 
 type TurnstileWindow = Window & { turnstile?: TurnstileApi };
 
-const SITE_KEY = import.meta.env.PUBLIC_TURNSTILE_SITE_KEY?.trim() ?? '';
+// Turnstile site keys are public browser identifiers (the secret remains only
+// in the Worker). Keep the production key as a safe fallback so direct Pages
+// uploads cannot silently disable Contact and Journal Responses.
+const PRODUCTION_SITE_KEY = '0x4AAAAAAEbBkeDNYRIkOVMY';
+const SITE_KEY = import.meta.env.PUBLIC_TURNSTILE_SITE_KEY?.trim() || PRODUCTION_SITE_KEY;
 const SCRIPT_ID = 'cloudflare-turnstile-script';
 const SCRIPT_URL = 'https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit';
 const SCRIPT_LOAD_TIMEOUT_MS = 12_000;

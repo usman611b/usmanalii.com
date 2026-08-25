@@ -29,4 +29,9 @@ describe('TurnstileWidget recovery', () => {
     expect(source).toContain('role="group"');
     expect(source).toContain('aria-label="Bot verification"');
   });
+
+  it('keeps the public production site key available for direct Pages builds', () => {
+    expect(source).toContain("const PRODUCTION_SITE_KEY = '0x4AAAAAAEbBkeDNYRIkOVMY'");
+    expect(source).toContain('|| PRODUCTION_SITE_KEY');
+  });
 });
